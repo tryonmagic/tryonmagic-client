@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "c59cc01195af743b04b0c028909551ce"
-application_url = "https://reveals-involve-tion-promises.trycloudflare.com"
+application_url = "https://throw-arbitration-mono-greatest.trycloudflare.com"
 embedded = true
 name = "prodigy-ai"
 handle = "prodigy-ai"
@@ -27,9 +27,9 @@ scopes = "write_products"
 
 [auth]
 redirect_urls = [
-  "https://reveals-involve-tion-promises.trycloudflare.com/auth/callback",
-  "https://reveals-involve-tion-promises.trycloudflare.com/auth/shopify/callback",
-  "https://reveals-involve-tion-promises.trycloudflare.com/api/auth/callback"
+  "https://throw-arbitration-mono-greatest.trycloudflare.com/auth/callback",
+  "https://throw-arbitration-mono-greatest.trycloudflare.com/auth/shopify/callback",
+  "https://throw-arbitration-mono-greatest.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]

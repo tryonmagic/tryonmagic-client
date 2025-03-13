@@ -6,6 +6,10 @@ const nextConfig = {
     NEXT_PUBLIC_HOST: process.env.HOST,
     NEXT_PUBLIC_SHOPIFY_API_KEY: process.env.SHOPIFY_API_KEY,
   },
-}
+  images: {
+    domains: ["ig89yd5z8iykrgxva.lite.vusercontent.net"],
+    dangerouslyAllowSVG: true,
+  },
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;

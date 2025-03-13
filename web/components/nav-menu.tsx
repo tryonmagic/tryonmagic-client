@@ -30,7 +30,7 @@ export function NavMenu() {
       <div className="container flex h-14 items-center">
         <div className="mr-4 hidden md:flex">
           <Link
-            href="/app"
+            href="/"
             className="mr-6 flex items-center space-x-2 font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600"
           >
             ProdigyAI
