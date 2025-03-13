@@ -1,10 +1,10 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "c59cc01195af743b04b0c028909551ce"
-application_url = "https://desired-wi-rider-teaches.trycloudflare.com"
+application_url = "https://democracy-mug-robots-participant.trycloudflare.com"
 embedded = true
-name = "growing-sale-app"
-handle = "growing-sale-app-2"
+name = "prodigy-ai"
+handle = "prodigy-ai"
 
 [build]
 include_config_on_deploy = true
@@ -27,9 +27,9 @@ scopes = "write_products"
 
 [auth]
 redirect_urls = [
-  "https://desired-wi-rider-teaches.trycloudflare.com/auth/callback",
-  "https://desired-wi-rider-teaches.trycloudflare.com/auth/shopify/callback",
-  "https://desired-wi-rider-teaches.trycloudflare.com/api/auth/callback"
+  "https://democracy-mug-robots-participant.trycloudflare.com/auth/callback",
+  "https://democracy-mug-robots-participant.trycloudflare.com/auth/shopify/callback",
+  "https://democracy-mug-robots-participant.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]
