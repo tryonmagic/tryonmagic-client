@@ -8,25 +8,22 @@ import { TanstackProvider } from "./tanstack-provider";
 import { Outlet } from "@remix-run/react";
 import { NavMenu } from "@shopify/app-bridge-react";
 import Link from "next/link";
+import { ThemeProvider } from "@/app/providers/theme-provider";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <AppProvider i18n={translations}>
       <TanstackProvider>
-        <NavMenu>
-          <Link href="/app" rel="home">
-            ProdigyAI
-          </Link>
-          <Link href="/app/ai-model">AI Model</Link>
-          <Link href="/ai-product">AI Product</Link>
-          <Link href="/remove-bg">Remove BG</Link>
-          <Link href="/upscale">Upscale</Link>
-          <Link href="/relight">Relight</Link>
-          <Link href="/expand-image">Expand Image</Link>
-          <Link href="/magic-eraser">Magic Eraser</Link>
-          <Link href="/purchase">Purchase (200 Points)</Link>
-        </NavMenu>
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+          </ThemeProvider>
+        </SessionProvider>
       </TanstackProvider>
     </AppProvider>
   );
