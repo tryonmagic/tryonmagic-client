@@ -9,6 +9,19 @@ import { Button } from "@/components/ui/button";
 // Import the ThemeToggle component at the top of the file
 import { ThemeToggle } from "@/components/theme-toggle";
 
+// Import additional icons and components at the top
+import { User, Settings, LogOut, CreditCard, History } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 const navLinks = [
   { href: "/", label: "ProdigyAI", isHome: true },
   { href: "/ai-model", label: "AI Model" },
@@ -68,10 +81,60 @@ export function NavMenu() {
           <div className="flex items-center">
             <ThemeToggle />
 
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="ml-2 rounded-full"
+                >
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src="/placeholder.svg" alt="User" />
+                    <AvatarFallback>US</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile" className="cursor-pointer">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile?tab=usage" className="cursor-pointer">
+                      <History className="mr-2 h-4 w-4" />
+                      <span>Usage History</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/purchase" className="cursor-pointer">
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      <span>Buy Points</span>
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/profile?tab=settings" className="cursor-pointer">
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             {/* Mobile menu button */}
             <div className="md:hidden ml-2">
               <Button
-                // variant="ghost"
+                variant="ghost"
                 className="px-0 text-base hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
               >
