@@ -763,7 +763,11 @@ export default function ExpandImagePage() {
                                   opacity: 0.7,
                                 }}
                               >
-                                <div style={getExpansionPreview()}>
+                                <div
+                                  style={
+                                    getExpansionPreview() as React.CSSProperties
+                                  }
+                                >
                                   <div className="w-full h-full bg-purple-500 bg-opacity-30 rounded-sm"></div>
                                 </div>
                               </div>
