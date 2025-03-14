@@ -14,8 +14,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import PageWrapper from "./page-wrapper";
 
-export default function Home() {
+function AboutProdigyAI() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
@@ -574,3 +575,11 @@ const beforeAfterExamples = [
     link: "/relight",
   },
 ];
+
+export default function Page() {
+  return (
+    <PageWrapper>
+      <AboutProdigyAI />
+    </PageWrapper>
+  );
+}
