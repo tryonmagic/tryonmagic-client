@@ -26,12 +26,13 @@ const navLinks = [
   { href: "/", label: "ProdigyAI", isHome: true },
   { href: "/ai-model", label: "AI Model" },
   { href: "/ai-product", label: "AI Product" },
+  { href: "/virtual-try-on", label: "Virtual Try-On" },
   { href: "/remove-bg", label: "Remove BG" },
   { href: "/upscale", label: "Upscale" },
   { href: "/relight", label: "Relight" },
   { href: "/expand-image", label: "Expand Image" },
   { href: "/magic-eraser", label: "Magic Eraser" },
-  { href: "/purchase", label: "Purchase (200 Points)" },
+  { href: "/purchase", label: "Purchase" },
 ];
 
 export function NavMenu() {
