@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import Link from "next/link";
 
 const navLinks = [
   { href: "/", label: "ProdigyAI", isHome: true },
@@ -37,6 +37,8 @@ const navLinks = [
 export function NavMenu() {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  // const app = useAppBridge();
+  // console.log("App", app.origin);
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -55,6 +57,11 @@ export function NavMenu() {
                 <Link
                   key={link.href}
                   href={link.href}
+                  // onClick={() => {
+                  //   console.log("Link clicked 1", window.location.host);
+                  //   console.log("Link clicked 2", link.href);
+                  //   window.location.href = link.href;
+                  // }}
                   className={cn(
                     "transition-colors hover:text-foreground/80",
                     pathname === link.href
