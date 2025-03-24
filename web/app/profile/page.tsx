@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
-import Link from "next/link"
-import Image from "next/image"
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
 import {
   CreditCard,
   History,
@@ -25,19 +25,45 @@ import {
   ShieldCheck,
   Key,
   Trash2,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Progress } from "@/components/ui/progress"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useAppBridge } from "@shopify/app-bridge-react";
 
 // Mock data for the profile
 const userData = {
@@ -49,7 +75,7 @@ const userData = {
   pointsAvailable: 145,
   pointsTotal: 200,
   pointsExpiry: "June 15, 2023",
-}
+};
 
 // Mock data for usage history
 const usageHistory = [
@@ -107,7 +133,7 @@ const usageHistory = [
     status: "completed",
     result: "/placeholder.svg?height=100&width=100",
   },
-]
+];
 
 // Mock data for usage statistics
 const usageStats = {
@@ -129,7 +155,7 @@ const usageStats = {
     { date: "May 5", count: 3 },
     { date: "May 4", count: 2 },
   ],
-}
+};
 
 // Tool icons mapping
 const toolIcons: Record<string, React.ElementType> = {
@@ -139,48 +165,58 @@ const toolIcons: Record<string, React.ElementType> = {
   "AI Product": ImagePlus,
   "Expand Image": Maximize,
   "Magic Eraser": Eraser,
-}
+};
 
 export default function ProfilePage() {
-  const searchParams = useSearchParams()
-  const tabParam = searchParams.get("tab")
-  const [activeTab, setActiveTab] = useState("overview")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [filterTool, setFilterTool] = useState("all")
-  const [dateRange, setDateRange] = useState("all-time")
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState("overview");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterTool, setFilterTool] = useState("all");
+  const [dateRange, setDateRange] = useState("all-time");
+  const shopifyApp = useAppBridge();
+  console.log(shopifyApp);
+  useEffect(() => {
+    console.log("App", shopifyApp.origin);
+    shopifyApp.user().then((user) => {
+      console.log("User", user);
+    });
+  }, [shopifyApp]);
 
   // Set the active tab based on URL parameter
   useEffect(() => {
     if (tabParam && ["overview", "usage", "settings"].includes(tabParam)) {
-      setActiveTab(tabParam)
+      setActiveTab(tabParam);
     }
-  }, [tabParam])
+  }, [tabParam]);
 
   // Filter usage history based on search, tool, and date range
   const filteredHistory = usageHistory.filter((item) => {
-    const matchesSearch = searchQuery === "" || item.tool.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesSearch =
+      searchQuery === "" ||
+      item.tool.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesTool = filterTool === "all" || item.tool === filterTool
+    const matchesTool = filterTool === "all" || item.tool === filterTool;
 
     // Simple date filtering logic - could be expanded for more complex filtering
-    const itemDate = new Date(item.date)
-    const now = new Date()
-    let matchesDate = true
+    const itemDate = new Date(item.date);
+    const now = new Date();
+    let matchesDate = true;
 
     if (dateRange === "last-week") {
-      const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-      matchesDate = itemDate >= lastWeek
+      const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      matchesDate = itemDate >= lastWeek;
     } else if (dateRange === "last-month") {
-      const lastMonth = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-      matchesDate = itemDate >= lastMonth
+      const lastMonth = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      matchesDate = itemDate >= lastMonth;
     }
 
-    return matchesSearch && matchesTool && matchesDate
-  })
+    return matchesSearch && matchesTool && matchesDate;
+  });
 
   // Format date for display
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
+    const date = new Date(dateString);
     return new Intl.DateTimeFormat("en-US", {
       month: "short",
       day: "numeric",
@@ -188,8 +224,8 @@ export default function ProfilePage() {
       hour: "numeric",
       minute: "numeric",
       hour12: true,
-    }).format(date)
-  }
+    }).format(date);
+  };
 
   return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4 md:p-8">
@@ -203,7 +239,11 @@ export default function ProfilePage() {
           </p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="space-y-8"
+        >
           <TabsList className="grid w-full max-w-md mx-auto grid-cols-3">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="usage">Usage History</TabsTrigger>
@@ -219,7 +259,10 @@ export default function ProfilePage() {
                   <div className="flex flex-col items-center text-center">
                     <div className="relative mb-4">
                       <Avatar className="h-24 w-24">
-                        <AvatarImage src={userData.avatar} alt={userData.name} />
+                        <AvatarImage
+                          src={userData.avatar}
+                          alt={userData.name}
+                        />
                         <AvatarFallback>
                           {userData.name
                             .split(" ")
@@ -236,7 +279,9 @@ export default function ProfilePage() {
                       </Button>
                     </div>
                     <h2 className="text-xl font-bold">{userData.name}</h2>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">{userData.email}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      {userData.email}
+                    </p>
                     <div className="flex items-center mt-2 text-xs text-slate-500 dark:text-slate-500">
                       <Calendar className="h-3 w-3 mr-1" />
                       <span>Member since {userData.joinDate}</span>
@@ -256,19 +301,28 @@ export default function ProfilePage() {
                 <CardHeader>
                   <CardTitle>Your Points</CardTitle>
                   <CardDescription>
-                    Current plan: <span className="font-medium">{userData.plan}</span>
+                    Current plan:{" "}
+                    <span className="font-medium">{userData.plan}</span>
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
                     <div>
                       <div className="flex justify-between mb-2">
-                        <span className="text-sm text-slate-600 dark:text-slate-400">Available Points</span>
+                        <span className="text-sm text-slate-600 dark:text-slate-400">
+                          Available Points
+                        </span>
                         <span className="text-sm font-medium">
                           {userData.pointsAvailable} / {userData.pointsTotal}
                         </span>
                       </div>
-                      <Progress value={(userData.pointsAvailable / userData.pointsTotal) * 100} className="h-2" />
+                      <Progress
+                        value={
+                          (userData.pointsAvailable / userData.pointsTotal) *
+                          100
+                        }
+                        className="h-2"
+                      />
                       <div className="flex items-center mt-2 text-xs text-slate-500 dark:text-slate-500">
                         <Clock className="h-3 w-3 mr-1" />
                         <span>Points expire on {userData.pointsExpiry}</span>
@@ -296,7 +350,9 @@ export default function ProfilePage() {
             <Card>
               <CardHeader>
                 <CardTitle>Usage Dashboard</CardTitle>
-                <CardDescription>Overview of your tool usage and activity</CardDescription>
+                <CardDescription>
+                  Overview of your tool usage and activity
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -305,7 +361,7 @@ export default function ProfilePage() {
                     <h3 className="text-lg font-medium">Usage by Tool</h3>
                     <div className="space-y-3">
                       {usageStats.byTool.map((item) => {
-                        const Icon = toolIcons[item.tool] || Sparkles
+                        const Icon = toolIcons[item.tool] || Sparkles;
                         return (
                           <div key={item.tool} className="space-y-1">
                             <div className="flex items-center justify-between text-sm">
@@ -313,11 +369,16 @@ export default function ProfilePage() {
                                 <Icon className="h-4 w-4 mr-2 text-purple-600 dark:text-purple-400" />
                                 <span>{item.tool}</span>
                               </div>
-                              <span className="font-medium">{item.count} uses</span>
+                              <span className="font-medium">
+                                {item.count} uses
+                              </span>
                             </div>
-                            <Progress value={item.percentage} className="h-1.5" />
+                            <Progress
+                              value={item.percentage}
+                              className="h-1.5"
+                            />
                           </div>
-                        )
+                        );
                       })}
                     </div>
                   </div>
@@ -332,7 +393,9 @@ export default function ProfilePage() {
                           className="flex items-center justify-between text-sm p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800"
                         >
                           <span>{item.date}</span>
-                          <Badge variant="outline">{item.count} operations</Badge>
+                          <Badge variant="outline">
+                            {item.count} operations
+                          </Badge>
                         </div>
                       ))}
                     </div>
@@ -344,29 +407,41 @@ export default function ProfilePage() {
                     <div className="grid grid-cols-2 gap-4">
                       <Card>
                         <CardContent className="p-4 text-center">
-                          <p className="text-sm text-slate-600 dark:text-slate-400">Total Operations</p>
-                          <p className="text-3xl font-bold">{usageStats.totalUsage}</p>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                            Total Operations
+                          </p>
+                          <p className="text-3xl font-bold">
+                            {usageStats.totalUsage}
+                          </p>
                         </CardContent>
                       </Card>
                       <Card>
                         <CardContent className="p-4 text-center">
-                          <p className="text-sm text-slate-600 dark:text-slate-400">Points Used</p>
-                          <p className="text-3xl font-bold">{userData.pointsTotal - userData.pointsAvailable}</p>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                            Points Used
+                          </p>
+                          <p className="text-3xl font-bold">
+                            {userData.pointsTotal - userData.pointsAvailable}
+                          </p>
                         </CardContent>
                       </Card>
                       <Card className="col-span-2">
                         <CardContent className="p-4 text-center">
-                          <p className="text-sm text-slate-600 dark:text-slate-400">Most Used Tool</p>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                            Most Used Tool
+                          </p>
                           <div className="flex items-center justify-center mt-1">
                             {(() => {
-                              const mostUsed = usageStats.byTool[0]
-                              const Icon = toolIcons[mostUsed.tool] || Sparkles
+                              const mostUsed = usageStats.byTool[0];
+                              const Icon = toolIcons[mostUsed.tool] || Sparkles;
                               return (
                                 <>
                                   <Icon className="h-5 w-5 mr-2 text-purple-600 dark:text-purple-400" />
-                                  <p className="text-lg font-bold">{mostUsed.tool}</p>
+                                  <p className="text-lg font-bold">
+                                    {mostUsed.tool}
+                                  </p>
                                 </>
-                              )
+                              );
                             })()}
                           </div>
                         </CardContent>
@@ -376,7 +451,11 @@ export default function ProfilePage() {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" className="w-full" onClick={() => setActiveTab("usage")}>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setActiveTab("usage")}
+                >
                   View Detailed History
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -387,12 +466,14 @@ export default function ProfilePage() {
             <Card>
               <CardHeader>
                 <CardTitle>Recent Operations</CardTitle>
-                <CardDescription>Your most recent AI operations</CardDescription>
+                <CardDescription>
+                  Your most recent AI operations
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {usageHistory.slice(0, 3).map((item) => {
-                    const Icon = item.icon
+                    const Icon = item.icon;
                     return (
                       <Card key={item.id} className="overflow-hidden border">
                         <div className="aspect-square relative">
@@ -405,7 +486,9 @@ export default function ProfilePage() {
                           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
                             <div className="flex items-center text-white">
                               <Icon className="h-4 w-4 mr-2" />
-                              <span className="text-sm font-medium">{item.tool}</span>
+                              <span className="text-sm font-medium">
+                                {item.tool}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -418,12 +501,16 @@ export default function ProfilePage() {
                           </div>
                         </CardContent>
                       </Card>
-                    )
+                    );
                   })}
                 </div>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" className="w-full" onClick={() => setActiveTab("usage")}>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setActiveTab("usage")}
+                >
                   View All Operations
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -436,7 +523,9 @@ export default function ProfilePage() {
             <Card>
               <CardHeader>
                 <CardTitle>Usage History</CardTitle>
-                <CardDescription>Track all your AI operations and points usage</CardDescription>
+                <CardDescription>
+                  Track all your AI operations and points usage
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Filters */}
@@ -457,9 +546,15 @@ export default function ProfilePage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Tools</SelectItem>
-                      <SelectItem value="AI Fashion Model">AI Fashion Model</SelectItem>
-                      <SelectItem value="Remove Background">Remove Background</SelectItem>
-                      <SelectItem value="Upscale Image">Upscale Image</SelectItem>
+                      <SelectItem value="AI Fashion Model">
+                        AI Fashion Model
+                      </SelectItem>
+                      <SelectItem value="Remove Background">
+                        Remove Background
+                      </SelectItem>
+                      <SelectItem value="Upscale Image">
+                        Upscale Image
+                      </SelectItem>
                       <SelectItem value="AI Product">AI Product</SelectItem>
                       <SelectItem value="Expand Image">Expand Image</SelectItem>
                       <SelectItem value="Magic Eraser">Magic Eraser</SelectItem>
@@ -492,10 +587,12 @@ export default function ProfilePage() {
                     <TableBody>
                       {filteredHistory.length > 0 ? (
                         filteredHistory.map((item) => {
-                          const Icon = item.icon
+                          const Icon = item.icon;
                           return (
                             <TableRow key={item.id}>
-                              <TableCell className="font-medium">{formatDate(item.date)}</TableCell>
+                              <TableCell className="font-medium">
+                                {formatDate(item.date)}
+                              </TableCell>
                               <TableCell>
                                 <div className="flex items-center">
                                   <Icon className="h-4 w-4 mr-2 text-purple-600 dark:text-purple-400" />
@@ -503,7 +600,9 @@ export default function ProfilePage() {
                                 </div>
                               </TableCell>
                               <TableCell>
-                                <Badge variant="outline">{item.pointsUsed} points</Badge>
+                                <Badge variant="outline">
+                                  {item.pointsUsed} points
+                                </Badge>
                               </TableCell>
                               <TableCell>
                                 <div className="h-10 w-10 rounded-md overflow-hidden">
@@ -536,11 +635,14 @@ export default function ProfilePage() {
                                 </DropdownMenu>
                               </TableCell>
                             </TableRow>
-                          )
+                          );
                         })
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center py-8 text-slate-500 dark:text-slate-400">
+                          <TableCell
+                            colSpan={5}
+                            className="text-center py-8 text-slate-500 dark:text-slate-400"
+                          >
                             No operations found matching your filters.
                           </TableCell>
                         </TableRow>
@@ -552,8 +654,13 @@ export default function ProfilePage() {
                 {/* Pagination - simplified for demo */}
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Showing <span className="font-medium">{filteredHistory.length}</span> of{" "}
-                    <span className="font-medium">{usageHistory.length}</span> operations
+                    Showing{" "}
+                    <span className="font-medium">
+                      {filteredHistory.length}
+                    </span>{" "}
+                    of{" "}
+                    <span className="font-medium">{usageHistory.length}</span>{" "}
+                    operations
                   </p>
                   <div className="flex items-center space-x-2">
                     <Button variant="outline" size="sm" disabled>
@@ -571,7 +678,9 @@ export default function ProfilePage() {
             <Card>
               <CardHeader>
                 <CardTitle>Export Data</CardTitle>
-                <CardDescription>Download your usage history in different formats</CardDescription>
+                <CardDescription>
+                  Download your usage history in different formats
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-4">
@@ -599,7 +708,9 @@ export default function ProfilePage() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Account Settings</CardTitle>
-                    <CardDescription>Manage your account preferences</CardDescription>
+                    <CardDescription>
+                      Manage your account preferences
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <div className="space-y-2">
@@ -608,7 +719,11 @@ export default function ProfilePage() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="email">Email Address</Label>
-                      <Input id="email" type="email" defaultValue={userData.email} />
+                      <Input
+                        id="email"
+                        type="email"
+                        defaultValue={userData.email}
+                      />
                     </div>
                     <Button className="w-full">Save Changes</Button>
                   </CardContent>
@@ -619,12 +734,16 @@ export default function ProfilePage() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Notification Preferences</CardTitle>
-                    <CardDescription>Control what notifications you receive</CardDescription>
+                    <CardDescription>
+                      Control what notifications you receive
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
-                        <Label htmlFor="email-notifications">Email Notifications</Label>
+                        <Label htmlFor="email-notifications">
+                          Email Notifications
+                        </Label>
                         <p className="text-sm text-slate-500 dark:text-slate-400">
                           Receive emails about your account activity
                         </p>
@@ -633,16 +752,21 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
-                        <Label htmlFor="marketing-emails">Marketing Emails</Label>
+                        <Label htmlFor="marketing-emails">
+                          Marketing Emails
+                        </Label>
                         <p className="text-sm text-slate-500 dark:text-slate-400">
-                          Receive promotional emails about new features and offers
+                          Receive promotional emails about new features and
+                          offers
                         </p>
                       </div>
                       <Switch id="marketing-emails" />
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
-                        <Label htmlFor="points-expiry">Points Expiry Reminders</Label>
+                        <Label htmlFor="points-expiry">
+                          Points Expiry Reminders
+                        </Label>
                         <p className="text-sm text-slate-500 dark:text-slate-400">
                           Get notified when your points are about to expire
                         </p>
@@ -655,13 +779,17 @@ export default function ProfilePage() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Security</CardTitle>
-                    <CardDescription>Manage your account security settings</CardDescription>
+                    <CardDescription>
+                      Manage your account security settings
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label>Password</Label>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Last changed 3 months ago</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                          Last changed 3 months ago
+                        </p>
                       </div>
                       <Button variant="outline">
                         <Key className="mr-2 h-4 w-4" />
@@ -685,8 +813,12 @@ export default function ProfilePage() {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-red-600 dark:text-red-400">Danger Zone</CardTitle>
-                    <CardDescription>Irreversible account actions</CardDescription>
+                    <CardTitle className="text-red-600 dark:text-red-400">
+                      Danger Zone
+                    </CardTitle>
+                    <CardDescription>
+                      Irreversible account actions
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <div className="flex items-center justify-between">
@@ -709,6 +841,5 @@ export default function ProfilePage() {
         </Tabs>
       </div>
     </div>
-  )
+  );
 }
-

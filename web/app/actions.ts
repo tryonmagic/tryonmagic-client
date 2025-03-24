@@ -34,7 +34,7 @@ export async function doServerAction(sessionIdToken: string): Promise<{
  * Store the session (and access token) in the database
  */
 export async function storeToken(sessionToken: string) {
-  await handleSessionToken(sessionToken, false, true);
+  await handleSessionToken(sessionToken, true, true);
 }
 
 /**

@@ -1,6 +1,7 @@
 import { Session } from "@prisma/client";
 import { Session as ShopifySession } from "@shopify/shopify-api";
 import prisma from "./prisma-connect";
+import { serverSideAPI } from "../api";
 const apiKey = process.env.SHOPIFY_API_KEY || "";
 
 /**
@@ -9,69 +10,8 @@ const apiKey = process.env.SHOPIFY_API_KEY || "";
  * access token later
  */
 export async function storeSession(session: ShopifySession) {
-  await prisma.session.upsert({
-    where: { id: session.id },
-    update: {
-      shop: session.shop,
-      accessToken: session.accessToken,
-      scope: session.scope,
-      expires: session.expires,
-      isOnline: session.isOnline,
-      state: session.state,
-      apiKey,
-    },
-    create: {
-      id: session.id,
-      shop: session.shop,
-      accessToken: session.accessToken,
-      scope: session.scope,
-      expires: session.expires,
-      isOnline: session.isOnline,
-      state: session.state,
-      apiKey,
-    },
-  });
-
-  if (session.onlineAccessInfo) {
-    const onlineAccessInfo = await prisma.onlineAccessInfo.upsert({
-      where: { sessionId: session.id },
-      update: {
-        expiresIn: session.onlineAccessInfo.expires_in,
-        associatedUserScope: session.onlineAccessInfo.associated_user_scope,
-      },
-      create: {
-        sessionId: session.id,
-        expiresIn: session.onlineAccessInfo.expires_in,
-        associatedUserScope: session.onlineAccessInfo.associated_user_scope,
-      },
-    });
-
-    const { associated_user } = session.onlineAccessInfo;
-    const associatedUser = await prisma.associatedUser.upsert({
-      where: { onlineAccessInfoId: onlineAccessInfo.id },
-      update: {
-        firstName: associated_user.first_name,
-        lastName: associated_user.last_name,
-        email: associated_user.email,
-        emailVerified: associated_user.email_verified,
-        accountOwner: associated_user.account_owner,
-        locale: associated_user.locale,
-        collaborator: associated_user.collaborator,
-        userId: associated_user.id,
-      },
-      create: {
-        onlineAccessInfoId: onlineAccessInfo.id,
-        firstName: associated_user.first_name,
-        lastName: associated_user.last_name,
-        email: associated_user.email,
-        emailVerified: associated_user.email_verified,
-        accountOwner: associated_user.account_owner,
-        locale: associated_user.locale,
-        collaborator: associated_user.collaborator,
-        userId: associated_user.id,
-      },
-    });
-  }
+  const data = await serverSideAPI.post("/auth/store-shopify-token", session);
+  console.log({ data: data.data });
 }
 
 export async function loadSession(id: string) {
