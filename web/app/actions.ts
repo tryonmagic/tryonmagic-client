@@ -1,4 +1,6 @@
 "use server";
+import { serverSideAPI } from "@/lib/api";
+import { GenericAPIResponse } from "@/lib/api/type";
 import { registerWebhooks } from "@/lib/shopify/register-webhooks";
 import { handleSessionToken } from "@/lib/shopify/verify";
 
@@ -43,4 +45,12 @@ export async function storeToken(sessionToken: string) {
 export async function doWebhookRegistration(sessionToken: string) {
   const { session } = await handleSessionToken(sessionToken);
   await registerWebhooks(session);
+}
+
+export async function authenticateShopifyApp(sessionToken: string) {
+  const response = await serverSideAPI.post<GenericAPIResponse>(
+    "/auth/shopify-auth",
+    { sessionToken },
+  );
+  return response.data;
 }

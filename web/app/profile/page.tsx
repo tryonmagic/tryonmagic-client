@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-
+import axios from "axios";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -177,11 +177,10 @@ export default function ProfilePage() {
   const shopifyApp = useAppBridge();
   console.log(shopifyApp);
   useEffect(() => {
-    console.log("App", shopifyApp.origin);
-    shopifyApp.user().then((user) => {
-      console.log("User", user);
+    axios.get("/test").then((response) => {
+      console.log(response.data);
     });
-  }, [shopifyApp]);
+  }, []);
 
   // Set the active tab based on URL parameter
   useEffect(() => {

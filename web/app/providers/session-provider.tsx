@@ -1,7 +1,11 @@
 "use client";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { useEffect } from "react";
-import { doWebhookRegistration, storeToken } from "../actions";
+import {
+  authenticateShopifyApp,
+  doWebhookRegistration,
+  storeToken,
+} from "../actions";
 import { useRouter, usePathname } from "next/navigation"; // Import useRouter and usePathname
 
 export default function SessionProvider({
@@ -24,9 +28,9 @@ export default function SessionProvider({
           return;
         }
         console.log("Token", token);
-        storeToken(token)
-          .then(() => {
-            console.log("Token stored");
+        authenticateShopifyApp(token)
+          .then((data) => {
+            console.log("App authenticated", data);
           })
           .catch((error) => {
             console.error("Error storing token", error);
@@ -45,7 +49,7 @@ export default function SessionProvider({
           router.push("/");
         }
       });
-  }, [app]);
+  }, [app, pathname, router]);
 
   return <>{children}</>;
 }
