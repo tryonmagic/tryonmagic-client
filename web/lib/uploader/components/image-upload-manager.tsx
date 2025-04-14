@@ -26,8 +26,17 @@ import {
   Dialog as CDialog,
   DialogBackdrop,
   DialogPanel,
-  DialogTitle,
 } from "@headlessui/react";
+import { FileUploadingModalMeta, IFile, UploadingProgressMeta } from "../type";
+import toast from "react-hot-toast";
+import {
+  AxiosMultiPartApiClient,
+  uploadMultiPartFile,
+  UploadProgress,
+} from "../uploader";
+import { generateThumbHash } from "../utils";
+import { clientAPI, s3UploadAPIClient } from "@/lib/api";
+import { useAppBridge } from "@shopify/app-bridge-react";
 
 // Types
 type ImageType = {
@@ -86,6 +95,53 @@ const formatDate = (date: Date): string => {
   }).format(date);
 };
 
+const getPreviewFilesWithCount = (
+  files: FileList | null,
+): FileUploadingModalMeta | null => {
+  if (!files) {
+    return null;
+  }
+  const images: File[] = [];
+  const videos: File[] = [];
+  const MAX_IMAGES = 2;
+  const MAX_VIDEOS = 2;
+  const PREVIEW_MAX = 4;
+  const totalFiles = files.length;
+  for (let i = 0; i < totalFiles; i++) {
+    const file = files[i];
+    if (file.type.startsWith("image")) {
+      images.push(file);
+    } else if (file.type.startsWith("video")) {
+      videos.push(file);
+    } else {
+      throw new Error(
+        `Only image and video file are acceptable. Got ${file.type}! `,
+      );
+    }
+  }
+
+  const previewFiles: File[] = images
+    .slice(0, MAX_IMAGES)
+    .concat(...videos.slice(0, MAX_VIDEOS));
+
+  if (previewFiles.length < PREVIEW_MAX && images.length > MAX_IMAGES) {
+    previewFiles.push(
+      ...images.slice(2, 2 + (PREVIEW_MAX - previewFiles.length)),
+    );
+  } else if (previewFiles.length < PREVIEW_MAX && videos.length > MAX_VIDEOS) {
+    previewFiles.push(
+      ...videos.slice(2, 2 + (PREVIEW_MAX - previewFiles.length)),
+    );
+  }
+
+  return {
+    previewFiles,
+    totalVideos: videos.length,
+    totalImages: images.length,
+    totalFiles,
+    uploadedFile: new Set(),
+  };
+};
 interface ImageUploadDialogProps {
   triggerButtonText?: string;
   onImagesSelected?: (selectedImages: ImageType[]) => void;
@@ -156,76 +212,174 @@ function ImageUploadManager({
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadingCount, setUploadingCount] = useState(0);
+  const [fileUploadingModalMeta, setFileUploadingModalMeta] =
+    useState<FileUploadingModalMeta | null>(null);
+  const [uploadingProgressMeta, setUploadingProgressMeta] = useState<
+    Record<string, UploadingProgressMeta>
+  >({});
+  const app = useAppBridge();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const handleOnProgress = (
+    fileName: string,
+    uploadProgress: UploadProgress,
+  ) => {
+    if (uploadProgress.percentage === 100) {
+      delete uploadingProgressMeta[fileName];
+      setUploadingProgressMeta(uploadingProgressMeta);
+      return;
+    }
+    setUploadingProgressMeta((prevState) => ({
+      ...prevState,
+      [fileName]: {
+        fileName,
+        progress: uploadProgress.percentage,
+      },
+    }));
+  };
+
+  const handleOnComplete = () => {
+    console.log("completed");
+    setFileUploadingModalMeta((prevState) => ({
+      ...(prevState as FileUploadingModalMeta),
+      completed: true,
+    }));
+    setUploadingProgressMeta({});
+  };
+
+  const saveFile = async (key: string, file: File) => {
+    const token = await app.idToken();
+
+    const saveFileRequest: IFile = {
+      key: key,
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      ext: file.name.split(".").pop() as string,
+      mime: file.type,
+      fullPath: `shopifyapp/${key}`,
+      url: "s3://shopifyapp/" + key,
+      width: 0,
+      height: 0,
+    };
+    if (file.type.startsWith("image")) {
+      const imageInfo = await generateThumbHash(file);
+      // saveFileRequest.thumbHash = imageInfo.thumbHash;
+      saveFileRequest.width = imageInfo.width;
+      saveFileRequest.height = imageInfo.height;
+    }
+    const response = await clientAPI(token).post<IFile>(
+      `/storage/save-file`,
+      saveFileRequest,
+    );
+    return response.data;
+  };
+
+  const handleOnSingleUploadFileComplete = async (key: string, file: File) => {
+    await saveFile(key, file);
+    setFileUploadingModalMeta((prevState) => {
+      const uploadedFile = prevState?.uploadedFile ?? new Set();
+      uploadedFile.add(key);
+      return {
+        ...(prevState as FileUploadingModalMeta),
+        uploadedFile,
+      };
+    });
+  };
+
+  const uploadMediaToS3 = async (files: FileList) => {
+    const token = await app.idToken();
+    uploadMultiPartFile(
+      Array.from(files),
+      (fileName, uploadProgress) => {
+        handleOnProgress(fileName, uploadProgress);
+      },
+      handleOnComplete,
+      handleOnSingleUploadFileComplete,
+      new AxiosMultiPartApiClient(s3UploadAPIClient(token)),
+    );
+  };
+
+  const handleOnFileUpload = (files: FileList) => {
+    try {
+      setFileUploadingModalMeta(getPreviewFilesWithCount(files));
+      uploadMediaToS3(files);
+    } catch (error) {
+      const err = error as Error;
+      toast.error(err.message ?? "Something went wrong!");
+    }
+  };
   // Handle file selection
   const handleFileSelect = useCallback(
     (files: FileList | null) => {
-      if (!files || files.length === 0) return;
+      if (!files || files.length === 0) {
+        toast.success("No file selected!");
+        return;
+      }
 
       setUploadingCount((prev) => prev + files.length);
+      handleOnFileUpload(files);
+      // Array.from(files).forEach((file) => {
+      //   const imageId = `img-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      //   const objectUrl = URL.createObjectURL(file);
 
-      Array.from(files).forEach((file) => {
-        const imageId = `img-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-        const objectUrl = URL.createObjectURL(file);
+      //   // Immediately add to gallery with uploading status
+      //   const newImage: ImageType = {
+      //     id: imageId,
+      //     name: file.name,
+      //     url: objectUrl,
+      //     thumbnailUrl: objectUrl,
+      //     size: file.size,
+      //     type: file.name.split(".").pop() || "",
+      //     tags: ["new"],
+      //     uploadDate: new Date(),
+      //     uploading: true,
+      //     progress: 0,
+      //   };
 
-        // Immediately add to gallery with uploading status
-        const newImage: ImageType = {
-          id: imageId,
-          name: file.name,
-          url: objectUrl,
-          thumbnailUrl: objectUrl,
-          size: file.size,
-          type: file.name.split(".").pop() || "",
-          tags: ["new"],
-          uploadDate: new Date(),
-          uploading: true,
-          progress: 0,
-        };
+      //   setImages((prev) => [newImage, ...prev]);
 
-        setImages((prev) => [newImage, ...prev]);
+      //   // Simulate upload progress
+      //   const simulateUpload = () => {
+      //     setImages((prev) =>
+      //       prev.map((img) => {
+      //         if (
+      //           img.id === imageId &&
+      //           img.uploading &&
+      //           (img.progress || 0) < 100
+      //         ) {
+      //           const newProgress = Math.min(
+      //             (img.progress || 0) + Math.random() * 20,
+      //             100,
+      //           );
+      //           return { ...img, progress: newProgress };
+      //         }
+      //         return img;
+      //       }),
+      //     );
 
-        // Simulate upload progress
-        const simulateUpload = () => {
-          setImages((prev) =>
-            prev.map((img) => {
-              if (
-                img.id === imageId &&
-                img.uploading &&
-                (img.progress || 0) < 100
-              ) {
-                const newProgress = Math.min(
-                  (img.progress || 0) + Math.random() * 20,
-                  100,
-                );
-                return { ...img, progress: newProgress };
-              }
-              return img;
-            }),
-          );
+      //     const currentImage = images.find((img) => img.id === imageId);
+      //     if (currentImage?.uploading && (currentImage.progress || 0) < 100) {
+      //       setTimeout(simulateUpload, 500);
+      //     } else if (currentImage?.uploading) {
+      //       // When upload is complete, update the image
+      //       setTimeout(() => {
+      //         setImages((prev) =>
+      //           prev.map((img) => {
+      //             if (img.id === imageId) {
+      //               return { ...img, uploading: false };
+      //             }
+      //             return img;
+      //           }),
+      //         );
+      //         setUploadingCount((prev) => prev - 1);
+      //       }, 500);
+      //     }
+      //   };
 
-          const currentImage = images.find((img) => img.id === imageId);
-          if (currentImage?.uploading && (currentImage.progress || 0) < 100) {
-            setTimeout(simulateUpload, 500);
-          } else if (currentImage?.uploading) {
-            // When upload is complete, update the image
-            setTimeout(() => {
-              setImages((prev) =>
-                prev.map((img) => {
-                  if (img.id === imageId) {
-                    return { ...img, uploading: false };
-                  }
-                  return img;
-                }),
-              );
-              setUploadingCount((prev) => prev - 1);
-            }, 500);
-          }
-        };
-
-        setTimeout(simulateUpload, 300);
-      });
+      //   setTimeout(simulateUpload, 300);
+      // });
     },
     [images],
   );

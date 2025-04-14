@@ -1,4 +1,8 @@
-import axios, { AxiosProgressEvent, AxiosRequestConfig } from "axios";
+import axios, {
+  AxiosInstance,
+  AxiosProgressEvent,
+  AxiosRequestConfig,
+} from "axios";
 import toast from "react-hot-toast";
 
 import {
@@ -120,7 +124,6 @@ export class Uploader {
   private timeout: number;
   private benchmark?: UploaderBenchmark;
   private enableBenchmark: boolean;
-  private filPrefix: string;
 
   static getDefaultMultiPartUploadOptions(): MultiPartUploadOptions {
     return {
@@ -133,7 +136,6 @@ export class Uploader {
   constructor(options: UploaderOptions) {
     this.file = options.file;
     this.key = options.fileName || options.file.name;
-    this.filPrefix = options.filPrefix;
     const multiPartUploadOptions = options.multiPartUploadOptions || {};
     this.multiPartUploadOptions = {
       chunkSize: Math.max(
@@ -199,7 +201,6 @@ export class Uploader {
       const { uploadId: uploadId, key } =
         await this.apiClient.createMultiPartUpload({
           fileName: this.key,
-          filePrefix: this.filPrefix,
         });
       if (!uploadId) {
         this.onErrorFn(
@@ -381,7 +382,6 @@ export class Uploader {
       const { preSignedUrl, key } = await this.apiClient.getUploadPresignedUrl({
         fileName: this.key,
         contentType,
-        filePrefix: this.filPrefix,
       });
       if (!preSignedUrl) {
         this.onErrorFn(
@@ -437,7 +437,6 @@ export class Uploader {
         await this.apiClient.getUploadPresignedUrl({
           fileName: this.key,
           contentType,
-          filePrefix: this.filPrefix,
         });
       preSignedUrl = url;
       this.key = key;
@@ -643,7 +642,7 @@ export class Uploader {
       retryAttempts: this.fileUploadRetryAttempts,
       success: true,
     });
-    this.onCompleteFn(this.benchmark?.getBenchMark());
+    this.onCompleteFn(this.key, this.benchmark?.getBenchMark());
   }
 
   onComplete(onCompleteFn: UploaderCompleteFunc) {
@@ -778,13 +777,14 @@ export class FileUploader {
   }
 
   handleOnFileUploaded =
-    (fileName: string, file: File) => (benchmark?: TUploaderBenchmark) => {
+    (fileName: string, file: File) =>
+    (key: string, benchmark?: TUploaderBenchmark) => {
       if (benchmark) {
         this.fileBenchmarks[fileName] = benchmark;
       }
       delete this.activeUploader[fileName];
       this.uploadNext();
-      this.onSingleFileUploadCompleteFn(fileName, file);
+      this.onSingleFileUploadCompleteFn(key, file);
     };
   onProgress(onProgress: FileUploaderProgressFunc) {
     this.onProgressFn = onProgress;
@@ -830,60 +830,61 @@ export class FileUploader {
   }
 }
 
-const apiClient = axios.create({
-  baseURL: "/api",
-  headers: {
-    common: {
-      Accept: "application/json",
-    },
-  },
-  timeout: 5000,
-});
-
 export class AxiosMultiPartApiClient extends UploadApiClient {
+  private apiInstance: AxiosInstance;
+
+  constructor(apiInstance: AxiosInstance) {
+    super();
+    this.apiInstance = apiInstance;
+  }
   async getUploadPresignedUrl(
     getPreSignedUrlRequest: GetPreSignedUrlRequest,
   ): Promise<GetPreSignedUrlResponse> {
-    const response = await apiClient.post<GetPreSignedUrlResponse>(
-      `/storage/get-presigned-url`,
-      getPreSignedUrlRequest,
-    );
+    const response = await this.apiInstance.post<GetPreSignedUrlResponse>(`/`, {
+      command: "getPreSignedUrl",
+      payload: getPreSignedUrlRequest,
+    });
     return response.data;
   }
   async createMultiPartUpload(
     createMultiPartUploadRequest: CreateMultipartUploadRequest,
   ): Promise<CreateMultiPartUploadResponse> {
-    const response = await apiClient.post<CreateMultiPartUploadResponse>(
-      `/storage/create-multipart`,
-      createMultiPartUploadRequest,
+    const response = await this.apiInstance.post<CreateMultiPartUploadResponse>(
+      `/`,
+      {
+        command: "createMultipartUpload",
+        payload: createMultiPartUploadRequest,
+      },
     );
     return response.data;
   }
   async getUploadPartsPresignedUrls(
     getUploadPartsPresignedUrlsRequest: GetUploadPartsPresignedUrlsRequest,
   ): Promise<GetUploadPartPresignedUrlResponse[]> {
-    const response = await apiClient.post<GetUploadPartPresignedUrlResponse[]>(
-      `/storage/get-upload-part-presigned-url`,
-      getUploadPartsPresignedUrlsRequest,
-    );
+    const response = await this.apiInstance.post<
+      GetUploadPartPresignedUrlResponse[]
+    >(`/`, {
+      command: "getUploadPartPresignedUrls",
+      payload: getUploadPartsPresignedUrlsRequest,
+    });
     return response.data;
   }
   async completeMultipartUpload(
     completeMultipartUploadRequest: CompleteMultipartUploadRequest,
   ): Promise<void> {
-    const response = await apiClient.post(
-      `/storage/complete-multipart-upload`,
-      completeMultipartUploadRequest,
-    );
+    const response = await this.apiInstance.post(`/`, {
+      command: "completeMultipartUpload",
+      payload: completeMultipartUploadRequest,
+    });
     return response.data;
   }
   async abortMultiPartUpload(
     abortMultiPartUpload: AbortMultipartUploadRequest,
   ): Promise<void> {
-    const response = await apiClient.post(
-      `/storage/abort-multipart-upload`,
-      abortMultiPartUpload,
-    );
+    const response = await this.apiInstance.post(`/`, {
+      command: "abortMultiPartUpload",
+      payload: abortMultiPartUpload,
+    });
     return response.data;
   }
 }
@@ -893,12 +894,11 @@ export const uploadMultiPartFile = (
   onProgress: FileUploaderProgressFunc,
   onComplete: () => void,
   onSingleFileUploadComplete: SingleFileCompleteFunc,
-  filPrefix: string,
+  apiClient: AxiosMultiPartApiClient,
 ) => {
   new FileUploader({
     files,
-    apiClient: new AxiosMultiPartApiClient(),
-    filPrefix,
+    apiClient,
   })
     .onProgress(onProgress)
     .onComplete(onComplete)

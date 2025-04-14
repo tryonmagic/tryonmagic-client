@@ -1,11 +1,13 @@
 import axios from "axios";
 
-export const clientAPI = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+export const clientAPI = (sessionToken: string) =>
+  axios.create({
+    baseURL: process.env.NEXT_PUBLIC_API_URL,
+    headers: {
+      "Content-Type": "application/json",
+      "x-shopify-session-token": `Bearer ${sessionToken}`,
+    },
+  });
 
 export const serverSideAPI = axios.create({
   baseURL: process.env.API_URL,
@@ -13,3 +15,12 @@ export const serverSideAPI = axios.create({
     "Content-Type": "application/json",
   },
 });
+
+export const s3UploadAPIClient = (sessionToken: string) =>
+  axios.create({
+    baseURL: "api/images",
+    headers: {
+      "Content-Type": "application/json",
+      "x-shopify-session-token": `Bearer ${sessionToken}`,
+    },
+  });

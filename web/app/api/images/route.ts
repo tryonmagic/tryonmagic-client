@@ -1,0 +1,80 @@
+import { verifyRequest } from "@/lib/shopify/verify";
+import {
+  AbortMultipartUploadRequest,
+  CompleteMultipartUploadRequest,
+  CreateMultipartUploadRequest,
+  GetPreSignedUrlRequest,
+  GetUploadPartsPresignedUrlsRequest,
+} from "@/lib/uploader/type";
+import { NextRequest, NextResponse } from "next/server";
+import { s3, StorageService } from "./service";
+
+import { GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
+type ResponseData = {
+  url: string;
+};
+
+export async function GET(req: NextRequest): Promise<ResponseData> {
+  try {
+    verifyRequest(req, true);
+    const searchParams = req.nextUrl.searchParams;
+    const imagePath = searchParams.get("url");
+    const command = new GetObjectCommand({
+      Bucket: process.env.AWS_BUCKET_NAME!,
+      Key: imagePath!,
+    });
+
+    const url = await getSignedUrl(s3, command);
+
+    return NextResponse.json({ url });
+  } catch (error) {
+    console.error("Error fetching image from S3:", error);
+    return new Response("Error fetching image from S3");
+  }
+}
+export async function POST(req: NextRequest, res: NextResponse) {
+  const { shop } = await verifyRequest(req, true);
+  const {
+    command,
+    payload,
+  }: {
+    command: string;
+    payload: Record<string, unknown>;
+  } = await req.json();
+  const storageServer = new StorageService(shop);
+  switch (command) {
+    case "getPreSignedUrl":
+      const preSignedUrl = await storageServer.getPreSignedUrl(
+        payload as GetPreSignedUrlRequest,
+      );
+      return NextResponse.json(preSignedUrl);
+    case "createMultipartUpload":
+      const createMultipartUploadResponse =
+        await storageServer.createMultipartUpload(
+          payload as CreateMultipartUploadRequest,
+        );
+      return NextResponse.json(createMultipartUploadResponse);
+    case "getUploadPartPresignedUrls":
+      const uploadPartPresignedUrls =
+        await storageServer.getUploadPartPresignedUrls(
+          payload as GetUploadPartsPresignedUrlsRequest,
+        );
+      return NextResponse.json(uploadPartPresignedUrls);
+    case "completeMultipartUpload":
+      const completeMultipartUploadResponse =
+        await storageServer.completeMultiPart(
+          payload as CompleteMultipartUploadRequest,
+        );
+      return NextResponse.json(completeMultipartUploadResponse);
+    case "abortMultiPartUpload":
+      const abortMultipartUploadResponse =
+        await storageServer.abortMultiPartUpload(
+          payload as AbortMultipartUploadRequest,
+        );
+      return NextResponse.json(abortMultipartUploadResponse);
+    default:
+      return NextResponse.json({ message: "Invalid command" }, { status: 400 });
+  }
+}

@@ -1,11 +1,9 @@
-import { JsonObject } from "@prisma/client/runtime/library";
 import * as z from "zod";
 import { UploadApiClient, UploadProgress } from "./uploader";
 import { TUploaderBenchmark } from "./uploader.benchmark";
 
 export const CreateMultipartUploadRequestSchema = z.object({
   fileName: z.string().min(1, { message: "file name required!" }),
-  filePrefix: z.union([z.string(), z.number()]),
 });
 
 export type CreateMultiPartUploadResponse = {
@@ -52,7 +50,6 @@ export const GetPreSignedUrlRequestSchema = z.object({
   contentType: z.string({
     required_error: "contentType is required",
   }),
-  filePrefix: z.string(),
 });
 
 export type GetPreSignedUrlResponse = {
@@ -82,7 +79,6 @@ export type UploaderOptions = {
   fileUploadRetryCount?: number;
   timeout?: number;
   enableBenchmark?: boolean;
-  filPrefix: string;
 };
 
 export type FileUploadingModalMeta = {
@@ -102,7 +98,10 @@ export type ProgressEvent = {
   total: number;
 };
 
-export type UploaderCompleteFunc = (benchmark?: TUploaderBenchmark) => void;
+export type UploaderCompleteFunc = (
+  key: string,
+  benchmark?: TUploaderBenchmark,
+) => void;
 
 export type FileUploaderOptions = Omit<UploaderOptions, "file" | "fileName"> & {
   files: File[];
@@ -131,3 +130,20 @@ export type GetPreSignedUrlRequest = z.infer<
 export type AbortMultipartUploadRequest = z.infer<
   typeof AbortMultipartUploadRequestSchema
 >;
+
+export interface IFile {
+  id?: string;
+  key: string;
+  fullPath: string;
+  url: string;
+  name: string;
+  type: string;
+  size: number;
+  width: number;
+  height: number;
+  ext: string;
+  mime: string;
+  thumbHash?: number[] | null;
+  thumbnailUrl?: string | null;
+  resizeUrl?: string | null;
+}
