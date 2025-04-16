@@ -1,4 +1,4 @@
-import { MultiPartUploadOptions } from "./type";
+import { FileInfo, MultiPartUploadOptions } from "./type";
 import { FileType, FileTypes } from "./uploader";
 
 abstract class Benchmark<T> {
@@ -168,12 +168,15 @@ export class FileUploaderBenchmark extends Benchmark<TFileUploaderBenchmark> {
   private connectionSpeed: number;
 
   constructor(options: {
-    files: File[];
+    files: FileInfo[];
     multiPartUploadOptions: MultiPartUploadOptions;
     fileBenchmarks: Record<string, TUploaderBenchmark>;
     connectionSpeed: number;
   }) {
-    const fileSize = options.files.reduce((acc, file) => (acc += file.size), 0);
+    const fileSize = options.files.reduce(
+      (acc, file) => (acc += file.fileObject.size),
+      0,
+    );
     super({ size: fileSize });
     this.categorizeFiles(options.files);
     this.multiPartUploadOptions = options.multiPartUploadOptions;
@@ -195,7 +198,7 @@ export class FileUploaderBenchmark extends Benchmark<TFileUploaderBenchmark> {
     console.log(this.getBenchMark());
   }
 
-  categorizeFiles(files: File[]) {
+  categorizeFiles(files: FileInfo[]) {
     const fileTypeCount = {
       [FileTypes.image]: 0,
       [FileTypes.video]: 0,
@@ -204,7 +207,7 @@ export class FileUploaderBenchmark extends Benchmark<TFileUploaderBenchmark> {
     };
 
     files.forEach((file) => {
-      const fileType = file.type.split("/")[0];
+      const fileType = file.fileObject.type.split("/")[0];
       switch (fileType) {
         case FileTypes.image:
           fileTypeCount[FileTypes.image]++;

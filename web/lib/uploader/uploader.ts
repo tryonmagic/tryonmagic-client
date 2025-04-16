@@ -10,6 +10,7 @@ import {
   CompleteMultipartUploadRequest,
   CreateMultipartUploadRequest,
   CreateMultiPartUploadResponse,
+  FileInfo,
   FileUploaderOptions,
   FileUploaderProgressFunc,
   GetPreSignedUrlRequest,
@@ -57,7 +58,11 @@ export type FileType = keyof typeof FileTypes;
 
 type UploadedPart = { PartNumber: number; ETag: string };
 
-export type ProgressFunc = (progress: UploadProgress) => void;
+export type ProgressFunc = (payload: {
+  key: string;
+  fileName: string;
+  progress: UploadProgress;
+}) => void;
 type VoidFunc = () => void;
 type ErrorFunc = (err: unknown) => void;
 
@@ -128,7 +133,6 @@ export class Uploader {
   static getDefaultMultiPartUploadOptions(): MultiPartUploadOptions {
     return {
       chunkSize: MULTI_PART_MIN_SIZE,
-
       threadsQuantity: 5,
       partRetryCount: 3,
     };
@@ -373,7 +377,11 @@ export class Uploader {
       percentage,
       multiPartUploadProgress,
     };
-    this.onProgressFn(progress);
+    this.onProgressFn({
+      key: this.key,
+      fileName: this.file.name,
+      progress,
+    });
   }
 
   async uploadSingle() {
@@ -397,8 +405,12 @@ export class Uploader {
           (progressEvent.loaded / this.file.size) * 100,
         );
         this.onProgressFn({
-          sent: progressEvent.loaded,
-          percentage: progress,
+          key: this.key,
+          fileName: this.file.name,
+          progress: {
+            sent: progressEvent.loaded,
+            percentage: progress,
+          },
         });
       };
 
@@ -462,7 +474,6 @@ export class Uploader {
         if (xhr.readyState === XMLHttpRequest.DONE) {
           if (xhr.status === 200) {
             this.completeUpload();
-
             resolve(xhr.status);
           } else {
             reject(new Error("Failed to upload file"));
@@ -697,7 +708,7 @@ export function measureConnectionSpeed(callback: (speed: number) => void) {
 }
 
 export class FileUploader {
-  private files: File[];
+  private files: FileInfo[];
   private uploaderOptions: Omit<UploaderOptions, "file" | "fileName">;
   private benchmark?: FileUploaderBenchmark;
   private fileBenchmarks: Record<string, TUploaderBenchmark>;
@@ -777,21 +788,28 @@ export class FileUploader {
   }
 
   handleOnFileUploaded =
-    (fileName: string, file: File) =>
-    (key: string, benchmark?: TUploaderBenchmark) => {
+    (fileInfo: FileInfo) => (key: string, benchmark?: TUploaderBenchmark) => {
       if (benchmark) {
-        this.fileBenchmarks[fileName] = benchmark;
+        this.fileBenchmarks[fileInfo.fileName] = benchmark;
       }
-      delete this.activeUploader[fileName];
+      delete this.activeUploader[fileInfo.fileName];
       this.uploadNext();
-      this.onSingleFileUploadCompleteFn(key, file);
+      this.onSingleFileUploadCompleteFn(key, fileInfo.fileObject);
     };
   onProgress(onProgress: FileUploaderProgressFunc) {
     this.onProgressFn = onProgress;
     return this;
   }
-  handleOnProgress = (fileName: string) => (uploadProgress: UploadProgress) => {
-    this.onProgressFn(fileName, uploadProgress);
+  handleOnProgress = (payload: {
+    key: string;
+    fileName: string;
+    progress: UploadProgress;
+  }) => {
+    this.onProgressFn({
+      id: payload.key,
+      fileName: payload.fileName,
+      uploadProgress: payload.progress,
+    });
   };
 
   uploadComplete() {
@@ -813,15 +831,16 @@ export class FileUploader {
       }
       return;
     }
-    const file = this.files.pop();
-    if (!file) return;
-    const fileName = file.name;
+    const fileInfo = this.files.pop();
+    if (!fileInfo) return;
+    const fileName = fileInfo.fileName;
     const uploader = new Uploader({
-      file,
+      file: fileInfo.fileObject,
+      fileName: fileInfo.fileName,
       ...this.uploaderOptions,
     })
-      .onProgress(this.handleOnProgress(fileName))
-      .onComplete(this.handleOnFileUploaded(fileName, file))
+      .onProgress(this.handleOnProgress)
+      .onComplete(this.handleOnFileUploaded(fileInfo))
       .onUploadFailed(this.handleOnUploadFailed(fileName));
 
     this.activeUploader[fileName] = uploader;
@@ -890,7 +909,7 @@ export class AxiosMultiPartApiClient extends UploadApiClient {
 }
 
 export const uploadMultiPartFile = (
-  files: File[],
+  files: FileInfo[],
   onProgress: FileUploaderProgressFunc,
   onComplete: () => void,
   onSingleFileUploadComplete: SingleFileCompleteFunc,

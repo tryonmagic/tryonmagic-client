@@ -73,7 +73,7 @@ export type MultiPartUploadOptions = {
 
 export type UploaderOptions = {
   file: File;
-  fileName?: string;
+  fileName: string;
   apiClient: UploadApiClient;
   multiPartUploadOptions?: MultiPartUploadOptions;
   fileUploadRetryCount?: number;
@@ -90,7 +90,7 @@ export type FileUploadingModalMeta = {
   uploadedFile: Set<string>;
 };
 export type UploadingProgressMeta = {
-  fileName: string;
+  id: string;
   progress: number;
 };
 export type ProgressEvent = {
@@ -103,14 +103,20 @@ export type UploaderCompleteFunc = (
   benchmark?: TUploaderBenchmark,
 ) => void;
 
-export type FileUploaderOptions = Omit<UploaderOptions, "file" | "fileName"> & {
-  files: File[];
+export type FileInfo = {
+  fileName: string;
+  fileObject: File;
 };
 
-export type FileUploaderProgressFunc = (
-  fileName: string,
-  uploadProgress: UploadProgress,
-) => void;
+export type FileUploaderOptions = Omit<UploaderOptions, "file" | "fileName"> & {
+  files: FileInfo[];
+};
+
+export type FileUploaderProgressFunc = (payload: {
+  id: string;
+  fileName: string;
+  uploadProgress: UploadProgress;
+}) => void;
 export type SingleFileCompleteFunc = (key: string, file: File) => void;
 
 export type GetUploadPartsPresignedUrlsRequest = z.infer<
@@ -146,4 +152,5 @@ export interface IFile {
   thumbHash?: number[] | null;
   thumbnailUrl?: string | null;
   resizeUrl?: string | null;
+  createdAt?: string;
 }

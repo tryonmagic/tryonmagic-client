@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -27,7 +27,12 @@ import {
   DialogBackdrop,
   DialogPanel,
 } from "@headlessui/react";
-import { FileUploadingModalMeta, IFile, UploadingProgressMeta } from "../type";
+import {
+  FileInfo,
+  FileUploadingModalMeta,
+  IFile,
+  UploadingProgressMeta,
+} from "../type";
 import toast from "react-hot-toast";
 import {
   AxiosMultiPartApiClient,
@@ -37,8 +42,8 @@ import {
 import { generateThumbHash } from "../utils";
 import { clientAPI, s3UploadAPIClient } from "@/lib/api";
 import { useAppBridge } from "@shopify/app-bridge-react";
+import { GenericAPIResponse } from "@/lib/api/type";
 
-// Types
 type ImageType = {
   id: string;
   name: string;
@@ -51,6 +56,7 @@ type ImageType = {
   selected?: boolean;
   uploading?: boolean;
   progress?: number;
+  new?: boolean;
 };
 
 type ViewMode = "grid" | "list";
@@ -96,7 +102,7 @@ const formatDate = (date: Date): string => {
 };
 
 const getPreviewFilesWithCount = (
-  files: FileList | null,
+  files: FileInfo[] | null,
 ): FileUploadingModalMeta | null => {
   if (!files) {
     return null;
@@ -108,14 +114,14 @@ const getPreviewFilesWithCount = (
   const PREVIEW_MAX = 4;
   const totalFiles = files.length;
   for (let i = 0; i < totalFiles; i++) {
-    const file = files[i];
-    if (file.type.startsWith("image")) {
-      images.push(file);
-    } else if (file.type.startsWith("video")) {
-      videos.push(file);
+    const fileInfo = files[i];
+    if (fileInfo.fileObject.type.startsWith("image")) {
+      images.push(fileInfo.fileObject);
+    } else if (fileInfo.fileObject.type.startsWith("video")) {
+      videos.push(fileInfo.fileObject);
     } else {
       throw new Error(
-        `Only image and video file are acceptable. Got ${file.type}! `,
+        `Only image and video file are acceptable. Got ${fileInfo.fileObject.type}! `,
       );
     }
   }
@@ -200,7 +206,7 @@ function ImageUploadManager({
   onClose: () => void;
 }) {
   // State
-  const [images, setImages] = useState<ImageType[]>(mockImages);
+  const [images, setImages] = useState<ImageType[]>([]);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [searchQuery, setSearchQuery] = useState("");
@@ -221,31 +227,83 @@ function ImageUploadManager({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleOnProgress = (
-    fileName: string,
-    uploadProgress: UploadProgress,
-  ) => {
-    if (uploadProgress.percentage === 100) {
-      delete uploadingProgressMeta[fileName];
-      setUploadingProgressMeta(uploadingProgressMeta);
-      return;
+  useEffect(() => {
+    async function fetchImages() {
+      try {
+        const token = await app.idToken();
+        const response =
+          await clientAPI(token).get<GenericAPIResponse<IFile[]>>(
+            "/storage/files",
+          );
+        const files = response.data.data ?? [];
+        const imagesWithUrl = await Promise.all(
+          files.map(async (image) => {
+            const res = await fetch(`/api/images?url=${image.url}`, {
+              headers: {
+                "Content-Type": "application/json",
+              },
+            });
+            const imageUrl = (await res.json()).url;
+            return {
+              id: image.id!,
+              name: image.name,
+              url: imageUrl,
+              thumbnailUrl: imageUrl,
+              size: image.size,
+              type: image.ext,
+              tags: [],
+              uploadDate: new Date(image.createdAt!),
+              uploading: false,
+              progress: 0,
+            };
+          }),
+        );
+        setImages(imagesWithUrl);
+      } catch (error) {
+        console.error("Error fetching images:", error);
+        toast.error("Failed to fetch images");
+      }
     }
+    fetchImages();
+  }, []);
+
+  const handleOnProgress = ({
+    id,
+    fileName,
+    uploadProgress,
+  }: {
+    id: string;
+    fileName: string;
+    uploadProgress: UploadProgress;
+  }) => {
     setUploadingProgressMeta((prevState) => ({
       ...prevState,
-      [fileName]: {
-        fileName,
+      [id]: {
+        id,
         progress: uploadProgress.percentage,
       },
     }));
+    setImages((prev) =>
+      prev.map((img) => {
+        if ([id, fileName].includes(img.id) && img.uploading) {
+          return {
+            ...img,
+            progress: uploadProgress.percentage,
+            uploading: uploadProgress.percentage !== 100,
+          };
+        }
+        return img;
+      }),
+    );
   };
 
   const handleOnComplete = () => {
-    console.log("completed");
     setFileUploadingModalMeta((prevState) => ({
       ...(prevState as FileUploadingModalMeta),
       completed: true,
     }));
     setUploadingProgressMeta({});
+    // fetchImages();
   };
 
   const saveFile = async (key: string, file: File) => {
@@ -288,20 +346,18 @@ function ImageUploadManager({
     });
   };
 
-  const uploadMediaToS3 = async (files: FileList) => {
+  const uploadMediaToS3 = async (files: FileInfo[]) => {
     const token = await app.idToken();
     uploadMultiPartFile(
-      Array.from(files),
-      (fileName, uploadProgress) => {
-        handleOnProgress(fileName, uploadProgress);
-      },
+      files,
+      handleOnProgress,
       handleOnComplete,
       handleOnSingleUploadFileComplete,
       new AxiosMultiPartApiClient(s3UploadAPIClient(token)),
     );
   };
 
-  const handleOnFileUpload = (files: FileList) => {
+  const handleOnFileUpload = (files: FileInfo[]) => {
     try {
       setFileUploadingModalMeta(getPreviewFilesWithCount(files));
       uploadMediaToS3(files);
@@ -318,68 +374,39 @@ function ImageUploadManager({
         return;
       }
 
+      const fileInfos: FileInfo[] = [];
+
+      Array.from(files).forEach((file) => {
+        const objectUrl = URL.createObjectURL(file);
+
+        const fileName =
+          file.name.split(".")[0] +
+          `-${Date.now()}` +
+          "." +
+          file.name.split(".").pop();
+        // Immediately add to gallery with uploading status
+        const newImage: ImageType = {
+          id: file.name,
+          name: fileName,
+          url: objectUrl,
+          thumbnailUrl: objectUrl,
+          size: file.size,
+          type: file.name.split(".").pop() || "",
+          tags: ["new"],
+          uploadDate: new Date(),
+          uploading: true,
+          progress: 0,
+          new: true,
+        };
+        fileInfos.push({
+          fileName,
+          fileObject: file,
+        });
+
+        setImages((prev) => [newImage, ...prev]);
+      });
       setUploadingCount((prev) => prev + files.length);
-      handleOnFileUpload(files);
-      // Array.from(files).forEach((file) => {
-      //   const imageId = `img-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-      //   const objectUrl = URL.createObjectURL(file);
-
-      //   // Immediately add to gallery with uploading status
-      //   const newImage: ImageType = {
-      //     id: imageId,
-      //     name: file.name,
-      //     url: objectUrl,
-      //     thumbnailUrl: objectUrl,
-      //     size: file.size,
-      //     type: file.name.split(".").pop() || "",
-      //     tags: ["new"],
-      //     uploadDate: new Date(),
-      //     uploading: true,
-      //     progress: 0,
-      //   };
-
-      //   setImages((prev) => [newImage, ...prev]);
-
-      //   // Simulate upload progress
-      //   const simulateUpload = () => {
-      //     setImages((prev) =>
-      //       prev.map((img) => {
-      //         if (
-      //           img.id === imageId &&
-      //           img.uploading &&
-      //           (img.progress || 0) < 100
-      //         ) {
-      //           const newProgress = Math.min(
-      //             (img.progress || 0) + Math.random() * 20,
-      //             100,
-      //           );
-      //           return { ...img, progress: newProgress };
-      //         }
-      //         return img;
-      //       }),
-      //     );
-
-      //     const currentImage = images.find((img) => img.id === imageId);
-      //     if (currentImage?.uploading && (currentImage.progress || 0) < 100) {
-      //       setTimeout(simulateUpload, 500);
-      //     } else if (currentImage?.uploading) {
-      //       // When upload is complete, update the image
-      //       setTimeout(() => {
-      //         setImages((prev) =>
-      //           prev.map((img) => {
-      //             if (img.id === imageId) {
-      //               return { ...img, uploading: false };
-      //             }
-      //             return img;
-      //           }),
-      //         );
-      //         setUploadingCount((prev) => prev - 1);
-      //       }, 500);
-      //     }
-      //   };
-
-      //   setTimeout(simulateUpload, 300);
-      // });
+      handleOnFileUpload(fileInfos);
     },
     [images],
   );
@@ -445,6 +472,9 @@ function ImageUploadManager({
     })
     .sort((a, b) => {
       // Always show uploading images at the top
+      if (a.new && !b.new) return -1;
+      if (!a.new && b.new) return 1;
+
       if (a.uploading && !b.uploading) return -1;
       if (!a.uploading && b.uploading) return 1;
 

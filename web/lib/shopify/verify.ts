@@ -42,12 +42,11 @@ export async function verifyRequest(
   req: Request,
   isOnline: boolean,
 ): Promise<{ shop: string; session: Session }> {
-  const bearerPresent = req.headers
-    .get("x-shopify-session-token")
-    ?.startsWith("Bearer ");
-  const sessionToken = req.headers
-    .get("x-shopify-session-token")
-    ?.replace("Bearer ", "");
+  const bearerToken =
+    req.headers.get("x-shopify-session-token") ??
+    req.headers.get("authorization");
+  const bearerPresent = bearerToken?.startsWith("Bearer ");
+  const sessionToken = bearerToken?.replace("Bearer ", "");
   if (!bearerPresent || !sessionToken) {
     throw new Error("No bearer or session token present");
   }

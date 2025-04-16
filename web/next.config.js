@@ -7,7 +7,10 @@ const nextConfig = {
     NEXT_PUBLIC_SHOPIFY_API_KEY: process.env.SHOPIFY_API_KEY,
   },
   images: {
-    domains: ["ig89yd5z8iykrgxva.lite.vusercontent.net"],
+    domains: [
+      "ig89yd5z8iykrgxva.lite.vusercontent.net",
+      process.env.NEXT_PUBLIC_S3_DOMAIN,
+    ],
     dangerouslyAllowSVG: true,
   },
 };

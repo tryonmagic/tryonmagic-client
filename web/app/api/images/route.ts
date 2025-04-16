@@ -20,10 +20,18 @@ export async function GET(req: NextRequest): Promise<ResponseData> {
   try {
     verifyRequest(req, true);
     const searchParams = req.nextUrl.searchParams;
-    const imagePath = searchParams.get("url");
+    const urlWithBucket = searchParams
+      .get("url")
+      ?.replace("s3://", "")
+      .split("/");
+    if (!urlWithBucket) {
+      throw new Error("Invalid URL");
+    }
+    const Bucket = urlWithBucket.shift();
+    const Key = urlWithBucket.join("/");
     const command = new GetObjectCommand({
-      Bucket: process.env.AWS_BUCKET_NAME!,
-      Key: imagePath!,
+      Bucket,
+      Key,
     });
 
     const url = await getSignedUrl(s3, command);
