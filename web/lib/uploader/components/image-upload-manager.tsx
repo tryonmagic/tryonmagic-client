@@ -558,7 +558,7 @@ function ImageUploadManager({
               Browse Files
             </button>
             <p className="text-xs text-muted-foreground">
-              Supports: JPG, PNG, GIF (max 10MB)
+              Supports: JPG, JPEG, PNG, WEBP (max 10MB)
             </p>
           </motion.div>
         </div>
