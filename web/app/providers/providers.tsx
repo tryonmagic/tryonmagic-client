@@ -7,6 +7,7 @@ import SessionProvider from "./session-provider";
 import { TanstackProvider } from "./tanstack-provider";
 
 import { ThemeProvider } from "@/app/providers/theme-provider";
+import { Toaster } from "react-hot-toast";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -20,6 +21,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
             disableTransitionOnChange
           >
             {children}
+            <Toaster />
           </ThemeProvider>
         </SessionProvider>
       </TanstackProvider>

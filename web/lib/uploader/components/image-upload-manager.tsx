@@ -149,13 +149,13 @@ const getPreviewFilesWithCount = (
   };
 };
 interface ImageUploadDialogProps {
-  triggerButtonText?: string;
   onImagesSelected?: (selectedImages: ImageType[]) => void;
+  imageSelectionLimit?: number;
 }
 
 export default function ImageUploadDialog({
-  triggerButtonText = "Open Image Manager",
   onImagesSelected,
+  imageSelectionLimit,
 }: ImageUploadDialogProps) {
   const [open, setOpen] = useState(true);
 
@@ -190,6 +190,7 @@ export default function ImageUploadDialog({
             <ImageUploadManager
               onInsert={handleInsertImages}
               onClose={() => setOpen(false)}
+              imageSelectionLimit={imageSelectionLimit}
             />
           </DialogPanel>
         </div>
@@ -201,11 +202,12 @@ export default function ImageUploadDialog({
 function ImageUploadManager({
   onInsert,
   onClose,
+  imageSelectionLimit,
 }: {
   onInsert: (selectedImageIds: string[], images: ImageType[]) => void;
   onClose: () => void;
+  imageSelectionLimit?: number;
 }) {
-  // State
   const [images, setImages] = useState<ImageType[]>([]);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
@@ -432,11 +434,30 @@ function ImageUploadManager({
   );
 
   // Handle image selection
-  const toggleImageSelection = useCallback((id: string) => {
-    setSelectedImages((prev) =>
-      prev.includes(id) ? prev.filter((imgId) => imgId !== id) : [...prev, id],
-    );
-  }, []);
+  const toggleImageSelection = useCallback(
+    (id: string) => {
+      if (imageSelectionLimit === 1) {
+        setSelectedImages((prev) => (prev.includes(id) ? [] : [id]));
+        return;
+      }
+
+      if (
+        imageSelectionLimit &&
+        !selectedImages.includes(id) &&
+        selectedImages.length >= imageSelectionLimit
+      ) {
+        toast.error(`You can only select up to ${imageSelectionLimit} images.`);
+        return;
+      }
+
+      setSelectedImages((prev) =>
+        prev.includes(id)
+          ? prev.filter((imgId) => imgId !== id)
+          : [...prev, id],
+      );
+    },
+    [selectedImages, imageSelectionLimit],
+  );
 
   // Handle image deletion
   const handleDeleteSelected = useCallback(() => {
@@ -500,7 +521,7 @@ function ImageUploadManager({
     <div className="flex flex-col h-[80vh]">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b">
-        <h2 className="text-xl font-bold">Image Upload Manager</h2>
+        <h2 className="text-xl font-bold">Select Images</h2>
         <Button
           variant="ghost"
           size="icon"
@@ -907,9 +928,9 @@ function ImageUploadManager({
                 size="sm"
                 onClick={() => setSelectedImages([])}
               >
-                Deselect All
+                Deselect {imageSelectionLimit === 1 ? "image" : "All"}
               </Button>
-              <Button
+              {/* <Button
                 variant="destructive"
                 size="sm"
                 onClick={handleDeleteSelected}
@@ -917,7 +938,7 @@ function ImageUploadManager({
               >
                 <Trash2 className="w-4 h-4" />
                 Delete
-              </Button>
+              </Button> */}
             </>
           )}
           <Button variant="outline" size="sm" onClick={onClose}>
@@ -931,7 +952,9 @@ function ImageUploadManager({
           >
             <Plus className="w-4 h-4" />
             Insert{" "}
-            {selectedImages.length > 0 ? `(${selectedImages.length})` : ""}
+            {imageSelectionLimit !== 1 && selectedImages.length > 0
+              ? `(${selectedImages.length})`
+              : ""}
           </Button>
         </div>
       </div>
