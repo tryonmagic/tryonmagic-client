@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -37,6 +37,19 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import ImageUploadDialog from "@/lib/uploader/components/image-upload-manager";
+import {
+  ImageSourceType,
+  NewTask,
+  RemoveBackgroundTaskInput,
+  TaskProgress,
+  TaskStatus,
+  TaskStatusMessageMapping,
+  TaskType,
+} from "@/lib/api/type";
+import { newTask as removeBackgroundTask } from "@/lib/api/tasks";
+import { useAppBridge } from "@shopify/app-bridge-react";
+import { WebSocketClient } from "@/socket";
+import EnhancedImage from "@/components/ui/EnhanchedImage";
 
 // Predefined background colors
 const backgroundColors = [
@@ -156,10 +169,13 @@ function ExampleCard({ title, description, before, after }: ExampleCardProps) {
 
 export default function RemoveBGPage() {
   const [activeTab, setActiveTab] = useState("upload");
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedImage, setUploadedImage] = useState<{
+    previewUrl: string;
+    originalUrl: string;
+  } | null>(null);
   const [removedBgImage, setRemovedBgImage] = useState<string | null>(null);
   const [finalImage, setFinalImage] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [taskProgress, setTaskProgress] = useState<TaskProgress | null>(null);
   const [backgroundType, setBackgroundType] = useState<
     "color" | "image" | "prompt"
   >("color");
@@ -171,22 +187,11 @@ export default function RemoveBGPage() {
   const [edgeRefinement, setEdgeRefinement] = useState(50);
   const [detailPreservation, setDetailPreservation] = useState(true);
   const [hairDetection, setHairDetection] = useState(true);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const customImageInputRef = useRef<HTMLInputElement>(null);
+  const [socket, setSocket] = useState<WebSocketClient | null>(null);
 
   const [openImageUploadDialog, setOpenImageUploadDialog] = useState(false);
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setUploadedImage(event.target?.result as string);
-        setActiveTab("remove");
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  const app = useAppBridge();
 
   const handleCustomImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -203,24 +208,54 @@ export default function RemoveBGPage() {
   const handleRemoveBackground = async () => {
     if (!uploadedImage) return;
 
-    setIsProcessing(true);
+    try {
+      setTaskProgress({
+        status: TaskStatus.PENDING,
+        progress: 0,
+      });
+      const sessionToken = await app.idToken();
 
-    // Simulate processing delay
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+      const newTask: NewTask<RemoveBackgroundTaskInput> = {
+        type: TaskType.REMOVE_BACKGROUND,
+        inputData: {
+          sourceImage: uploadedImage.originalUrl,
+          imageSourceType: ImageSourceType.URL,
+          edgeThreshold: edgeRefinement,
+          detailPreservation,
+          enhancedHairDetection: hairDetection,
+        },
+      };
 
-    // In a real app, you would call your AI service here
-    // For demo purposes, we'll use a placeholder image
-    setRemovedBgImage(
-      "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=800&width=800",
-    );
-    setIsProcessing(false);
-    setActiveTab("replace");
+      const response = await removeBackgroundTask<RemoveBackgroundTaskInput>(
+        sessionToken,
+        newTask,
+      );
+      const task = response.data.data;
+      if (!task) {
+        console.error("No task data returned");
+        return;
+      }
+      const websocket = new WebSocketClient(task.userId);
+      websocket.on<TaskProgress>("task-progress", (data) => {
+        console.log("WebSocket data received:", data);
+        setTaskProgress(data);
+        if (data.status === TaskStatus.SUCCEEDED) {
+          setActiveTab("replace");
+          setRemovedBgImage(data.resultData?.outputImageUrl || null);
+        }
+      });
+      setSocket(websocket);
+    } catch (error) {
+      console.error("Error removing background:", error);
+      // Handle error (e.g., show a notification)
+      alert("Failed to remove background. Please try again.");
+    }
   };
 
   const handleReplaceBackground = async () => {
     if (!removedBgImage) return;
 
-    setIsProcessing(true);
+    // setIsProcessing(true);
 
     // Simulate processing delay
     await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -230,7 +265,7 @@ export default function RemoveBGPage() {
     setFinalImage(
       "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=800&width=800",
     );
-    setIsProcessing(false);
+    // setIsProcessing(false);
     setActiveTab("result");
   };
 
@@ -268,6 +303,12 @@ export default function RemoveBGPage() {
     }
   };
 
+  const isTaskProcessing = taskProgress
+    ? [TaskStatus.PROCESSING, TaskStatus.PENDING, TaskStatus.QUEUED].includes(
+        taskProgress?.status,
+      )
+    : false;
+
   return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
@@ -291,22 +332,25 @@ export default function RemoveBGPage() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full max-w-md mx-auto grid-cols-4 mb-8">
-            <TabsTrigger value="upload" disabled={isProcessing}>
+            <TabsTrigger value="upload" disabled={isTaskProcessing}>
               Upload
             </TabsTrigger>
             <TabsTrigger
               value="remove"
-              disabled={!uploadedImage || isProcessing}
+              disabled={!uploadedImage || isTaskProcessing}
             >
               Remove
             </TabsTrigger>
             <TabsTrigger
               value="replace"
-              disabled={!removedBgImage || isProcessing}
+              disabled={!removedBgImage || isTaskProcessing}
             >
               Replace
             </TabsTrigger>
-            <TabsTrigger value="result" disabled={!finalImage && !isProcessing}>
+            <TabsTrigger
+              value="result"
+              disabled={!finalImage && !isTaskProcessing}
+            >
               Result
             </TabsTrigger>
           </TabsList>
@@ -322,7 +366,15 @@ export default function RemoveBGPage() {
                   <div className="space-y-4">
                     {openImageUploadDialog && (
                       <ImageUploadDialog
+                        imageSelectionLimit={1}
                         onClose={() => setOpenImageUploadDialog(false)}
+                        onImagesSelected={(images) => {
+                          setUploadedImage({
+                            previewUrl: images[0].url,
+                            originalUrl: images[0].originalUrl,
+                          });
+                          setActiveTab("remove");
+                        }}
                       />
                     )}
                     <div
@@ -479,12 +531,13 @@ export default function RemoveBGPage() {
                         onClick={handleRemoveBackground}
                         className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
                         size="lg"
-                        disabled={isProcessing}
+                        disabled={isTaskProcessing}
                       >
-                        {isProcessing ? (
+                        {isTaskProcessing ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Processing...
+                            {taskProgress &&
+                              TaskStatusMessageMapping[taskProgress.status]}
                           </>
                         ) : (
                           <>
@@ -503,10 +556,12 @@ export default function RemoveBGPage() {
                       Your Image
                     </h2>
                     <div className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                      <img
-                        src={uploadedImage || "/placeholder.svg"}
+                      <Image
+                        src={uploadedImage.originalUrl || "/placeholder.svg"}
                         alt="Uploaded image"
                         className="w-full h-auto object-contain"
+                        width={500}
+                        height={500}
                       />
                       <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center opacity-0 hover:opacity-100">
                         <Button
@@ -808,14 +863,15 @@ export default function RemoveBGPage() {
                         className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
                         size="lg"
                         disabled={
-                          isProcessing ||
+                          isTaskProcessing ||
                           (backgroundType === "prompt" && !backgroundPrompt)
                         }
                       >
-                        {isProcessing ? (
+                        {isTaskProcessing ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Processing...
+                            {taskProgress &&
+                              TaskStatusMessageMapping[taskProgress.status]}
                           </>
                         ) : (
                           <>
@@ -841,10 +897,14 @@ export default function RemoveBGPage() {
                             Original
                           </p>
                           <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                            <img
-                              src={uploadedImage || "/placeholder.svg"}
+                            <EnhancedImage
+                              src={
+                                uploadedImage?.previewUrl || "/placeholder.svg"
+                              }
                               alt="Original image"
                               className="w-full h-auto object-contain"
+                              width={500}
+                              height={500}
                             />
                           </div>
                         </div>
@@ -853,9 +913,11 @@ export default function RemoveBGPage() {
                             Background Removed
                           </p>
                           <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDIwIDIwIj48cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiNmMGYwZjAiLz48cmVjdCB4PSIxMCIgeT0iMTAiIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCIgZmlsbD0iI2YwZjBmMCIvPjwvc3ZnPg==')]">
-                            <img
+                            <EnhancedImage
                               src={removedBgImage || "/placeholder.svg"}
                               alt="Background removed"
+                              width={500}
+                              height={500}
                               className="w-full h-auto object-contain"
                             />
                           </div>
@@ -898,7 +960,7 @@ export default function RemoveBGPage() {
             >
               <Card className="w-full max-w-2xl mx-auto overflow-hidden">
                 <CardContent className="p-6">
-                  {isProcessing ? (
+                  {isTaskProcessing ? (
                     <div className="flex flex-col items-center justify-center min-h-[500px]">
                       <Loader2 className="h-16 w-16 text-purple-600 animate-spin mb-4" />
                       <p className="text-lg text-center text-slate-600 dark:text-slate-400">
@@ -922,7 +984,9 @@ export default function RemoveBGPage() {
                           </p>
                           <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
                             <img
-                              src={uploadedImage || "/placeholder.svg"}
+                              src={
+                                uploadedImage?.previewUrl || "/placeholder.svg"
+                              }
                               alt="Original image"
                               className="w-full h-auto object-contain"
                             />

@@ -48,6 +48,7 @@ type ImageType = {
   id: string;
   name: string;
   url: string;
+  originalUrl: string;
   thumbnailUrl: string;
   size: number;
   type: string;
@@ -73,6 +74,7 @@ const mockImages: ImageType[] = Array.from({ length: 12 }).map((_, i) => ({
   id: `img-${i + 1}`,
   name: `Sample Image ${i + 1}.jpg`,
   url: `https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=500&width=400`,
+  originalUrl: `https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=500&width=400`,
   thumbnailUrl: `https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=500&width=400`,
   size: Math.floor(Math.random() * 5000000) + 500000,
   type: ["jpg", "png", "gif"][Math.floor(Math.random() * 3)],
@@ -239,18 +241,13 @@ function ImageUploadManager({
           );
         const files = response.data.data ?? [];
         const imagesWithUrl = await Promise.all(
-          files.map(async (image) => {
-            const res = await fetch(`/api/images?url=${image.url}`, {
-              headers: {
-                "Content-Type": "application/json",
-              },
-            });
-            const imageUrl = (await res.json()).url;
+          files.map((image) => {
             return {
               id: image.id!,
               name: image.name,
-              url: imageUrl,
-              thumbnailUrl: imageUrl,
+              url: image.url,
+              originalUrl: image.url,
+              thumbnailUrl: image.url,
               size: image.size,
               type: image.ext,
               tags: [],
@@ -391,6 +388,7 @@ function ImageUploadManager({
           id: file.name,
           name: fileName,
           url: objectUrl,
+          originalUrl: objectUrl,
           thumbnailUrl: objectUrl,
           size: file.size,
           type: file.name.split(".").pop() || "",

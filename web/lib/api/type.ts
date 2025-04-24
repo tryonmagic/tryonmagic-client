@@ -4,3 +4,79 @@ export interface GenericAPIResponse<T = unknown> {
   message: string;
   data?: T | null;
 }
+
+export enum ImageSourceType {
+  URL = "URL",
+  BASE64 = "BASE64",
+}
+export enum BackgroundSourceType {
+  IMAGE = "IMAGE",
+  COLOR = "COLOR",
+  PROMPT = "PROMPT",
+}
+
+export interface RemoveBackgroundTaskInput {
+  sourceImage: string;
+  imageSourceType: ImageSourceType;
+  edgeThreshold: number;
+  detailPreservation: boolean;
+  enhancedHairDetection: boolean;
+}
+
+export interface ReplaceBackgroundTaskInput {
+  backgroundSourceType: BackgroundSourceType;
+  backgroundImageSourceType?: ImageSourceType;
+  backgroundSourceValue: string;
+}
+
+export interface NewTask<T = unknown> {
+  type: TaskType;
+  inputData: T;
+}
+
+export enum TaskStatus {
+  PENDING = "PENDING",
+  QUEUED = "QUEUED",
+  PROCESSING = "PROCESSING",
+  SUCCEEDED = "SUCCEEDED",
+  FAILED = "FAILED",
+}
+
+export const TaskStatusMessageMapping = {
+  [TaskStatus.PENDING]: "Pending...",
+  [TaskStatus.QUEUED]: "Queued",
+  [TaskStatus.PROCESSING]: "Processing...",
+  [TaskStatus.SUCCEEDED]: "Completed",
+  [TaskStatus.FAILED]: "Failed",
+};
+
+export enum TaskType {
+  REMOVE_BACKGROUND = "REMOVE_BACKGROUND",
+  GENERATE_IMAGE = "GENERATE_IMAGE",
+  REPLACE_BACKGROUND = "REPLACE_BACKGROUND",
+}
+
+export interface Task<T = unknown> {
+  id: string;
+  type: TaskType;
+  status: TaskStatus;
+  userId: string;
+  inputData: T;
+  resultData?: Record<string, any> | null;
+  error?: string | null;
+  retryCount: number;
+  createdAt: string;
+  updatedAt: string;
+  startedAt?: string | null;
+  completedAt?: string | null;
+}
+
+export interface TaskProgress<T = unknown> {
+  id?: string;
+  type?: TaskType;
+  status: TaskStatus;
+  progress?: number;
+  resultData?: {
+    outputImageUrl: string;
+  } & T;
+}

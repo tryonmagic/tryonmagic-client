@@ -12,6 +12,8 @@ const nextConfig = {
       process.env.NEXT_PUBLIC_S3_DOMAIN,
     ],
     dangerouslyAllowSVG: true,
+    loader: "custom",
+    loaderFile: "./lib/image-loader.ts",
   },
 };
 
