@@ -55,7 +55,9 @@ export default function EnhancedImage({
 
   const handleDownload = () => {
     const link = document.createElement("a");
-    link.href = src;
+    link.href = `${process.env.NEXT_PUBLIC_IMAGE_PROXY_URL}?url=${encodeURIComponent(
+      src,
+    )}`;
     link.download = alt || "image";
     document.body.appendChild(link);
     link.click();
@@ -71,7 +73,7 @@ export default function EnhancedImage({
         onMouseLeave={() => setIsHovering(false)}
       >
         <Image
-          src={src || "/placeholder.svg"}
+          src={src}
           alt={alt}
           width={width}
           height={height}

@@ -38,9 +38,11 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import ImageUploadDialog from "@/lib/uploader/components/image-upload-manager";
 import {
+  BackgroundSourceType,
   ImageSourceType,
   NewTask,
   RemoveBackgroundTaskInput,
+  ReplaceBackgroundTaskInput,
   TaskProgress,
   TaskStatus,
   TaskStatusMessageMapping,
@@ -176,12 +178,15 @@ export default function RemoveBGPage() {
   const [removedBgImage, setRemovedBgImage] = useState<string | null>(null);
   const [finalImage, setFinalImage] = useState<string | null>(null);
   const [taskProgress, setTaskProgress] = useState<TaskProgress | null>(null);
-  const [backgroundType, setBackgroundType] = useState<
-    "color" | "image" | "prompt"
-  >("color");
-  const [selectedColor, setSelectedColor] = useState("#FFFFFF");
+  const [backgroundType, setBackgroundType] = useState<BackgroundSourceType>(
+    BackgroundSourceType.COLOR,
+  );
+  const [replaceBgSelectedColor, setReplaceBgSelectedColor] =
+    useState("#FFFFFF");
   const [customColor, setCustomColor] = useState("");
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [replaceBgSelectedImage, setReplaceBgSelectedImage] = useState<
+    string | null
+  >(null);
   const [customImageUrl, setCustomImageUrl] = useState("");
   const [backgroundPrompt, setBackgroundPrompt] = useState("");
   const [edgeRefinement, setEdgeRefinement] = useState(50);
@@ -198,7 +203,7 @@ export default function RemoveBGPage() {
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        setSelectedImage(event.target?.result as string);
+        setReplaceBgSelectedImage(event.target?.result as string);
         setCustomImageUrl("");
       };
       reader.readAsDataURL(file);
@@ -252,21 +257,60 @@ export default function RemoveBGPage() {
     }
   };
 
+  const getBackgroundSourceValue = () => ({
+    [BackgroundSourceType.COLOR]: replaceBgSelectedColor,
+    [BackgroundSourceType.IMAGE]: replaceBgSelectedImage ?? customImageUrl,
+    [BackgroundSourceType.PROMPT]: backgroundPrompt,
+  });
+
   const handleReplaceBackground = async () => {
     if (!removedBgImage) return;
 
-    // setIsProcessing(true);
+    try {
+      setTaskProgress({
+        status: TaskStatus.PENDING,
+        progress: 0,
+      });
+      const sessionToken = await app.idToken();
 
-    // Simulate processing delay
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+      const newTask: NewTask<ReplaceBackgroundTaskInput> = {
+        type: TaskType.REPLACE_BACKGROUND,
+        inputData: {
+          sourceImageUrl: removedBgImage,
+          backgroundImageSourceType: ImageSourceType.URL,
+          backgroundSourceType: backgroundType,
+          backgroundSourceValue: getBackgroundSourceValue()[backgroundType]!,
+        },
+      };
 
-    // In a real app, you would call your AI service here to composite the image
-    // For demo purposes, we'll use a placeholder image
-    setFinalImage(
-      "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=800&width=800",
-    );
-    // setIsProcessing(false);
-    setActiveTab("result");
+      const response = await removeBackgroundTask<ReplaceBackgroundTaskInput>(
+        sessionToken,
+        newTask,
+      );
+      const task = response.data.data;
+      if (!task) {
+        console.error("No task data returned");
+        return;
+      }
+      let webSocket = socket;
+      if (!webSocket) {
+        webSocket = new WebSocketClient(task.userId);
+        setSocket(webSocket);
+      }
+      webSocket.on<TaskProgress>("task-progress", (data) => {
+        console.log("WebSocket data received:", data);
+        setTaskProgress(data);
+        if (data.status === TaskStatus.SUCCEEDED) {
+          setActiveTab("result");
+          setFinalImage(data.resultData?.outputImageUrl || null);
+        }
+      });
+    } catch (error) {
+      setTaskProgress(null);
+      console.error("Error removing background:", error);
+      // Handle error (e.g., show a notification)
+      alert("Failed to remove background. Please try again.");
+    }
   };
 
   const handleReset = () => {
@@ -274,24 +318,24 @@ export default function RemoveBGPage() {
     setRemovedBgImage(null);
     setFinalImage(null);
     setActiveTab("upload");
-    setSelectedColor("#FFFFFF");
+    setReplaceBgSelectedColor("#FFFFFF");
     setCustomColor("");
-    setSelectedImage(null);
+    setReplaceBgSelectedImage(null);
     setCustomImageUrl("");
     setBackgroundPrompt("");
   };
 
   const getBackgroundPreviewStyle = () => {
-    if (backgroundType === "color") {
-      const color = customColor || selectedColor;
+    if (backgroundType === BackgroundSourceType.COLOR) {
+      const color = customColor || replaceBgSelectedColor;
       return {
         backgroundColor: color === "transparent" ? "transparent" : color,
       };
     } else if (
-      backgroundType === "image" &&
-      (selectedImage || customImageUrl)
+      backgroundType === BackgroundSourceType.IMAGE &&
+      (replaceBgSelectedImage || customImageUrl)
     ) {
-      const imageUrl = selectedImage || customImageUrl;
+      const imageUrl = replaceBgSelectedImage || customImageUrl;
       return {
         backgroundImage: `url(${imageUrl})`,
         backgroundSize: "cover",
@@ -609,15 +653,13 @@ export default function RemoveBGPage() {
                       <RadioGroup
                         value={backgroundType}
                         onValueChange={(value) =>
-                          setBackgroundType(
-                            value as "color" | "image" | "prompt",
-                          )
+                          setBackgroundType(value as BackgroundSourceType)
                         }
                         className="grid grid-cols-3 gap-2"
                       >
                         <div>
                           <RadioGroupItem
-                            value="color"
+                            value={BackgroundSourceType.COLOR}
                             id="color"
                             className="peer sr-only"
                           />
@@ -632,7 +674,7 @@ export default function RemoveBGPage() {
 
                         <div>
                           <RadioGroupItem
-                            value="image"
+                            value={BackgroundSourceType.IMAGE}
                             id="image"
                             className="peer sr-only"
                           />
@@ -647,7 +689,7 @@ export default function RemoveBGPage() {
 
                         <div>
                           <RadioGroupItem
-                            value="prompt"
+                            value={BackgroundSourceType.PROMPT}
                             id="prompt"
                             className="peer sr-only"
                           />
@@ -664,7 +706,7 @@ export default function RemoveBGPage() {
                       </RadioGroup>
 
                       {/* Color Background Options */}
-                      {backgroundType === "color" && (
+                      {backgroundType === BackgroundSourceType.COLOR && (
                         <div className="space-y-4">
                           <div className="grid grid-cols-5 gap-2">
                             {backgroundColors.map((color) => (
@@ -672,7 +714,7 @@ export default function RemoveBGPage() {
                                 key={color.value}
                                 className={cn(
                                   "h-10 rounded-md cursor-pointer border-2 transition-all",
-                                  selectedColor === color.value
+                                  replaceBgSelectedColor === color.value
                                     ? "border-purple-600 scale-110"
                                     : "border-transparent hover:border-slate-300",
                                 )}
@@ -695,7 +737,7 @@ export default function RemoveBGPage() {
                                       : undefined,
                                 }}
                                 onClick={() => {
-                                  setSelectedColor(color.value);
+                                  setReplaceBgSelectedColor(color.value);
                                   setCustomColor("");
                                 }}
                                 title={color.name}
@@ -719,7 +761,7 @@ export default function RemoveBGPage() {
                                 value={customColor}
                                 onChange={(e) => {
                                   setCustomColor(e.target.value);
-                                  setSelectedColor("");
+                                  setReplaceBgSelectedColor("");
                                 }}
                                 className="flex-1"
                               />
@@ -729,7 +771,7 @@ export default function RemoveBGPage() {
                       )}
 
                       {/* Image Background Options */}
-                      {backgroundType === "image" && (
+                      {backgroundType === BackgroundSourceType.IMAGE && (
                         <div className="space-y-4">
                           <div className="grid grid-cols-3 gap-2">
                             {backgroundImages.map((image) => (
@@ -737,20 +779,22 @@ export default function RemoveBGPage() {
                                 key={image.name}
                                 className={cn(
                                   "h-20 rounded-md cursor-pointer border-2 transition-all overflow-hidden",
-                                  selectedImage === image.url
+                                  replaceBgSelectedImage === image.url
                                     ? "border-purple-600 scale-105"
                                     : "border-transparent hover:border-slate-300",
                                 )}
                                 onClick={() => {
-                                  setSelectedImage(image.url);
+                                  setReplaceBgSelectedImage(image.url);
                                   setCustomImageUrl("");
                                 }}
                                 title={image.name}
                               >
-                                <img
+                                <EnhancedImage
                                   src={image.thumbnail || "/placeholder.svg"}
                                   alt={image.name}
                                   className="w-full h-full object-cover"
+                                  width={500}
+                                  height={500}
                                 />
                               </div>
                             ))}
@@ -767,7 +811,7 @@ export default function RemoveBGPage() {
                               value={customImageUrl}
                               onChange={(e) => {
                                 setCustomImageUrl(e.target.value);
-                                setSelectedImage(null);
+                                setReplaceBgSelectedImage(null);
                               }}
                             />
                           </div>
@@ -799,7 +843,7 @@ export default function RemoveBGPage() {
                       )}
 
                       {/* Prompt Background Options */}
-                      {backgroundType === "prompt" && (
+                      {backgroundType === BackgroundSourceType.PROMPT && (
                         <div className="space-y-4">
                           <div className="space-y-2">
                             <Label htmlFor="background-prompt">
@@ -864,7 +908,8 @@ export default function RemoveBGPage() {
                         size="lg"
                         disabled={
                           isTaskProcessing ||
-                          (backgroundType === "prompt" && !backgroundPrompt)
+                          (backgroundType === BackgroundSourceType.PROMPT &&
+                            !backgroundPrompt)
                         }
                       >
                         {isTaskProcessing ? (
@@ -932,15 +977,16 @@ export default function RemoveBGPage() {
                           className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 h-48"
                           style={getBackgroundPreviewStyle()}
                         >
-                          {backgroundType === "prompt" && !finalImage && (
-                            <div className="flex items-center justify-center h-full">
-                              <p className="text-sm text-slate-500 dark:text-slate-400">
-                                {backgroundPrompt
-                                  ? "AI will generate this background after processing"
-                                  : "Enter a prompt to generate a background"}
-                              </p>
-                            </div>
-                          )}
+                          {backgroundType === BackgroundSourceType.PROMPT &&
+                            !finalImage && (
+                              <div className="flex items-center justify-center h-full">
+                                <p className="text-sm text-slate-500 dark:text-slate-400">
+                                  {backgroundPrompt
+                                    ? "AI will generate this background after processing"
+                                    : "Enter a prompt to generate a background"}
+                                </p>
+                              </div>
+                            )}
                         </div>
                       </div>
                     </div>
@@ -967,11 +1013,11 @@ export default function RemoveBGPage() {
                         Finalizing your image...
                       </p>
                       <p className="text-sm text-center text-slate-500 dark:text-slate-500 mt-2 max-w-md">
-                        {backgroundType === "color" &&
+                        {backgroundType === BackgroundSourceType.COLOR &&
                           "Applying solid color background"}
-                        {backgroundType === "image" &&
+                        {backgroundType === BackgroundSourceType.IMAGE &&
                           "Compositing with background image"}
-                        {backgroundType === "prompt" &&
+                        {backgroundType === BackgroundSourceType.PROMPT &&
                           "Generating AI background based on your prompt"}
                       </p>
                     </div>
@@ -983,12 +1029,12 @@ export default function RemoveBGPage() {
                             Original
                           </p>
                           <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                            <img
-                              src={
-                                uploadedImage?.previewUrl || "/placeholder.svg"
-                              }
+                            <EnhancedImage
+                              src={uploadedImage?.originalUrl!}
                               alt="Original image"
                               className="w-full h-auto object-contain"
+                              width={500}
+                              height={500}
                             />
                           </div>
                         </div>
@@ -997,10 +1043,12 @@ export default function RemoveBGPage() {
                             Final Result
                           </p>
                           <div className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                            <img
-                              src={finalImage || "/placeholder.svg"}
+                            <EnhancedImage
+                              src={finalImage}
                               alt="Final result"
                               className="w-full h-auto object-contain"
+                              width={500}
+                              height={500}
                             />
                             <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center opacity-0 hover:opacity-100">
                               <TooltipProvider>
@@ -1037,7 +1085,7 @@ export default function RemoveBGPage() {
                               {backgroundType}
                             </span>
                           </div>
-                          {backgroundType === "color" && (
+                          {backgroundType === BackgroundSourceType.COLOR && (
                             <div className="flex justify-between items-center">
                               <span className="text-slate-500 dark:text-slate-400">
                                 Color:
@@ -1047,16 +1095,16 @@ export default function RemoveBGPage() {
                                   className="h-4 w-4 rounded-full mr-1"
                                   style={{
                                     backgroundColor:
-                                      customColor || selectedColor,
+                                      customColor || replaceBgSelectedColor,
                                   }}
                                 />
                                 <span className="font-medium">
-                                  {customColor || selectedColor}
+                                  {customColor || replaceBgSelectedColor}
                                 </span>
                               </div>
                             </div>
                           )}
-                          {backgroundType === "prompt" && (
+                          {backgroundType === BackgroundSourceType.IMAGE && (
                             <div className="flex justify-between col-span-2">
                               <span className="text-slate-500 dark:text-slate-400">
                                 Prompt:

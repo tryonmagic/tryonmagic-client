@@ -24,6 +24,7 @@ export interface RemoveBackgroundTaskInput {
 }
 
 export interface ReplaceBackgroundTaskInput {
+  sourceImageUrl: string;
   backgroundSourceType: BackgroundSourceType;
   backgroundImageSourceType?: ImageSourceType;
   backgroundSourceValue: string;
