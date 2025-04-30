@@ -23,6 +23,13 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import AspectRatioSelector from "@/app/ai-model/AspectRation";
+import { generateAIModel } from "@/lib/api/ai-models";
+import { useAppBridge } from "@shopify/app-bridge-react";
+import { WebSocketClient } from "@/socket";
+import { TaskProgress, TaskStatus } from "@/lib/api/type";
+import Image from "next/image";
+import EnhancedImage from "./ui/EnhanchedImage";
 
 const locations = [
   {
@@ -372,12 +379,15 @@ export default function AIFashionGenerator() {
       "Elegant fashion model wearing a designer dress with professional lighting",
     negativePrompt:
       "distorted features, unrealistic proportions, poor lighting",
+    aspectRatio: "3:4",
   });
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState("");
   const [activeTab, setActiveTab] = useState("form");
   const [overrideParameters, setOverrideParameters] = useState(false);
+  const [taskProgress, setTaskProgress] = useState<TaskProgress | null>(null);
+  const appBridge = useAppBridge();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -386,29 +396,33 @@ export default function AIFashionGenerator() {
   const handleGenerate = async () => {
     setIsGenerating(true);
     setActiveTab("result");
+    const sessionToken = await appBridge.idToken();
+    const response = await generateAIModel(sessionToken, {
+      prompt: formData.prompt,
+      negativePrompt: formData.negativePrompt,
+      modelLocation: formData.location,
+      ethnicity: formData.race,
+      skinTone: formData.skinTone,
+      ageRange: formData.age,
+      aspectRatio: formData.aspectRatio,
+      overrideParameters,
+      gender: formData.gender,
+    });
+    const task = response.data.data;
+    if (!task) {
+      console.error("No task data returned");
+      return;
+    }
 
-    // Simulate AI generation delay
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-
-    // In a real app, you would call your AI service here with the override flag
-    // For example:
-    // const result = await generateAIModel({
-    //   prompt: formData.prompt,
-    //   negativePrompt: formData.negativePrompt,
-    //   parameters: overrideParameters ? null : {
-    //     location: formData.location,
-    //     race: formData.race,
-    //     gender: formData.gender,
-    //     age: formData.age,
-    //     skinTone: formData.skinTone,
-    //   }
-    // });
-
-    // For demo purposes, we'll use a placeholder image
-    setGeneratedImage(
-      `https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=1024&width=768`,
-    );
-    setIsGenerating(false);
+    const websocket = new WebSocketClient(task.userId);
+    websocket.on<TaskProgress>("task-progress", (data) => {
+      console.log("WebSocket data received:", data);
+      setTaskProgress(data);
+      if (data.status === TaskStatus.SUCCEEDED) {
+        setIsGenerating(false);
+        setGeneratedImage(data.resultData?.outputImageUrl || "");
+      }
+    });
   };
 
   const handleReset = () => {
@@ -477,6 +491,12 @@ export default function AIFashionGenerator() {
                       handleInputChange("skinTone", value)
                     }
                     options={skinTones}
+                  />
+                  <AspectRatioSelector
+                    defaultValue="3:4"
+                    onChange={(value) =>
+                      handleInputChange("aspectRatio", value)
+                    }
                   />
                 </div>
               </CardContent>
@@ -666,47 +686,13 @@ export default function AIFashionGenerator() {
                   </div>
                 ) : generatedImage ? (
                   <div className="space-y-4">
-                    <div className="relative group">
-                      <img
-                        src={
-                          generatedImage ||
-                          "https://ig89yd5z8iykrgxva.lite.vusercontent.nethttps://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg"
-                        }
-                        alt="Generated fashion model"
-                        className="w-full h-auto rounded-lg shadow-lg object-cover aspect-[3/4]"
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                // variant="secondary"
-                                size="icon"
-                                className="mr-2"
-                              >
-                                <Download className="h-5 w-5" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Download image</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button size="icon">
-                                <RefreshCw className="h-5 w-5" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Regenerate</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                    </div>
+                    <EnhancedImage
+                      src={generatedImage}
+                      alt="Generated fashion model"
+                      className="w-full h-auto rounded-lg shadow-lg object-cover aspect-[3/4]"
+                      height={700}
+                      width={500}
+                    />
 
                     <div className="flex space-x-4">
                       <Button

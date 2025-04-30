@@ -15,8 +15,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import PageWrapper from "./page-wrapper";
+import { useAppBridge } from "@shopify/app-bridge-react";
+import ExampleDialog from "@/lib/uploader/components/image-upload-manager";
 
 function AboutProdigyAI() {
+  const app = useAppBridge();
+  const handleOnclick = () => {
+    app.idToken().then((token) => {
+      if (!token) {
+        console.log("No token");
+        return;
+      }
+      console.log("Token", token);
+    });
+  };
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
@@ -46,11 +58,11 @@ function AboutProdigyAI() {
             <Button
               size="lg"
               className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-              asChild
+              onClick={handleOnclick}
             >
-              <Link href="/ai-model">
-                Try AI Model <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
+              {/* <Link href="/ai-model"> */}
+              Try AI Model <ArrowRight className="ml-2 h-4 w-4" />
+              {/* </Link> */}
             </Button>
             <Button
               size="lg"

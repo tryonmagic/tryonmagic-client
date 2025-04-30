@@ -81,3 +81,69 @@ export interface TaskProgress<T = unknown> {
     outputImageUrl: string;
   } & T;
 }
+
+// type AIModel struct {
+// 	ID             uuid.UUID      `gorm:"primaryKey;not null" json:"id"`
+// 	AIModelAuthor  AIModelAuthor  `gorm:"default:SYSTEM;not null" json:"aiModelAuthor"`
+// 	ModelTitle     string         `gorm:"not null" json:"modelTitle"`
+// 	Prompt         string         `gorm:"not null" json:"prompt"`
+// 	NegativePrompt *string        `json:"negativePrompt"`
+// 	GenAIName      string         `gorm:"not null" json:"genAIName"`
+// 	ModelCategory  string         `json:"modelCategory"` // "fashion", "lifestyle", "travel"
+// 	ModelLocation  string         `json:"modelLocation"` // (e.g., "studio", "beach", "urban rooftop")
+// 	Ethnicity      string         `json:"ethnicity"`
+// 	SkinTone       *string        `json:"skinTone"`
+// 	Gender         string         `json:"gender"`
+// 	AgeRange       string         `json:"ageRange"`
+// 	IsActive       bool           `gorm:"default:true" json:"isActive"`
+// 	StyleTags      datatypes.JSON `json:"styleTags"`
+// 	Resolution     datatypes.JSON `json:"resolution"`
+// 	ModelImageUrl  *string        `json:"modelImageUrl"`
+// 	UserID         uuid.UUID      `gorm:"not null" json:"userId"`
+// 	TaskID         *uuid.UUID     `json:"taskId"`
+// 	User           *User          `gorm:"foreignKey:UserID;references:ID" json:"user"`
+// 	Task           *Task          `gorm:"foreignKey:TaskID;references:ID" json:"task"`
+// 	CreatedAt      time.Time      `gorm:"autoCreateTime" json:"createdAt"`
+// 	UpdatedAt      time.Time      `gorm:"autoUpdateTime" json:"updatedAt"`
+// }
+
+export interface AIModel {
+  id: string;
+  userId: string;
+  aiModelAuthor: string;
+  modelTitle: string;
+  prompt: string;
+  gender: string;
+  negativePrompt?: string | null;
+  genAIName: string;
+  modelCategory: string; // "fashion", "lifestyle", "travel"
+  modelLocation: string; // (e.g., "studio", "beach", "urban rooftop
+  ethnicity: string;
+  skinTone?: string | null;
+  ageRange: string;
+  isActive: boolean;
+  styleTags: string[];
+  resolution?: {
+    width: number;
+    height: number;
+  };
+  aspectRatio: string;
+  modelImageUrl?: string | null;
+  overrideParameters: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateAIModel = Omit<
+  AIModel,
+  | "id"
+  | "createdAt"
+  | "updatedAt"
+  | "aiModelAuthor"
+  | "modelTitle"
+  | "genAIName"
+  | "modelCategory"
+  | "isActive"
+  | "styleTags"
+  | "userId"
+>;
