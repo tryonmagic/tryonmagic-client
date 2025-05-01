@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useRef } from "react"
-import { useRouter } from "next/navigation"
-import Image from "next/image"
-import Link from "next/link"
+import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
 import {
   ArrowLeft,
   Upload,
@@ -29,18 +29,29 @@ import {
   Settings,
   Wand2,
   ArrowRight,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Slider } from "@/components/ui/slider"
-import { Switch } from "@/components/ui/switch"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { cn } from "@/lib/utils"
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
+import { useAIModels, useGarments } from "./hooks";
+import { FilterProvider } from "@/components/model-filters/filter-context";
+import { FilterBar } from "@/components/model-filters/filter-bar";
+import EnhancedImage from "@/components/ui/EnhanchedImage";
 
 // Sample model gallery data
 const modelGallery = [
@@ -86,7 +97,7 @@ const modelGallery = [
     gender: "male",
     pose: "active",
   },
-]
+];
 
 // Sample garment gallery data
 const garmentGallery = [
@@ -132,7 +143,7 @@ const garmentGallery = [
     type: "full",
     color: "black",
   },
-]
+];
 
 // Sample results for demonstration
 const sampleResults = [
@@ -151,155 +162,167 @@ const sampleResults = [
     src: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=600&width=400",
     alt: "Virtual try-on result 3",
   },
-]
+];
 
 export default function VirtualTryOnPage() {
-  const router = useRouter()
-  const [activeTab, setActiveTab] = useState("model")
-  const [selectedModel, setSelectedModel] = useState<string | null>(null)
-  const [selectedGarment, setSelectedGarment] = useState<string | null>(null)
-  const [uploadedModel, setUploadedModel] = useState<string | null>(null)
-  const [uploadedGarment, setUploadedGarment] = useState<string | null>(null)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [progress, setProgress] = useState(0)
-  const [results, setResults] = useState<any[]>([])
-  const [selectedResult, setSelectedResult] = useState<string | null>(null)
-  const [modelFilter, setModelFilter] = useState("all")
-  const [garmentFilter, setGarmentFilter] = useState("all")
-  const [zoom, setZoom] = useState(1)
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState("model");
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [selectedGarment, setSelectedGarment] = useState<string | null>(null);
+  const [uploadedModel, setUploadedModel] = useState<string | null>(null);
+  const [uploadedGarment, setUploadedGarment] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [results, setResults] = useState<any[]>([]);
+  const [selectedResult, setSelectedResult] = useState<string | null>(null);
+  const [modelFilter, setModelFilter] = useState("all");
+  const [garmentFilter, setGarmentFilter] = useState("all");
+  const [zoom, setZoom] = useState(1);
 
   // Configuration options
-  const [tryOnCategory, setTryOnCategory] = useState("top")
-  const [modelMode, setModelMode] = useState("balanced")
-  const [numSamples, setNumSamples] = useState(3)
-  const [seed, setSeed] = useState(Math.floor(Math.random() * 1000000))
-  const [coverFeet, setCoverFeet] = useState(false)
-  const [adjustHands, setAdjustHands] = useState(true)
-  const [restoreBackground, setRestoreBackground] = useState(true)
-  const [restoreClothes, setRestoreClothes] = useState(false)
+  const [tryOnCategory, setTryOnCategory] = useState("top");
+  const [modelMode, setModelMode] = useState("balanced");
+  const [numSamples, setNumSamples] = useState(3);
+  const [seed, setSeed] = useState(Math.floor(Math.random() * 1000000));
+  const [coverFeet, setCoverFeet] = useState(false);
+  const [adjustHands, setAdjustHands] = useState(true);
+  const [restoreBackground, setRestoreBackground] = useState(true);
+  const [restoreClothes, setRestoreClothes] = useState(false);
 
-  const modelInputRef = useRef<HTMLInputElement>(null)
-  const garmentInputRef = useRef<HTMLInputElement>(null)
-
+  const modelInputRef = useRef<HTMLInputElement>(null);
+  const garmentInputRef = useRef<HTMLInputElement>(null);
+  const { data: aiModels, isLoading } = useAIModels();
+  const { data: garments } = useGarments();
+  const [ageFilter, setAgeFilter] = useState("all");
+  const [ethnicityFilter, setEthnicityFilter] = useState("all");
+  const [skinToneFilter, setSkinToneFilter] = useState("all");
   // Filter models based on selected filter
-  const filteredModels = modelGallery.filter((model) => {
-    if (modelFilter === "all") return true
-    return model.gender === modelFilter || model.pose === modelFilter
-  })
+  const filteredModels = aiModels?.filter((model) => {
+    if (modelFilter === "all") return true;
+    return model.gender === modelFilter;
+  });
+
+  console.log({ garments });
 
   // Filter garments based on selected filter
-  const filteredGarments = garmentGallery.filter((garment) => {
-    if (garmentFilter === "all") return true
-    return garment.type === garmentFilter || garment.color === garmentFilter
-  })
+  const filteredGarments = garments?.filter((garment) => {
+    if (garmentFilter === "all") return true;
+    return (
+      garment.outfitType === garmentFilter || garment.color === garmentFilter
+    );
+  });
 
   // Handle model upload
   const handleModelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader()
+      const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) {
-          setUploadedModel(event.target.result as string)
-          setSelectedModel(null)
+          setUploadedModel(event.target.result as string);
+          setSelectedModel(null);
         }
-      }
-      reader.readAsDataURL(file)
+      };
+      reader.readAsDataURL(file);
     }
-  }
+  };
 
   // Handle garment upload
   const handleGarmentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader()
+      const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) {
-          setUploadedGarment(event.target.result as string)
-          setSelectedGarment(null)
+          setUploadedGarment(event.target.result as string);
+          setSelectedGarment(null);
         }
-      }
-      reader.readAsDataURL(file)
+      };
+      reader.readAsDataURL(file);
     }
-  }
+  };
 
   // Reset model selection
   const resetModel = () => {
-    setUploadedModel(null)
-    setSelectedModel(null)
-  }
+    setUploadedModel(null);
+    setSelectedModel(null);
+  };
 
   // Reset garment selection
   const resetGarment = () => {
-    setUploadedGarment(null)
-    setSelectedGarment(null)
-  }
+    setUploadedGarment(null);
+    setSelectedGarment(null);
+  };
 
   // Generate random seed
   const generateRandomSeed = () => {
-    setSeed(Math.floor(Math.random() * 1000000))
-  }
+    setSeed(Math.floor(Math.random() * 1000000));
+  };
 
   // Process the virtual try-on
   const processVirtualTryOn = () => {
-    if ((!selectedModel && !uploadedModel) || (!selectedGarment && !uploadedGarment)) {
-      return
+    if (
+      (!selectedModel && !uploadedModel) ||
+      (!selectedGarment && !uploadedGarment)
+    ) {
+      return;
     }
 
-    setIsProcessing(true)
-    setProgress(0)
-    setActiveTab("results")
-    setResults([])
+    setIsProcessing(true);
+    setProgress(0);
+    setActiveTab("results");
+    setResults([]);
 
     // Simulate processing with progress updates
     const interval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
-          clearInterval(interval)
-          setIsProcessing(false)
+          clearInterval(interval);
+          setIsProcessing(false);
           // Set sample results after processing is complete
-          setResults(sampleResults)
-          setSelectedResult(sampleResults[0].id)
-          return 100
+          setResults(sampleResults);
+          setSelectedResult(sampleResults[0].id);
+          return 100;
         }
-        return prev + 5
-      })
-    }, 200)
-  }
+        return prev + 5;
+      });
+    }, 200);
+  };
 
   // Check if we can proceed to the next step
-  const canProceedToGarment = !!selectedModel || !!uploadedModel
-  const canProceedToConfig = canProceedToGarment && (!!selectedGarment || !!uploadedGarment)
-  const canProcessTryOn = canProceedToConfig
+  const canProceedToGarment = !!selectedModel || !!uploadedModel;
+  const canProceedToConfig =
+    canProceedToGarment && (!!selectedGarment || !!uploadedGarment);
+  const canProcessTryOn = canProceedToConfig;
 
   // Get the current model image source
   const getModelSrc = () => {
-    if (uploadedModel) return uploadedModel
+    if (uploadedModel) return uploadedModel;
     if (selectedModel) {
-      const model = modelGallery.find((m) => m.id === selectedModel)
-      return model?.src || ""
+      const model = aiModels?.find((m) => m.id === selectedModel);
+      return model?.modelImageUrl || "";
     }
-    return ""
-  }
+    return "";
+  };
 
   // Get the current garment image source
   const getGarmentSrc = () => {
-    if (uploadedGarment) return uploadedGarment
+    if (uploadedGarment) return uploadedGarment;
     if (selectedGarment) {
-      const garment = garmentGallery.find((g) => g.id === selectedGarment)
-      return garment?.src || ""
+      const garment = garments?.find((g) => g.id === selectedGarment);
+      return garment?.imageUrl || "";
     }
-    return ""
-  }
+    return "";
+  };
 
   // Get the current result image source
   const getResultSrc = () => {
     if (selectedResult) {
-      const result = results.find((r) => r.id === selectedResult)
-      return result?.src || ""
+      const result = results.find((r) => r.id === selectedResult);
+      return result?.src || "";
     }
-    return ""
-  }
+    return "";
+  };
 
   // Handle tab changes
   const handleTabChange = (value: string) => {
@@ -310,9 +333,9 @@ export default function VirtualTryOnPage() {
       (value === "config" && canProceedToConfig) ||
       (value === "results" && (isProcessing || results.length > 0))
     ) {
-      setActiveTab(value)
+      setActiveTab(value);
     }
-  }
+  };
 
   return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4 md:p-8">
@@ -328,11 +351,17 @@ export default function VirtualTryOnPage() {
             <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
               Virtual Try-On
             </h1>
-            <p className="text-slate-600 dark:text-slate-400">Try clothes on virtual models with AI-powered fitting</p>
+            <p className="text-slate-600 dark:text-slate-400">
+              Try clothes on virtual models with AI-powered fitting
+            </p>
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+        <Tabs
+          value={activeTab}
+          onValueChange={handleTabChange}
+          className="w-full"
+        >
           <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-4 mb-8">
             <TabsTrigger value="model">Model</TabsTrigger>
             <TabsTrigger value="garment" disabled={!canProceedToGarment}>
@@ -341,7 +370,10 @@ export default function VirtualTryOnPage() {
             <TabsTrigger value="config" disabled={!canProceedToConfig}>
               Configure
             </TabsTrigger>
-            <TabsTrigger value="results" disabled={!isProcessing && results.length === 0}>
+            <TabsTrigger
+              value="results"
+              disabled={!isProcessing && results.length === 0}
+            >
               Results
             </TabsTrigger>
           </TabsList>
@@ -353,96 +385,62 @@ export default function VirtualTryOnPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Select a Model</CardTitle>
-                    <CardDescription>Choose from our gallery or upload your own model image</CardDescription>
+                    <CardDescription>
+                      Choose from our gallery or upload your own model image
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-6">
                       {/* Filter controls */}
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          variant={modelFilter === "all" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setModelFilter("all")}
-                        >
-                          All
-                        </Button>
-                        <Button
-                          variant={modelFilter === "female" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setModelFilter("female")}
-                        >
-                          Female
-                        </Button>
-                        <Button
-                          variant={modelFilter === "male" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setModelFilter("male")}
-                        >
-                          Male
-                        </Button>
-                        <Button
-                          variant={modelFilter === "casual" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setModelFilter("casual")}
-                        >
-                          Casual
-                        </Button>
-                        <Button
-                          variant={modelFilter === "formal" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setModelFilter("formal")}
-                        >
-                          Formal
-                        </Button>
-                        <Button
-                          variant={modelFilter === "active" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setModelFilter("active")}
-                        >
-                          Active
-                        </Button>
-                      </div>
-
-                      {/* Model gallery */}
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                        {filteredModels.map((model) => (
-                          <div
-                            key={model.id}
-                            className={cn(
-                              "relative aspect-[2/3] rounded-md overflow-hidden cursor-pointer border-2 transition-all",
-                              selectedModel === model.id
-                                ? "border-purple-600 shadow-md"
-                                : "border-transparent hover:border-slate-300 dark:hover:border-slate-700",
-                            )}
-                            onClick={() => {
-                              setSelectedModel(model.id)
-                              setUploadedModel(null)
-                            }}
-                          >
-                            <Image
-                              src={model.src || "/placeholder.svg"}
-                              alt={model.alt}
-                              fill
-                              className="object-cover"
-                            />
-                            {selectedModel === model.id && (
-                              <div className="absolute top-2 right-2 bg-purple-600 rounded-full p-1">
-                                <CheckCircle2 className="h-4 w-4 text-white" />
-                              </div>
-                            )}
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
-                              <div className="flex flex-wrap gap-1">
-                                <Badge variant="outline" className="bg-black/50 text-white border-none text-xs">
-                                  {model.gender}
-                                </Badge>
-                                <Badge variant="outline" className="bg-black/50 text-white border-none text-xs">
-                                  {model.pose}
-                                </Badge>
+                      <FilterProvider>
+                        <FilterBar />
+                        {/* Model gallery */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                          {filteredModels?.map((model) => (
+                            <div
+                              key={model.id}
+                              className={cn(
+                                "relative aspect-[2/3] rounded-md overflow-hidden cursor-pointer border-2 transition-all",
+                                selectedModel === model.id
+                                  ? "border-purple-600 shadow-md"
+                                  : "border-transparent hover:border-slate-300 dark:hover:border-slate-700",
+                              )}
+                              onClick={() => {
+                                setSelectedModel(model.id);
+                                setUploadedModel(null);
+                              }}
+                            >
+                              <Image
+                                src={model.modelImageUrl || "/placeholder.svg"}
+                                alt={model.modelTitle}
+                                fill
+                                className="object-cover"
+                              />
+                              {selectedModel === model.id && (
+                                <div className="absolute top-2 right-2 bg-purple-600 rounded-full p-1">
+                                  <CheckCircle2 className="h-4 w-4 text-white" />
+                                </div>
+                              )}
+                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                                <div className="flex flex-wrap gap-1">
+                                  <Badge
+                                    variant="outline"
+                                    className="bg-black/50 text-white border-none text-xs"
+                                  >
+                                    {model.gender}
+                                  </Badge>
+                                  <Badge
+                                    variant="outline"
+                                    className="bg-black/50 text-white border-none text-xs"
+                                  >
+                                    {/* {model.styleTags?.join(", ")} */}
+                                  </Badge>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                      </FilterProvider>
 
                       {/* Upload option */}
                       <div
@@ -461,18 +459,29 @@ export default function VirtualTryOnPage() {
                             <Upload className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-slate-900 dark:text-white">Upload your own model</p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">PNG, JPG or WEBP (max. 10MB)</p>
+                            <p className="text-sm font-medium text-slate-900 dark:text-white">
+                              Upload your own model
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              PNG, JPG or WEBP (max. 10MB)
+                            </p>
                           </div>
                         </div>
                       </div>
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-between">
-                    <Button variant="outline" onClick={resetModel} disabled={!selectedModel && !uploadedModel}>
+                    <Button
+                      variant="outline"
+                      onClick={resetModel}
+                      disabled={!selectedModel && !uploadedModel}
+                    >
                       Reset Selection
                     </Button>
-                    <Button onClick={() => setActiveTab("garment")} disabled={!selectedModel && !uploadedModel}>
+                    <Button
+                      onClick={() => setActiveTab("garment")}
+                      disabled={!selectedModel && !uploadedModel}
+                    >
                       Next: Select Garment
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
@@ -483,7 +492,9 @@ export default function VirtualTryOnPage() {
                   <div className="flex items-start space-x-3">
                     <Info className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
                     <div>
-                      <h3 className="font-medium text-amber-800 dark:text-amber-300 text-sm">Tips for best results</h3>
+                      <h3 className="font-medium text-amber-800 dark:text-amber-300 text-sm">
+                        Tips for best results
+                      </h3>
                       <ul className="text-xs text-amber-700 dark:text-amber-400 mt-1 space-y-1 list-disc pl-4">
                         <li>Use high-quality images with good lighting</li>
                         <li>Choose models with a neutral pose</li>
@@ -515,7 +526,9 @@ export default function VirtualTryOnPage() {
                       <div className="aspect-[2/3] rounded-md border border-slate-200 dark:border-slate-700 flex items-center justify-center bg-slate-100 dark:bg-slate-800">
                         <div className="text-center p-4">
                           <User className="h-12 w-12 mx-auto mb-2 text-slate-400" />
-                          <p className="text-sm text-slate-500 dark:text-slate-400">No model selected</p>
+                          <p className="text-sm text-slate-500 dark:text-slate-400">
+                            No model selected
+                          </p>
                         </div>
                       </div>
                     )}
@@ -532,63 +545,81 @@ export default function VirtualTryOnPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Select a Garment</CardTitle>
-                    <CardDescription>Choose from our gallery or upload your own garment image</CardDescription>
+                    <CardDescription>
+                      Choose from our gallery or upload your own garment image
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-6">
                       {/* Filter controls */}
                       <div className="flex flex-wrap gap-2">
                         <Button
-                          variant={garmentFilter === "all" ? "default" : "outline"}
+                          variant={
+                            garmentFilter === "all" ? "default" : "outline"
+                          }
                           size="sm"
                           onClick={() => setGarmentFilter("all")}
                         >
                           All
                         </Button>
                         <Button
-                          variant={garmentFilter === "top" ? "default" : "outline"}
+                          variant={
+                            garmentFilter === "top" ? "default" : "outline"
+                          }
                           size="sm"
                           onClick={() => setGarmentFilter("top")}
                         >
                           Tops
                         </Button>
                         <Button
-                          variant={garmentFilter === "bottom" ? "default" : "outline"}
+                          variant={
+                            garmentFilter === "bottom" ? "default" : "outline"
+                          }
                           size="sm"
                           onClick={() => setGarmentFilter("bottom")}
                         >
                           Bottoms
                         </Button>
                         <Button
-                          variant={garmentFilter === "full" ? "default" : "outline"}
+                          variant={
+                            garmentFilter === "full" ? "default" : "outline"
+                          }
                           size="sm"
                           onClick={() => setGarmentFilter("full")}
                         >
                           Full Outfits
                         </Button>
                         <Button
-                          variant={garmentFilter === "black" ? "default" : "outline"}
+                          variant={
+                            garmentFilter === "black" ? "default" : "outline"
+                          }
                           size="sm"
                           onClick={() => setGarmentFilter("black")}
                         >
                           Black
                         </Button>
                         <Button
-                          variant={garmentFilter === "white" ? "default" : "outline"}
+                          variant={
+                            garmentFilter === "white" ? "default" : "outline"
+                          }
                           size="sm"
                           onClick={() => setGarmentFilter("white")}
                         >
                           White
                         </Button>
                         <Button
-                          variant={garmentFilter === "blue" ? "default" : "outline"}
+                          variant={
+                            garmentFilter === "blue" ? "default" : "outline"
+                          }
                           size="sm"
                           onClick={() => setGarmentFilter("blue")}
                         >
                           Blue
                         </Button>
                         <Button
-                          variant={garmentFilter === "red" ? "default" : "outline"}
+                          variant={
+                            garmentFilter === "red" ? "default" : "outline"
+                          }
                           size="sm"
                           onClick={() => setGarmentFilter("red")}
                         >
@@ -598,7 +629,7 @@ export default function VirtualTryOnPage() {
 
                       {/* Garment gallery */}
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                        {filteredGarments.map((garment) => (
+                        {filteredGarments?.map((garment) => (
                           <div
                             key={garment.id}
                             className={cn(
@@ -608,18 +639,20 @@ export default function VirtualTryOnPage() {
                                 : "border-transparent hover:border-slate-300 dark:hover:border-slate-700",
                             )}
                             onClick={() => {
-                              setSelectedGarment(garment.id)
-                              setUploadedGarment(null)
+                              setSelectedGarment(garment.id);
+                              setUploadedGarment(null);
                               // Auto-set try-on category based on garment type
-                              const garmentObj = garmentGallery.find((g) => g.id === garment.id)
+                              const garmentObj = garmentGallery.find(
+                                (g) => g.id === garment.id,
+                              );
                               if (garmentObj) {
-                                setTryOnCategory(garmentObj.type)
+                                setTryOnCategory(garmentObj.type);
                               }
                             }}
                           >
                             <Image
-                              src={garment.src || "/placeholder.svg"}
-                              alt={garment.alt}
+                              src={garment.imageUrl || "/placeholder.svg"}
+                              alt={garment.id}
                               fill
                               className="object-cover"
                             />
@@ -630,10 +663,16 @@ export default function VirtualTryOnPage() {
                             )}
                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
                               <div className="flex flex-wrap gap-1">
-                                <Badge variant="outline" className="bg-black/50 text-white border-none text-xs">
-                                  {garment.type}
+                                <Badge
+                                  variant="outline"
+                                  className="bg-black/50 text-white border-none text-xs"
+                                >
+                                  {garment.outfitType}
                                 </Badge>
-                                <Badge variant="outline" className="bg-black/50 text-white border-none text-xs">
+                                <Badge
+                                  variant="outline"
+                                  className="bg-black/50 text-white border-none text-xs"
+                                >
                                   {garment.color}
                                 </Badge>
                               </div>
@@ -662,22 +701,34 @@ export default function VirtualTryOnPage() {
                             <p className="text-sm font-medium text-slate-900 dark:text-white">
                               Upload your own garment
                             </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">PNG, JPG or WEBP (max. 10MB)</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              PNG, JPG or WEBP (max. 10MB)
+                            </p>
                           </div>
                         </div>
                       </div>
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-between">
-                    <Button variant="outline" onClick={() => setActiveTab("model")}>
+                    <Button
+                      variant="outline"
+                      onClick={() => setActiveTab("model")}
+                    >
                       <ArrowLeft className="mr-2 h-4 w-4" />
                       Back to Model
                     </Button>
                     <div className="flex gap-2">
-                      <Button variant="outline" onClick={resetGarment} disabled={!selectedGarment && !uploadedGarment}>
+                      <Button
+                        variant="outline"
+                        onClick={resetGarment}
+                        disabled={!selectedGarment && !uploadedGarment}
+                      >
                         Reset Selection
                       </Button>
-                      <Button onClick={() => setActiveTab("config")} disabled={!selectedGarment && !uploadedGarment}>
+                      <Button
+                        onClick={() => setActiveTab("config")}
+                        disabled={!selectedGarment && !uploadedGarment}
+                      >
                         Next: Configure
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
@@ -693,10 +744,18 @@ export default function VirtualTryOnPage() {
                         Tips for garment selection
                       </h3>
                       <ul className="text-xs text-amber-700 dark:text-amber-400 mt-1 space-y-1 list-disc pl-4">
-                        <li>Use images with clean backgrounds for better results</li>
-                        <li>Flat-lay garment photos work best for accurate fitting</li>
-                        <li>Make sure the entire garment is visible in the image</li>
-                        <li>Higher resolution images produce better try-on results</li>
+                        <li>
+                          Use images with clean backgrounds for better results
+                        </li>
+                        <li>
+                          Flat-lay garment photos work best for accurate fitting
+                        </li>
+                        <li>
+                          Make sure the entire garment is visible in the image
+                        </li>
+                        <li>
+                          Higher resolution images produce better try-on results
+                        </li>
                       </ul>
                     </div>
                   </div>
@@ -761,7 +820,9 @@ export default function VirtualTryOnPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Configure Try-On Settings</CardTitle>
-                    <CardDescription>Customize how the virtual try-on will be processed</CardDescription>
+                    <CardDescription>
+                      Customize how the virtual try-on will be processed
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-8">
@@ -780,7 +841,9 @@ export default function VirtualTryOnPage() {
                           >
                             <Shirt className="h-8 w-8 mb-2 text-slate-700 dark:text-slate-300" />
                             <span className="text-sm font-medium">Top</span>
-                            <span className="text-xs text-slate-500 dark:text-slate-400">Shirts, jackets, etc.</span>
+                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                              Shirts, jackets, etc.
+                            </span>
                           </div>
                           <div
                             className={cn(
@@ -793,7 +856,9 @@ export default function VirtualTryOnPage() {
                           >
                             <Pants className="h-8 w-8 mb-2 text-slate-700 dark:text-slate-300" />
                             <span className="text-sm font-medium">Bottom</span>
-                            <span className="text-xs text-slate-500 dark:text-slate-400">Pants, skirts, etc.</span>
+                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                              Pants, skirts, etc.
+                            </span>
                           </div>
                           <div
                             className={cn(
@@ -805,8 +870,12 @@ export default function VirtualTryOnPage() {
                             onClick={() => setTryOnCategory("full")}
                           >
                             <User className="h-8 w-8 mb-2 text-slate-700 dark:text-slate-300" />
-                            <span className="text-sm font-medium">Full Outfit</span>
-                            <span className="text-xs text-slate-500 dark:text-slate-400">Dresses, suits, etc.</span>
+                            <span className="text-sm font-medium">
+                              Full Outfit
+                            </span>
+                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                              Dresses, suits, etc.
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -827,18 +896,33 @@ export default function VirtualTryOnPage() {
                                 : "border-slate-200 dark:border-slate-700",
                             )}
                           >
-                            <RadioGroupItem value="performance" id="performance" className="sr-only" />
-                            <Label htmlFor="performance" className="flex flex-col cursor-pointer">
-                              <span className="font-medium mb-1">Performance</span>
+                            <RadioGroupItem
+                              value="performance"
+                              id="performance"
+                              className="sr-only"
+                            />
+                            <Label
+                              htmlFor="performance"
+                              className="flex flex-col cursor-pointer"
+                            >
+                              <span className="font-medium mb-1">
+                                Performance
+                              </span>
                               <span className="text-xs text-slate-500 dark:text-slate-400">
                                 Faster processing with good quality results
                               </span>
                               <div className="flex items-center mt-2">
                                 <Tally5 className="h-4 w-4 text-green-500 mr-1" />
-                                <span className="text-xs font-medium text-green-500">Speed</span>
-                                <span className="mx-2 text-slate-300 dark:text-slate-600">|</span>
+                                <span className="text-xs font-medium text-green-500">
+                                  Speed
+                                </span>
+                                <span className="mx-2 text-slate-300 dark:text-slate-600">
+                                  |
+                                </span>
                                 <Tally2 className="h-4 w-4 text-amber-500 mr-1" />
-                                <span className="text-xs font-medium text-amber-500">Quality</span>
+                                <span className="text-xs font-medium text-amber-500">
+                                  Quality
+                                </span>
                               </div>
                             </Label>
                           </div>
@@ -850,18 +934,31 @@ export default function VirtualTryOnPage() {
                                 : "border-slate-200 dark:border-slate-700",
                             )}
                           >
-                            <RadioGroupItem value="balanced" id="balanced" className="sr-only" />
-                            <Label htmlFor="balanced" className="flex flex-col cursor-pointer">
+                            <RadioGroupItem
+                              value="balanced"
+                              id="balanced"
+                              className="sr-only"
+                            />
+                            <Label
+                              htmlFor="balanced"
+                              className="flex flex-col cursor-pointer"
+                            >
                               <span className="font-medium mb-1">Balanced</span>
                               <span className="text-xs text-slate-500 dark:text-slate-400">
                                 Good balance between speed and quality
                               </span>
                               <div className="flex items-center mt-2">
                                 <Tally3 className="h-4 w-4 text-amber-500 mr-1" />
-                                <span className="text-xs font-medium text-amber-500">Speed</span>
-                                <span className="mx-2 text-slate-300 dark:text-slate-600">|</span>
+                                <span className="text-xs font-medium text-amber-500">
+                                  Speed
+                                </span>
+                                <span className="mx-2 text-slate-300 dark:text-slate-600">
+                                  |
+                                </span>
                                 <Tally3 className="h-4 w-4 text-amber-500 mr-1" />
-                                <span className="text-xs font-medium text-amber-500">Quality</span>
+                                <span className="text-xs font-medium text-amber-500">
+                                  Quality
+                                </span>
                               </div>
                             </Label>
                           </div>
@@ -873,18 +970,31 @@ export default function VirtualTryOnPage() {
                                 : "border-slate-200 dark:border-slate-700",
                             )}
                           >
-                            <RadioGroupItem value="quality" id="quality" className="sr-only" />
-                            <Label htmlFor="quality" className="flex flex-col cursor-pointer">
+                            <RadioGroupItem
+                              value="quality"
+                              id="quality"
+                              className="sr-only"
+                            />
+                            <Label
+                              htmlFor="quality"
+                              className="flex flex-col cursor-pointer"
+                            >
                               <span className="font-medium mb-1">Quality</span>
                               <span className="text-xs text-slate-500 dark:text-slate-400">
                                 Highest quality results with slower processing
                               </span>
                               <div className="flex items-center mt-2">
                                 <Tally2 className="h-4 w-4 text-amber-500 mr-1" />
-                                <span className="text-xs font-medium text-amber-500">Speed</span>
-                                <span className="mx-2 text-slate-300 dark:text-slate-600">|</span>
+                                <span className="text-xs font-medium text-amber-500">
+                                  Speed
+                                </span>
+                                <span className="mx-2 text-slate-300 dark:text-slate-600">
+                                  |
+                                </span>
                                 <Tally5 className="h-4 w-4 text-green-500 mr-1" />
-                                <span className="text-xs font-medium text-green-500">Quality</span>
+                                <span className="text-xs font-medium text-green-500">
+                                  Quality
+                                </span>
                               </div>
                             </Label>
                           </div>
@@ -893,12 +1003,17 @@ export default function VirtualTryOnPage() {
 
                       {/* Advanced options */}
                       <div className="space-y-4">
-                        <h3 className="text-lg font-medium">Advanced Options</h3>
+                        <h3 className="text-lg font-medium">
+                          Advanced Options
+                        </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div className="space-y-4">
                             <div className="flex items-center justify-between">
                               <div className="space-y-0.5">
-                                <Label htmlFor="cover-feet" className="text-sm font-medium cursor-pointer">
+                                <Label
+                                  htmlFor="cover-feet"
+                                  className="text-sm font-medium cursor-pointer"
+                                >
                                   Cover Feet
                                 </Label>
                                 <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -914,11 +1029,15 @@ export default function VirtualTryOnPage() {
                             </div>
                             <div className="flex items-center justify-between">
                               <div className="space-y-0.5">
-                                <Label htmlFor="adjust-hands" className="text-sm font-medium cursor-pointer">
+                                <Label
+                                  htmlFor="adjust-hands"
+                                  className="text-sm font-medium cursor-pointer"
+                                >
                                   Adjust Hands
                                 </Label>
                                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                                  Automatically position hands naturally with the outfit
+                                  Automatically position hands naturally with
+                                  the outfit
                                 </p>
                               </div>
                               <Switch
@@ -932,7 +1051,10 @@ export default function VirtualTryOnPage() {
                           <div className="space-y-4">
                             <div className="flex items-center justify-between">
                               <div className="space-y-0.5">
-                                <Label htmlFor="restore-background" className="text-sm font-medium cursor-pointer">
+                                <Label
+                                  htmlFor="restore-background"
+                                  className="text-sm font-medium cursor-pointer"
+                                >
                                   Restore Background
                                 </Label>
                                 <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -948,11 +1070,15 @@ export default function VirtualTryOnPage() {
                             </div>
                             <div className="flex items-center justify-between">
                               <div className="space-y-0.5">
-                                <Label htmlFor="restore-clothes" className="text-sm font-medium cursor-pointer">
+                                <Label
+                                  htmlFor="restore-clothes"
+                                  className="text-sm font-medium cursor-pointer"
+                                >
                                   Restore Clothes
                                 </Label>
                                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                                  Keep parts of original clothing visible when appropriate
+                                  Keep parts of original clothing visible when
+                                  appropriate
                                 </p>
                               </div>
                               <Switch
@@ -968,12 +1094,18 @@ export default function VirtualTryOnPage() {
 
                       {/* Generation parameters */}
                       <div className="space-y-4">
-                        <h3 className="text-lg font-medium">Generation Parameters</h3>
+                        <h3 className="text-lg font-medium">
+                          Generation Parameters
+                        </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                              <Label htmlFor="num-samples">Number of Samples</Label>
-                              <span className="text-sm text-slate-500">{numSamples}</span>
+                              <Label htmlFor="num-samples">
+                                Number of Samples
+                              </Label>
+                              <span className="text-sm text-slate-500">
+                                {numSamples}
+                              </span>
                             </div>
                             <Slider
                               id="num-samples"
@@ -995,10 +1127,16 @@ export default function VirtualTryOnPage() {
                                 id="seed"
                                 type="number"
                                 value={seed}
-                                onChange={(e) => setSeed(Number.parseInt(e.target.value) || 0)}
+                                onChange={(e) =>
+                                  setSeed(Number.parseInt(e.target.value) || 0)
+                                }
                                 className="flex-1"
                               />
-                              <Button variant="outline" size="icon" onClick={generateRandomSeed}>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={generateRandomSeed}
+                              >
                                 <Shuffle className="h-4 w-4" />
                               </Button>
                             </div>
@@ -1011,7 +1149,10 @@ export default function VirtualTryOnPage() {
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-between">
-                    <Button variant="outline" onClick={() => setActiveTab("garment")}>
+                    <Button
+                      variant="outline"
+                      onClick={() => setActiveTab("garment")}
+                    >
                       <ArrowLeft className="mr-2 h-4 w-4" />
                       Back to Garment
                     </Button>
@@ -1073,22 +1214,36 @@ export default function VirtualTryOnPage() {
                     </div>
 
                     <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg">
-                      <h3 className="text-sm font-medium mb-2">Selected Options</h3>
+                      <h3 className="text-sm font-medium mb-2">
+                        Selected Options
+                      </h3>
                       <div className="space-y-1 text-xs">
                         <div className="flex justify-between">
-                          <span className="text-slate-500 dark:text-slate-400">Category:</span>
-                          <span className="font-medium capitalize">{tryOnCategory}</span>
+                          <span className="text-slate-500 dark:text-slate-400">
+                            Category:
+                          </span>
+                          <span className="font-medium capitalize">
+                            {tryOnCategory}
+                          </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-500 dark:text-slate-400">Mode:</span>
-                          <span className="font-medium capitalize">{modelMode}</span>
+                          <span className="text-slate-500 dark:text-slate-400">
+                            Mode:
+                          </span>
+                          <span className="font-medium capitalize">
+                            {modelMode}
+                          </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-500 dark:text-slate-400">Samples:</span>
+                          <span className="text-slate-500 dark:text-slate-400">
+                            Samples:
+                          </span>
                           <span className="font-medium">{numSamples}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-500 dark:text-slate-400">Seed:</span>
+                          <span className="text-slate-500 dark:text-slate-400">
+                            Seed:
+                          </span>
                           <span className="font-medium">{seed}</span>
                         </div>
                       </div>
@@ -1106,10 +1261,12 @@ export default function VirtualTryOnPage() {
                 <CardContent className="flex flex-col items-center justify-center py-12">
                   <div className="mb-8 text-center">
                     <Loader2 className="h-12 w-12 animate-spin text-purple-600 mx-auto mb-4" />
-                    <h3 className="text-xl font-medium mb-2">Processing Virtual Try-On</h3>
+                    <h3 className="text-xl font-medium mb-2">
+                      Processing Virtual Try-On
+                    </h3>
                     <p className="text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-                      Our AI is fitting the garment to your model. This may take a moment depending on the selected
-                      quality settings.
+                      Our AI is fitting the garment to your model. This may take
+                      a moment depending on the selected quality settings.
                     </p>
                   </div>
                   <div className="w-full max-w-md mb-8">
@@ -1123,8 +1280,12 @@ export default function VirtualTryOnPage() {
                   </div>
                   <div className="text-sm text-slate-500 dark:text-slate-400 italic">
                     {progress < 30 && "Analyzing model and garment..."}
-                    {progress >= 30 && progress < 60 && "Fitting garment to model..."}
-                    {progress >= 60 && progress < 90 && "Adjusting details and lighting..."}
+                    {progress >= 30 &&
+                      progress < 60 &&
+                      "Fitting garment to model..."}
+                    {progress >= 60 &&
+                      progress < 90 &&
+                      "Adjusting details and lighting..."}
                     {progress >= 90 && "Finalizing the virtual try-on..."}
                   </div>
                 </CardContent>
@@ -1157,13 +1318,27 @@ export default function VirtualTryOnPage() {
 
                           {/* Zoom controls */}
                           <div className="absolute bottom-4 right-4 flex space-x-2">
-                            <Button variant="secondary" size="icon" onClick={() => setZoom(Math.max(zoom - 0.25, 0.5))}>
+                            <Button
+                              variant="secondary"
+                              size="icon"
+                              onClick={() =>
+                                setZoom(Math.max(zoom - 0.25, 0.5))
+                              }
+                            >
                               <ZoomOut className="h-4 w-4" />
                             </Button>
-                            <Button variant="secondary" size="icon" onClick={() => setZoom(Math.min(zoom + 0.25, 2))}>
+                            <Button
+                              variant="secondary"
+                              size="icon"
+                              onClick={() => setZoom(Math.min(zoom + 0.25, 2))}
+                            >
                               <ZoomIn className="h-4 w-4" />
                             </Button>
-                            <Button variant="secondary" size="icon" onClick={() => setZoom(1)}>
+                            <Button
+                              variant="secondary"
+                              size="icon"
+                              onClick={() => setZoom(1)}
+                            >
                               <RotateCcw className="h-4 w-4" />
                             </Button>
                           </div>
@@ -1172,7 +1347,9 @@ export default function VirtualTryOnPage() {
                         {/* Variations */}
                         {results.length > 1 && (
                           <div>
-                            <h3 className="text-sm font-medium mb-3">Variations</h3>
+                            <h3 className="text-sm font-medium mb-3">
+                              Variations
+                            </h3>
                             <div className="grid grid-cols-3 gap-3">
                               {results.map((result) => (
                                 <div
@@ -1204,11 +1381,17 @@ export default function VirtualTryOnPage() {
 
                         {/* Action buttons */}
                         <div className="flex flex-wrap gap-3">
-                          <Button variant="outline" onClick={() => setActiveTab("config")}>
+                          <Button
+                            variant="outline"
+                            onClick={() => setActiveTab("config")}
+                          >
                             <Settings className="mr-2 h-4 w-4" />
                             Adjust Settings
                           </Button>
-                          <Button variant="outline" onClick={processVirtualTryOn}>
+                          <Button
+                            variant="outline"
+                            onClick={processVirtualTryOn}
+                          >
                             <Sparkles className="mr-2 h-4 w-4" />
                             Generate New Variations
                           </Button>
@@ -1226,7 +1409,9 @@ export default function VirtualTryOnPage() {
                   <Card className="sticky top-8">
                     <CardHeader>
                       <CardTitle>Input Images</CardTitle>
-                      <CardDescription>The original images used</CardDescription>
+                      <CardDescription>
+                        The original images used
+                      </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
@@ -1257,40 +1442,72 @@ export default function VirtualTryOnPage() {
                       </div>
 
                       <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg">
-                        <h3 className="text-sm font-medium mb-2">Settings Used</h3>
+                        <h3 className="text-sm font-medium mb-2">
+                          Settings Used
+                        </h3>
                         <div className="space-y-1 text-xs">
                           <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">Category:</span>
-                            <span className="font-medium capitalize">{tryOnCategory}</span>
+                            <span className="text-slate-500 dark:text-slate-400">
+                              Category:
+                            </span>
+                            <span className="font-medium capitalize">
+                              {tryOnCategory}
+                            </span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">Mode:</span>
-                            <span className="font-medium capitalize">{modelMode}</span>
+                            <span className="text-slate-500 dark:text-slate-400">
+                              Mode:
+                            </span>
+                            <span className="font-medium capitalize">
+                              {modelMode}
+                            </span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">Cover Feet:</span>
-                            <span className="font-medium">{coverFeet ? "Yes" : "No"}</span>
+                            <span className="text-slate-500 dark:text-slate-400">
+                              Cover Feet:
+                            </span>
+                            <span className="font-medium">
+                              {coverFeet ? "Yes" : "No"}
+                            </span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">Adjust Hands:</span>
-                            <span className="font-medium">{adjustHands ? "Yes" : "No"}</span>
+                            <span className="text-slate-500 dark:text-slate-400">
+                              Adjust Hands:
+                            </span>
+                            <span className="font-medium">
+                              {adjustHands ? "Yes" : "No"}
+                            </span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">Restore Background:</span>
-                            <span className="font-medium">{restoreBackground ? "Yes" : "No"}</span>
+                            <span className="text-slate-500 dark:text-slate-400">
+                              Restore Background:
+                            </span>
+                            <span className="font-medium">
+                              {restoreBackground ? "Yes" : "No"}
+                            </span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">Restore Clothes:</span>
-                            <span className="font-medium">{restoreClothes ? "Yes" : "No"}</span>
+                            <span className="text-slate-500 dark:text-slate-400">
+                              Restore Clothes:
+                            </span>
+                            <span className="font-medium">
+                              {restoreClothes ? "Yes" : "No"}
+                            </span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">Seed:</span>
+                            <span className="text-slate-500 dark:text-slate-400">
+                              Seed:
+                            </span>
                             <span className="font-medium">{seed}</span>
                           </div>
                         </div>
                       </div>
 
-                      <Button variant="outline" className="w-full" onClick={() => router.push("/purchase")}>
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => router.push("/purchase")}
+                      >
                         <Sparkles className="mr-2 h-4 w-4" />
                         Try More Outfits
                       </Button>
@@ -1304,9 +1521,13 @@ export default function VirtualTryOnPage() {
                   <ImageIcon className="h-16 w-16 text-slate-300 dark:text-slate-600 mb-4" />
                   <h3 className="text-xl font-medium mb-2">No Results Yet</h3>
                   <p className="text-slate-500 dark:text-slate-400 text-center max-w-md">
-                    Configure your virtual try-on settings and generate results to see them here.
+                    Configure your virtual try-on settings and generate results
+                    to see them here.
                   </p>
-                  <Button className="mt-4" onClick={() => setActiveTab("model")}>
+                  <Button
+                    className="mt-4"
+                    onClick={() => setActiveTab("model")}
+                  >
                     Start Over
                   </Button>
                 </CardContent>
@@ -1317,7 +1538,9 @@ export default function VirtualTryOnPage() {
             <Card>
               <CardHeader>
                 <CardTitle>How Virtual Try-On Works</CardTitle>
-                <CardDescription>Understanding the AI-powered fitting process</CardDescription>
+                <CardDescription>
+                  Understanding the AI-powered fitting process
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -1327,27 +1550,32 @@ export default function VirtualTryOnPage() {
                     </div>
                     <h3 className="text-lg font-medium mb-2">Image Analysis</h3>
                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                      Our AI analyzes both the model and garment images to understand body shape, pose, and garment
-                      characteristics.
+                      Our AI analyzes both the model and garment images to
+                      understand body shape, pose, and garment characteristics.
                     </p>
                   </div>
                   <div className="flex flex-col items-center text-center">
                     <div className="bg-purple-100 dark:bg-purple-900/30 p-4 rounded-full mb-4">
                       <Shirt className="h-8 w-8 text-purple-600 dark:text-purple-400" />
                     </div>
-                    <h3 className="text-lg font-medium mb-2">Virtual Fitting</h3>
+                    <h3 className="text-lg font-medium mb-2">
+                      Virtual Fitting
+                    </h3>
                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                      The garment is digitally warped and fitted to match the model's body shape, pose, and proportions.
+                      The garment is digitally warped and fitted to match the
+                      model's body shape, pose, and proportions.
                     </p>
                   </div>
                   <div className="flex flex-col items-center text-center">
                     <div className="bg-purple-100 dark:bg-purple-900/30 p-4 rounded-full mb-4">
                       <Sparkles className="h-8 w-8 text-purple-600 dark:text-purple-400" />
                     </div>
-                    <h3 className="text-lg font-medium mb-2">Detail Refinement</h3>
+                    <h3 className="text-lg font-medium mb-2">
+                      Detail Refinement
+                    </h3>
                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                      Advanced AI algorithms refine details like lighting, shadows, and fabric texture for realistic
-                      results.
+                      Advanced AI algorithms refine details like lighting,
+                      shadows, and fabric texture for realistic results.
                     </p>
                   </div>
                 </div>
@@ -1357,6 +1585,5 @@ export default function VirtualTryOnPage() {
         </Tabs>
       </div>
     </div>
-  )
+  );
 }
-
