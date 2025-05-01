@@ -12,8 +12,8 @@ import { Toaster } from "react-hot-toast";
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <AppProvider i18n={translations}>
-      <TanstackProvider>
-        <SessionProvider>
+      <SessionProvider>
+        <TanstackProvider>
           <ThemeProvider
             attribute="class"
             defaultTheme="system"
@@ -23,8 +23,8 @@ export default function Providers({ children }: { children: React.ReactNode }) {
             {children}
             <Toaster />
           </ThemeProvider>
-        </SessionProvider>
-      </TanstackProvider>
+        </TanstackProvider>
+      </SessionProvider>
     </AppProvider>
   );
 }
