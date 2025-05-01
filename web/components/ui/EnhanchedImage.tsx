@@ -8,8 +8,6 @@ import { cn } from "@/lib/utils";
 interface EnhancedImageProps extends ImageProps {
   src: string;
   alt: string;
-  width: number;
-  height: number;
   className?: string;
   priority?: boolean;
   quality?: number;
@@ -129,11 +127,12 @@ export default function EnhancedImage({
             <Image
               src={src || "/placeholder.svg"}
               alt={alt}
-              width={width * 2}
-              height={height * 2}
+              width={width}
+              height={height}
               className="object-contain max-h-[90vh]"
               priority={true}
               quality={100}
+              {...props}
             />
 
             <button
