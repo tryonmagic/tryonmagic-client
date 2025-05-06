@@ -30,6 +30,20 @@ export interface ReplaceBackgroundTaskInput {
   backgroundSourceValue: string;
 }
 
+export enum VTONModelMode {
+  PERFORMANCE = "performance",
+  QUALITY = "quality",
+  BALANCED = "balanced",
+}
+
+export interface VTONTaskInput {
+  outfitType: OutfitType;
+  modelMode: VTONModelMode;
+  modelImage: string;
+  garmentImage: string;
+  seed: number;
+  numSamples: number;
+}
 export interface NewTask<T = unknown> {
   type: TaskType;
   inputData: T;
@@ -55,6 +69,7 @@ export enum TaskType {
   REMOVE_BACKGROUND = "REMOVE_BACKGROUND",
   GENERATE_IMAGE = "GENERATE_IMAGE",
   REPLACE_BACKGROUND = "REPLACE_BACKGROUND",
+  VTON = "VTON",
 }
 
 export interface Task<T = unknown> {
@@ -80,6 +95,10 @@ export interface TaskProgress<T = unknown> {
   resultData?: {
     outputImageUrl: string;
   } & T;
+}
+
+export interface VtonTaskResultData {
+  outputImageUrl: string[];
 }
 
 export interface AIModel {

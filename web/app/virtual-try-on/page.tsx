@@ -52,6 +52,19 @@ import { useAIModels, useGarments } from "./hooks";
 import { FilterProvider } from "@/components/model-filters/filter-context";
 import { FilterBar } from "@/components/model-filters/filter-bar";
 import EnhancedImage from "@/components/ui/EnhanchedImage";
+import {
+  NewTask,
+  OutfitType,
+  TaskProgress,
+  TaskStatus,
+  TaskType,
+  VTONModelMode,
+  VTONTaskInput,
+  VtonTaskResultData,
+} from "@/lib/api/type";
+import { newTask as newVTONTask } from "@/lib/api/tasks";
+import { useAppBridge } from "@shopify/app-bridge-react";
+import { WebSocketClient } from "@/socket";
 
 // Sample model gallery data
 const modelGallery = [
@@ -173,17 +186,22 @@ export default function VirtualTryOnPage() {
   const [uploadedGarment, setUploadedGarment] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<string[]>([]);
   const [selectedResult, setSelectedResult] = useState<string | null>(null);
   const [modelFilter, setModelFilter] = useState("all");
   const [garmentFilter, setGarmentFilter] = useState("all");
   const [zoom, setZoom] = useState(1);
+  const appBridge = useAppBridge();
 
   // Configuration options
-  const [tryOnCategory, setTryOnCategory] = useState("top");
-  const [modelMode, setModelMode] = useState("balanced");
-  const [numSamples, setNumSamples] = useState(3);
-  const [seed, setSeed] = useState(Math.floor(Math.random() * 1000000));
+  const [tryOnCategory, setTryOnCategory] = useState<OutfitType>(
+    OutfitType.TOP,
+  );
+  const [modelMode, setModelMode] = useState<VTONModelMode>(
+    VTONModelMode.BALANCED,
+  );
+  const [numSamples, setNumSamples] = useState(1);
+  const [seed, setSeed] = useState(42);
   const [coverFeet, setCoverFeet] = useState(false);
   const [adjustHands, setAdjustHands] = useState(true);
   const [restoreBackground, setRestoreBackground] = useState(true);
@@ -196,6 +214,8 @@ export default function VirtualTryOnPage() {
   const [ageFilter, setAgeFilter] = useState("all");
   const [ethnicityFilter, setEthnicityFilter] = useState("all");
   const [skinToneFilter, setSkinToneFilter] = useState("all");
+  const [taskProgress, setTaskProgress] = useState<TaskProgress | null>(null);
+
   // Filter models based on selected filter
   const filteredModels = aiModels?.filter((model) => {
     if (modelFilter === "all") return true;
@@ -260,7 +280,7 @@ export default function VirtualTryOnPage() {
   };
 
   // Process the virtual try-on
-  const processVirtualTryOn = () => {
+  const processVirtualTryOn = async (defaultSeed = 42) => {
     if (
       (!selectedModel && !uploadedModel) ||
       (!selectedGarment && !uploadedGarment)
@@ -268,25 +288,57 @@ export default function VirtualTryOnPage() {
       return;
     }
 
+    const sessionToken = await appBridge.idToken();
+
     setIsProcessing(true);
     setProgress(0);
     setActiveTab("results");
     setResults([]);
-
+    setTaskProgress({
+      status: TaskStatus.PENDING,
+      progress: 0,
+    });
+    const newTask: NewTask<VTONTaskInput> = {
+      type: TaskType.VTON,
+      inputData: {
+        modelImage: getModelSrc(),
+        garmentImage: getGarmentSrc(),
+        outfitType: tryOnCategory,
+        modelMode,
+        numSamples,
+        seed: defaultSeed,
+      },
+    };
     // Simulate processing with progress updates
     const interval = setInterval(() => {
       setProgress((prev) => {
-        if (prev >= 100) {
+        if (prev >= 70) {
           clearInterval(interval);
-          setIsProcessing(false);
-          // Set sample results after processing is complete
-          setResults(sampleResults);
-          setSelectedResult(sampleResults[0].id);
-          return 100;
+          return 70;
         }
         return prev + 5;
       });
-    }, 200);
+    }, 500);
+    const response = await newVTONTask<VTONTaskInput>(sessionToken, newTask);
+    const task = response.data.data;
+    if (!task) {
+      console.error("No task data returned");
+      return;
+    }
+    const websocket = new WebSocketClient(task.userId);
+    websocket.on<TaskProgress<VtonTaskResultData>>("task-progress", (data) => {
+      console.log("WebSocket data received:", data);
+      setTaskProgress(data);
+      if (data.status === TaskStatus.SUCCEEDED) {
+        setActiveTab("results");
+        setProgress(100);
+        setIsProcessing(false);
+        setTimeout(() => {
+          setResults(data.resultData?.outputImageUrl ?? []);
+          setSelectedResult(data.resultData?.outputImageUrl[0] ?? null);
+        }, 200);
+      }
+    });
   };
 
   // Check if we can proceed to the next step
@@ -317,11 +369,7 @@ export default function VirtualTryOnPage() {
 
   // Get the current result image source
   const getResultSrc = () => {
-    if (selectedResult) {
-      const result = results.find((r) => r.id === selectedResult);
-      return result?.src || "";
-    }
-    return "";
+    return selectedResult;
   };
 
   // Handle tab changes
@@ -641,13 +689,7 @@ export default function VirtualTryOnPage() {
                             onClick={() => {
                               setSelectedGarment(garment.id);
                               setUploadedGarment(null);
-                              // Auto-set try-on category based on garment type
-                              const garmentObj = garmentGallery.find(
-                                (g) => g.id === garment.id,
-                              );
-                              if (garmentObj) {
-                                setTryOnCategory(garmentObj.type);
-                              }
+                              setTryOnCategory(garment.outfitType);
                             }}
                           >
                             <Image
@@ -833,11 +875,11 @@ export default function VirtualTryOnPage() {
                           <div
                             className={cn(
                               "flex flex-col items-center justify-center p-4 rounded-lg border-2 cursor-pointer transition-all",
-                              tryOnCategory === "top"
+                              tryOnCategory === OutfitType.TOP
                                 ? "border-purple-600 bg-purple-50 dark:bg-purple-900/20"
                                 : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600",
                             )}
-                            onClick={() => setTryOnCategory("top")}
+                            onClick={() => setTryOnCategory(OutfitType.TOP)}
                           >
                             <Shirt className="h-8 w-8 mb-2 text-slate-700 dark:text-slate-300" />
                             <span className="text-sm font-medium">Top</span>
@@ -848,11 +890,11 @@ export default function VirtualTryOnPage() {
                           <div
                             className={cn(
                               "flex flex-col items-center justify-center p-4 rounded-lg border-2 cursor-pointer transition-all",
-                              tryOnCategory === "bottom"
+                              tryOnCategory === OutfitType.BOTTOM
                                 ? "border-purple-600 bg-purple-50 dark:bg-purple-900/20"
                                 : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600",
                             )}
-                            onClick={() => setTryOnCategory("bottom")}
+                            onClick={() => setTryOnCategory(OutfitType.BOTTOM)}
                           >
                             <Pants className="h-8 w-8 mb-2 text-slate-700 dark:text-slate-300" />
                             <span className="text-sm font-medium">Bottom</span>
@@ -863,11 +905,13 @@ export default function VirtualTryOnPage() {
                           <div
                             className={cn(
                               "flex flex-col items-center justify-center p-4 rounded-lg border-2 cursor-pointer transition-all",
-                              tryOnCategory === "full"
+                              tryOnCategory === OutfitType.FULL_BODY
                                 ? "border-purple-600 bg-purple-50 dark:bg-purple-900/20"
                                 : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600",
                             )}
-                            onClick={() => setTryOnCategory("full")}
+                            onClick={() =>
+                              setTryOnCategory(OutfitType.FULL_BODY)
+                            }
                           >
                             <User className="h-8 w-8 mb-2 text-slate-700 dark:text-slate-300" />
                             <span className="text-sm font-medium">
@@ -885,19 +929,21 @@ export default function VirtualTryOnPage() {
                         <h3 className="text-lg font-medium">Model Mode</h3>
                         <RadioGroup
                           value={modelMode}
-                          onValueChange={setModelMode}
+                          onValueChange={(val) =>
+                            setModelMode(val as VTONModelMode)
+                          }
                           className="grid grid-cols-1 md:grid-cols-3 gap-4"
                         >
                           <div
                             className={cn(
                               "flex flex-col p-4 rounded-lg border-2 cursor-pointer transition-all",
-                              modelMode === "performance"
+                              modelMode === VTONModelMode.PERFORMANCE
                                 ? "border-purple-600 bg-purple-50 dark:bg-purple-900/20"
                                 : "border-slate-200 dark:border-slate-700",
                             )}
                           >
                             <RadioGroupItem
-                              value="performance"
+                              value={VTONModelMode.PERFORMANCE}
                               id="performance"
                               className="sr-only"
                             />
@@ -929,13 +975,13 @@ export default function VirtualTryOnPage() {
                           <div
                             className={cn(
                               "flex flex-col p-4 rounded-lg border-2 cursor-pointer transition-all",
-                              modelMode === "balanced"
+                              modelMode === VTONModelMode.BALANCED
                                 ? "border-purple-600 bg-purple-50 dark:bg-purple-900/20"
                                 : "border-slate-200 dark:border-slate-700",
                             )}
                           >
                             <RadioGroupItem
-                              value="balanced"
+                              value={VTONModelMode.BALANCED}
                               id="balanced"
                               className="sr-only"
                             />
@@ -965,13 +1011,13 @@ export default function VirtualTryOnPage() {
                           <div
                             className={cn(
                               "flex flex-col p-4 rounded-lg border-2 cursor-pointer transition-all",
-                              modelMode === "quality"
+                              modelMode === VTONModelMode.QUALITY
                                 ? "border-purple-600 bg-purple-50 dark:bg-purple-900/20"
                                 : "border-slate-200 dark:border-slate-700",
                             )}
                           >
                             <RadioGroupItem
-                              value="quality"
+                              value={VTONModelMode.QUALITY}
                               id="quality"
                               className="sr-only"
                             />
@@ -1002,7 +1048,7 @@ export default function VirtualTryOnPage() {
                       </div>
 
                       {/* Advanced options */}
-                      <div className="space-y-4">
+                      {/* <div className="space-y-4">
                         <h3 className="text-lg font-medium">
                           Advanced Options
                         </h3>
@@ -1090,7 +1136,7 @@ export default function VirtualTryOnPage() {
                             </div>
                           </div>
                         </div>
-                      </div>
+                      </div> */}
 
                       {/* Generation parameters */}
                       <div className="space-y-4">
@@ -1110,7 +1156,7 @@ export default function VirtualTryOnPage() {
                             <Slider
                               id="num-samples"
                               min={1}
-                              max={5}
+                              max={4}
                               step={1}
                               value={[numSamples]}
                               onValueChange={(value) => setNumSamples(value[0])}
@@ -1120,7 +1166,7 @@ export default function VirtualTryOnPage() {
                               Generate multiple variations to choose from
                             </p>
                           </div>
-                          <div className="space-y-2">
+                          {/* <div className="space-y-2">
                             <Label htmlFor="seed">Seed Value</Label>
                             <div className="flex gap-2">
                               <Input
@@ -1143,7 +1189,7 @@ export default function VirtualTryOnPage() {
                             <p className="text-xs text-slate-500 dark:text-slate-400">
                               Set a specific seed for reproducible results
                             </p>
-                          </div>
+                          </div> */}
                         </div>
                       </div>
                     </div>
@@ -1157,7 +1203,7 @@ export default function VirtualTryOnPage() {
                       Back to Garment
                     </Button>
                     <Button
-                      onClick={processVirtualTryOn}
+                      onClick={() => processVirtualTryOn()}
                       className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
                     >
                       <Wand2 className="mr-2 h-4 w-4" />
@@ -1353,22 +1399,22 @@ export default function VirtualTryOnPage() {
                             <div className="grid grid-cols-3 gap-3">
                               {results.map((result) => (
                                 <div
-                                  key={result.id}
+                                  key={result}
                                   className={cn(
                                     "relative aspect-[2/3] rounded-md overflow-hidden cursor-pointer border-2 transition-all",
-                                    selectedResult === result.id
+                                    selectedResult === result
                                       ? "border-purple-600 shadow-md"
                                       : "border-transparent hover:border-slate-300 dark:hover:border-slate-700",
                                   )}
-                                  onClick={() => setSelectedResult(result.id)}
+                                  onClick={() => setSelectedResult(result)}
                                 >
                                   <Image
-                                    src={result.src || "/placeholder.svg"}
-                                    alt={result.alt}
+                                    src={result || "/placeholder.svg"}
+                                    alt={result}
                                     fill
                                     className="object-cover"
                                   />
-                                  {selectedResult === result.id && (
+                                  {selectedResult === result && (
                                     <div className="absolute top-2 right-2 bg-purple-600 rounded-full p-1">
                                       <CheckCircle2 className="h-4 w-4 text-white" />
                                     </div>
@@ -1390,7 +1436,11 @@ export default function VirtualTryOnPage() {
                           </Button>
                           <Button
                             variant="outline"
-                            onClick={processVirtualTryOn}
+                            onClick={() =>
+                              processVirtualTryOn(
+                                Math.floor(Math.random() * (2 ** 32 - 5)) + 1,
+                              )
+                            }
                           >
                             <Sparkles className="mr-2 h-4 w-4" />
                             Generate New Variations
@@ -1506,7 +1556,7 @@ export default function VirtualTryOnPage() {
                       <Button
                         variant="outline"
                         className="w-full"
-                        onClick={() => router.push("/purchase")}
+                        onClick={() => setActiveTab("garment")}
                       >
                         <Sparkles className="mr-2 h-4 w-4" />
                         Try More Outfits

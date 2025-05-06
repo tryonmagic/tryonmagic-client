@@ -1,4 +1,4 @@
 {
   "eslint.workingDirectories": ["./web"],
-  "cSpell.words": ["thumbhash"]
+  "cSpell.words": ["thumbhash", "VTON"]
 }
