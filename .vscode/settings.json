@@ -1,4 +1,5 @@
 {
   "eslint.workingDirectories": ["./web"],
-  "cSpell.words": ["thumbhash", "VTON"]
+  "cSpell.words": ["shopifyapp", "thumbhash", "tryonmagic", "VTON"],
+  "postman.settings.dotenv-detection-notification-visibility": false
 }

@@ -18,6 +18,7 @@ import {
   Check,
   X,
   Maximize2,
+  Loader,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,6 +34,23 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { newTask as upscaleImageTask } from "@/lib/api/tasks";
+import {
+  ImageSourceType,
+  NewTask,
+  TaskProgress,
+  TaskStatus,
+  TaskType,
+  UpscaleTaskInput,
+} from "@/lib/api/type";
+import { useAppBridge } from "@shopify/app-bridge-react";
+import { WebSocketClient } from "@/socket";
+import ImageUploader, {
+  ImageInfo,
+} from "@/lib/uploader/components/ImageUploader";
+import Image from "next/image";
+import EnhancedImage from "@/components/ui/EnhanchedImage";
+import { getImageDimensions } from "@/lib/uploader/utils";
 
 interface ExampleCardProps {
   title: string;
@@ -88,8 +106,14 @@ function ExampleCard({ title, description, before, after }: ExampleCardProps) {
 
 export default function UpscalePage() {
   const [activeTab, setActiveTab] = useState("upload");
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
-  const [upscaledImage, setUpscaledImage] = useState<string | null>(null);
+  const [uploadedImageInfo, setUploadedImageInfo] = useState<ImageInfo | null>(
+    null,
+  );
+  const [upscaledImage, setUpscaledImage] = useState<{
+    url: string;
+    width?: number;
+    height?: number;
+  } | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [originalDimensions, setOriginalDimensions] = useState({
     width: 0,
@@ -105,33 +129,21 @@ export default function UpscalePage() {
   const [maintainAspectRatio, setMaintainAspectRatio] = useState(true);
   const [customDimensions, setCustomDimensions] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const app = useAppBridge();
+  const [taskProgress, setTaskProgress] = useState<TaskProgress | null>(null);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event && event.target) {
-          const result = event.target.result as string;
-          setUploadedImage(result);
+  const onImageUploaded = (imageInfo: ImageInfo) => {
+    setUploadedImageInfo(imageInfo);
 
-          // Get image dimensions
-          const img = new Image();
-          img.onload = () => {
-            setOriginalDimensions({
-              width: img.width,
-              height: img.height,
-            });
-            setTargetWidth(String(img.width * 2));
-            setTargetHeight(String(img.height * 2));
-          };
-          img.src = result;
+    setOriginalDimensions({
+      width: imageInfo.width,
+      height: imageInfo.height,
+    });
+    const upscale = Number.parseInt(upscaleFactor.replace("x", ""));
+    setTargetWidth(String(imageInfo.width * upscale));
+    setTargetHeight(String(imageInfo.height * upscale));
 
-          setActiveTab("enhance");
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+    // setActiveTab("enhance");
   };
 
   const handleUpscaleFactor = (value: string) => {
@@ -169,24 +181,58 @@ export default function UpscalePage() {
   };
 
   const handleUpscale = async () => {
-    if (!uploadedImage) return;
+    if (!uploadedImageInfo) return;
 
     setIsProcessing(true);
+    const sessionToken = await app.idToken();
 
-    // Simulate processing delay
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    const newTask: NewTask<UpscaleTaskInput> = {
+      type: TaskType.UPSCALE,
+      inputData: {
+        sourceImageUrl: uploadedImageInfo.uploadLocation,
+        scale: upscaleFactor,
+        imageSourceType: ImageSourceType.URL,
+      },
+    };
 
-    // In a real app, you would call your AI service here
-    // For demo purposes, we'll use a placeholder image
-    setUpscaledImage(
-      "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=1600&width=1600",
+    const response = await upscaleImageTask<UpscaleTaskInput>(
+      sessionToken,
+      newTask,
     );
-    setIsProcessing(false);
-    setActiveTab("result");
+    const task = response.data.data;
+    if (!task) {
+      console.error("No task data returned");
+      return;
+    }
+    const websocket = new WebSocketClient(task.userId);
+    websocket.on<TaskProgress>("task-progress", async (data) => {
+      console.log("WebSocket data received:", data);
+      setTaskProgress(data);
+      if (data.status === TaskStatus.SUCCEEDED) {
+        setIsProcessing(false);
+        setActiveTab("result");
+        if (data.resultData?.outputImageUrl) {
+          setUpscaledImage({
+            url: data.resultData.outputImageUrl,
+          });
+          const dimension = await getImageDimensions(
+            data.resultData.outputImageUrl,
+          );
+          console.log("Image dimensions:", dimension);
+          setUpscaledImage({
+            url: data.resultData.outputImageUrl,
+            width: dimension.width,
+            height: dimension.height,
+          });
+          setTargetHeight(String(dimension.height));
+          setTargetWidth(String(dimension.width));
+        }
+      }
+    });
   };
 
   const handleReset = () => {
-    setUploadedImage(null);
+    setUploadedImageInfo(null);
     setUpscaledImage(null);
     setActiveTab("upload");
     setUpscaleFactor("2x");
@@ -233,16 +279,16 @@ export default function UpscalePage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 mb-8">
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8">
             <TabsTrigger value="upload" disabled={isProcessing}>
-              Upload
+              Upload & Enhance
             </TabsTrigger>
-            <TabsTrigger
+            {/* <TabsTrigger
               value="enhance"
-              disabled={!uploadedImage || isProcessing}
+              disabled={!uploadedImageInfo || isProcessing}
             >
               Enhance
-            </TabsTrigger>
+            </TabsTrigger> */}
             <TabsTrigger
               value="result"
               disabled={!upscaledImage && !isProcessing}
@@ -260,32 +306,28 @@ export default function UpscalePage() {
                     Upload Your Image
                   </h2>
                   <div className="space-y-4">
-                    <div
-                      className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-8 text-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        className="hidden"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                      />
-                      <div className="flex flex-col items-center justify-center space-y-3">
-                        <div className="rounded-full bg-purple-100 dark:bg-purple-900/30 p-3">
-                          <Upload className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-slate-900 dark:text-white">
-                            Click to upload or drag and drop
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            PNG, JPG or WEBP (max. 10MB)
-                          </p>
-                        </div>
-                      </div>
+                    <ImageUploader onUploaded={onImageUploaded} />
+                    <div className="mt-32" />
+                    <div>
+                      <Button
+                        onClick={handleUpscale}
+                        className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                        size="lg"
+                        disabled={!uploadedImageInfo || isProcessing}
+                      >
+                        {isProcessing ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="mr-2 h-4 w-4" />
+                            Upscale Image
+                          </>
+                        )}
+                      </Button>
                     </div>
-
                     <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-lg">
                       <div className="flex items-start space-x-3">
                         <Info className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
@@ -300,9 +342,9 @@ export default function UpscalePage() {
                             <li>
                               Higher quality source images yield better results
                             </li>
-                            <li>
+                            {/* <li>
                               Upscaling works best up to 4x the original size
-                            </li>
+                            </li> */}
                             <li>
                               For very low resolution images, use the quality
                               enhancement option
@@ -339,7 +381,7 @@ export default function UpscalePage() {
 
           {/* Enhance Tab */}
           <TabsContent value="enhance" className="space-y-4">
-            {uploadedImage && (
+            {uploadedImageInfo && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -355,7 +397,7 @@ export default function UpscalePage() {
                       <div className="space-y-2">
                         <Label>Upscale Factor</Label>
                         <div className="grid grid-cols-4 gap-2">
-                          {["2x", "3x", "4x", "Custom"].map((factor) => (
+                          {["2x", "4x"].map((factor) => (
                             <Button
                               key={factor}
                               type="button"
@@ -438,7 +480,7 @@ export default function UpscalePage() {
                         </div>
                       )}
 
-                      <div className="space-y-2">
+                      {/* <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <Label htmlFor="sharpness">
                             Sharpness Enhancement
@@ -516,8 +558,9 @@ export default function UpscalePage() {
                           onCheckedChange={setPreserveDetails}
                           className="data-[state=checked]:bg-purple-600"
                         />
-                      </div>
+                      </div> */}
 
+                      <div className="mt-32" />
                       <Button
                         onClick={handleUpscale}
                         className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
@@ -546,9 +589,14 @@ export default function UpscalePage() {
                       Preview
                     </h2>
                     <div className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                      <img
-                        src={uploadedImage || "/placeholder.svg"}
+                      <Image
+                        src={
+                          uploadedImageInfo.previewImageUrl ||
+                          "/placeholder.svg"
+                        }
                         alt="Uploaded image"
+                        height={uploadedImageInfo.height}
+                        width={uploadedImageInfo.width}
                         className="w-full h-auto object-contain"
                       />
                       <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center opacity-0 hover:opacity-100">
@@ -566,7 +614,7 @@ export default function UpscalePage() {
                       <h3 className="font-medium text-sm mb-2">
                         Image Information
                       </h3>
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                      <div className="grid grid-rows gap-x-4 gap-y-2 text-xs">
                         <div className="flex justify-between">
                           <span className="text-slate-500 dark:text-slate-400">
                             Dimensions:
@@ -594,7 +642,7 @@ export default function UpscalePage() {
                               : upscaleFactor}
                           </span>
                         </div>
-                        <div className="flex justify-between">
+                        {/* <div className="flex justify-between">
                           <span className="text-slate-500 dark:text-slate-400">
                             Quality Enhancement:
                           </span>
@@ -611,7 +659,7 @@ export default function UpscalePage() {
                               </>
                             )}
                           </span>
-                        </div>
+                        </div> */}
                       </div>
                     </div>
                   </CardContent>
@@ -649,11 +697,18 @@ export default function UpscalePage() {
                             Original
                           </p>
                           <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 relative group">
-                            <img
-                              src={uploadedImage || "/placeholder.svg"}
-                              alt="Original image"
-                              className="w-full h-auto object-contain"
-                            />
+                            {uploadedImageInfo && (
+                              <Image
+                                src={
+                                  uploadedImageInfo.previewImageUrl ||
+                                  "/placeholder.svg"
+                                }
+                                width={uploadedImageInfo.width}
+                                height={uploadedImageInfo.height}
+                                alt="Original image"
+                                className="w-full h-auto object-contain"
+                              />
+                            )}
                             <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
                               <TooltipProvider>
                                 <Tooltip>
@@ -676,9 +731,11 @@ export default function UpscalePage() {
                             Upscaled
                           </p>
                           <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 relative group">
-                            <img
-                              src={upscaledImage || "/placeholder.svg"}
+                            <Image
+                              src={upscaledImage.url}
                               alt="Upscaled image"
+                              width={upscaledImage.width || 500}
+                              height={upscaledImage.height || 700}
                               className="w-full h-auto object-contain"
                             />
                             <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
@@ -687,7 +744,11 @@ export default function UpscalePage() {
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <Button variant="secondary" size="sm">
-                                        {targetWidth} × {targetHeight}px
+                                        {upscaledImage.width ? (
+                                          `${upscaledImage.width} × ${upscaledImage.height}px`
+                                        ) : (
+                                          <Loader className="h-3 w-3 animate-spin" />
+                                        )}
                                       </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>
@@ -718,7 +779,15 @@ export default function UpscalePage() {
                         <h3 className="font-medium text-sm mb-2">
                           Upscaling Details
                         </h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-xs">
+                        <div className="grid grid-cols-1 md:grid-cols-1 gap-x-4 gap-y-2 text-xs">
+                          <div className="col flex justify-between">
+                            <span className="text-slate-500 dark:text-slate-400">
+                              Upscaled By:
+                            </span>
+                            <span className="font-medium">
+                              {calculateUpscalePercentage()}
+                            </span>
+                          </div>
                           <div className="flex justify-between">
                             <span className="text-slate-500 dark:text-slate-400">
                               Original Size:
@@ -733,10 +802,16 @@ export default function UpscalePage() {
                               New Size:
                             </span>
                             <span className="font-medium">
-                              {targetWidth} × {targetHeight}px
+                              {upscaledImage.width ? (
+                                `${upscaledImage.width} × ${upscaledImage.height}px`
+                              ) : (
+                                <Loader className="h-3 w-3 animate-spin" />
+                              )}
                             </span>
                           </div>
-                          <div className="flex justify-between">
+                          {/* add upscale enhancement % */}
+
+                          {/* <div className="flex justify-between">
                             <span className="text-slate-500 dark:text-slate-400">
                               Upscale Factor:
                             </span>
@@ -805,18 +880,18 @@ export default function UpscalePage() {
                                 </>
                               )}
                             </span>
-                          </div>
+                          </div> */}
                         </div>
                       </div>
 
                       <div className="flex space-x-4">
-                        <Button
+                        {/* <Button
                           onClick={() => setActiveTab("enhance")}
                           variant="outline"
                           className="flex-1"
                         >
                           Adjust Settings
-                        </Button>
+                        </Button> */}
                         <Button
                           onClick={handleReset}
                           variant="outline"

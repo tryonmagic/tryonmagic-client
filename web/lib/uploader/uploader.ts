@@ -4,6 +4,7 @@ import axios, {
   AxiosRequestConfig,
 } from "axios";
 import toast from "react-hot-toast";
+import { s3UploadAPIClient } from "@/lib/api";
 
 import {
   AbortMultipartUploadRequest,
@@ -850,16 +851,20 @@ export class FileUploader {
 }
 
 export class AxiosMultiPartApiClient extends UploadApiClient {
-  private apiInstance: AxiosInstance;
+  private apiInstance = s3UploadAPIClient;
+  private getSessionToken: () => Promise<string>;
 
-  constructor(apiInstance: AxiosInstance) {
+  constructor(getSessionToken: () => Promise<string>) {
     super();
-    this.apiInstance = apiInstance;
+    this.getSessionToken = getSessionToken;
   }
   async getUploadPresignedUrl(
     getPreSignedUrlRequest: GetPreSignedUrlRequest,
   ): Promise<GetPreSignedUrlResponse> {
-    const response = await this.apiInstance.post<GetPreSignedUrlResponse>(`/`, {
+    const token = await this.getSessionToken();
+    const response = await this.apiInstance(
+      token,
+    ).post<GetPreSignedUrlResponse>(`/`, {
       command: "getPreSignedUrl",
       payload: getPreSignedUrlRequest,
     });
@@ -868,19 +873,22 @@ export class AxiosMultiPartApiClient extends UploadApiClient {
   async createMultiPartUpload(
     createMultiPartUploadRequest: CreateMultipartUploadRequest,
   ): Promise<CreateMultiPartUploadResponse> {
-    const response = await this.apiInstance.post<CreateMultiPartUploadResponse>(
-      `/`,
-      {
-        command: "createMultipartUpload",
-        payload: createMultiPartUploadRequest,
-      },
-    );
+    const token = await this.getSessionToken();
+
+    const response = await this.apiInstance(
+      token,
+    ).post<CreateMultiPartUploadResponse>(`/`, {
+      command: "createMultipartUpload",
+      payload: createMultiPartUploadRequest,
+    });
     return response.data;
   }
   async getUploadPartsPresignedUrls(
     getUploadPartsPresignedUrlsRequest: GetUploadPartsPresignedUrlsRequest,
   ): Promise<GetUploadPartPresignedUrlResponse[]> {
-    const response = await this.apiInstance.post<
+    const token = await this.getSessionToken();
+
+    const response = await this.apiInstance(token).post<
       GetUploadPartPresignedUrlResponse[]
     >(`/`, {
       command: "getUploadPartPresignedUrls",
@@ -891,7 +899,9 @@ export class AxiosMultiPartApiClient extends UploadApiClient {
   async completeMultipartUpload(
     completeMultipartUploadRequest: CompleteMultipartUploadRequest,
   ): Promise<void> {
-    const response = await this.apiInstance.post(`/`, {
+    const token = await this.getSessionToken();
+
+    const response = await this.apiInstance(token).post(`/`, {
       command: "completeMultipartUpload",
       payload: completeMultipartUploadRequest,
     });
@@ -900,7 +910,8 @@ export class AxiosMultiPartApiClient extends UploadApiClient {
   async abortMultiPartUpload(
     abortMultiPartUpload: AbortMultipartUploadRequest,
   ): Promise<void> {
-    const response = await this.apiInstance.post(`/`, {
+    const token = await this.getSessionToken();
+    const response = await this.apiInstance(token).post(`/`, {
       command: "abortMultiPartUpload",
       payload: abortMultiPartUpload,
     });

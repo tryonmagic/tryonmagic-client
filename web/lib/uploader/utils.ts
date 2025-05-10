@@ -1,5 +1,31 @@
 import { rgbaToThumbHash } from "./thumbhash";
 
+export const getImageDimensions = async (loc: File | string) => {
+  const objectURL =
+    typeof loc === "string"
+      ? `${process.env.NEXT_PUBLIC_IMAGE_PROXY_URL}?url=${encodeURIComponent(
+          loc,
+        )}`
+      : URL.createObjectURL(loc);
+
+  try {
+    const image = new Image();
+    image.src = objectURL;
+
+    await new Promise((resolve) => (image.onload = resolve));
+
+    const imageInfo: {
+      width: number;
+      height: number;
+    } = {
+      width: image.naturalWidth,
+      height: image.naturalHeight,
+    };
+    return imageInfo;
+  } finally {
+    URL.revokeObjectURL(objectURL);
+  }
+};
 export const generateThumbHash = async (file: File) => {
   const objectURL = URL.createObjectURL(file);
 

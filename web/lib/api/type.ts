@@ -70,6 +70,7 @@ export enum TaskType {
   GENERATE_IMAGE = "GENERATE_IMAGE",
   REPLACE_BACKGROUND = "REPLACE_BACKGROUND",
   VTON = "VTON",
+  UPSCALE = "UPSCALE",
 }
 
 export interface Task<T = unknown> {
@@ -99,6 +100,11 @@ export interface TaskProgress<T = unknown> {
 
 export interface VtonTaskResultData {
   outputImageUrl: string[];
+}
+export interface UpscaleTaskInput {
+  sourceImageUrl: string;
+  scale: string;
+  imageSourceType: ImageSourceType;
 }
 
 export interface AIModel {

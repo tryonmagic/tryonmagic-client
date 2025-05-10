@@ -69,25 +69,6 @@ type SortOption =
   | "sizeAsc"
   | "sizeDesc";
 
-// Mock data for initial gallery
-const mockImages: ImageType[] = Array.from({ length: 12 }).map((_, i) => ({
-  id: `img-${i + 1}`,
-  name: `Sample Image ${i + 1}.jpg`,
-  url: `https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=500&width=400`,
-  originalUrl: `https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=500&width=400`,
-  thumbnailUrl: `https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=500&width=400`,
-  size: Math.floor(Math.random() * 5000000) + 500000,
-  type: ["jpg", "png", "gif"][Math.floor(Math.random() * 3)],
-  tags: [
-    "sample",
-    i % 2 === 0 ? "landscape" : "portrait",
-    i % 3 === 0 ? "color" : "bw",
-  ],
-  uploadDate: new Date(
-    Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000,
-  ),
-}));
-
 // Utility functions
 const formatFileSize = (bytes: number): string => {
   if (bytes < 1024) return bytes + " B";
@@ -103,7 +84,7 @@ const formatDate = (date: Date): string => {
   }).format(date);
 };
 
-const getPreviewFilesWithCount = (
+export const getPreviewFilesWithCount = (
   files: FileInfo[] | null,
 ): FileUploadingModalMeta | null => {
   if (!files) {
@@ -315,8 +296,8 @@ function ImageUploadManager({
       size: file.size,
       ext: file.name.split(".").pop() as string,
       mime: file.type,
-      fullPath: `shopifyapp/${key}`,
-      url: "s3://shopifyapp/" + key,
+      fullPath: `tryonmagic/${key}`,
+      url: "s3://tryonmagic/" + key,
       width: 0,
       height: 0,
     };
@@ -346,13 +327,16 @@ function ImageUploadManager({
   };
 
   const uploadMediaToS3 = async (files: FileInfo[]) => {
-    const token = await app.idToken();
+    const getSessionToken = async () => {
+      const token = await app.idToken();
+      return token;
+    };
     uploadMultiPartFile(
       files,
       handleOnProgress,
       handleOnComplete,
       handleOnSingleUploadFileComplete,
-      new AxiosMultiPartApiClient(s3UploadAPIClient(token)),
+      new AxiosMultiPartApiClient(getSessionToken),
     );
   };
 
