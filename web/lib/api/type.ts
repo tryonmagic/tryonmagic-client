@@ -71,6 +71,7 @@ export enum TaskType {
   REPLACE_BACKGROUND = "REPLACE_BACKGROUND",
   VTON = "VTON",
   UPSCALE = "UPSCALE",
+  ENHANCE = "ENHANCE",
 }
 
 export interface Task<T = unknown> {
@@ -103,7 +104,7 @@ export interface VtonTaskResultData {
 }
 export interface UpscaleTaskInput {
   sourceImageUrl: string;
-  scale: string;
+  // scale: string;
   imageSourceType: ImageSourceType;
 }
 

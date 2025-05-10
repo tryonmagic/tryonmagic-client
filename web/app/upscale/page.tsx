@@ -33,7 +33,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+import { cn, toCamelCase } from "@/lib/utils";
 import { newTask as upscaleImageTask } from "@/lib/api/tasks";
 import {
   ImageSourceType,
@@ -119,7 +119,7 @@ export default function UpscalePage() {
     width: 0,
     height: 0,
   });
-  const [upscaleFactor, setUpscaleFactor] = useState("2x");
+  const [upscaleFactor, setUpscaleFactor] = useState(TaskType.UPSCALE);
   const [enhanceQuality, setEnhanceQuality] = useState(true);
   const [reduceNoise, setReduceNoise] = useState(true);
   const [preserveDetails, setPreserveDetails] = useState(true);
@@ -143,11 +143,11 @@ export default function UpscalePage() {
     setTargetWidth(String(imageInfo.width * upscale));
     setTargetHeight(String(imageInfo.height * upscale));
 
-    // setActiveTab("enhance");
+    setActiveTab("enhance");
   };
 
   const handleUpscaleFactor = (value: string) => {
-    setUpscaleFactor(value);
+    setUpscaleFactor(value as TaskType);
 
     if (!customDimensions && originalDimensions.width > 0) {
       const factor = Number.parseInt(value.replace("x", ""));
@@ -187,10 +187,13 @@ export default function UpscalePage() {
     const sessionToken = await app.idToken();
 
     const newTask: NewTask<UpscaleTaskInput> = {
-      type: TaskType.UPSCALE,
+      type:
+        upscaleFactor === ("RELIGHT" as TaskType)
+          ? TaskType.ENHANCE
+          : TaskType.UPSCALE,
       inputData: {
         sourceImageUrl: uploadedImageInfo.uploadLocation,
-        scale: upscaleFactor,
+        // scale: upscaleFactor,
         imageSourceType: ImageSourceType.URL,
       },
     };
@@ -235,7 +238,7 @@ export default function UpscalePage() {
     setUploadedImageInfo(null);
     setUpscaledImage(null);
     setActiveTab("upload");
-    setUpscaleFactor("2x");
+    setUpscaleFactor(TaskType.UPSCALE);
     setEnhanceQuality(true);
     setReduceNoise(true);
     setPreserveDetails(true);
@@ -279,16 +282,16 @@ export default function UpscalePage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8">
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 mb-8">
             <TabsTrigger value="upload" disabled={isProcessing}>
-              Upload & Enhance
+              Upload
             </TabsTrigger>
-            {/* <TabsTrigger
+            <TabsTrigger
               value="enhance"
               disabled={!uploadedImageInfo || isProcessing}
             >
               Enhance
-            </TabsTrigger> */}
+            </TabsTrigger>
             <TabsTrigger
               value="result"
               disabled={!upscaledImage && !isProcessing}
@@ -307,7 +310,7 @@ export default function UpscalePage() {
                   </h2>
                   <div className="space-y-4">
                     <ImageUploader onUploaded={onImageUploaded} />
-                    <div className="mt-32" />
+                    {/* <div className="mt-32" />
                     <div>
                       <Button
                         onClick={handleUpscale}
@@ -327,7 +330,7 @@ export default function UpscalePage() {
                           </>
                         )}
                       </Button>
-                    </div>
+                    </div> */}
                     <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-lg">
                       <div className="flex items-start space-x-3">
                         <Info className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
@@ -391,13 +394,14 @@ export default function UpscalePage() {
                 <Card className="overflow-hidden">
                   <CardContent className="p-6">
                     <h2 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">
-                      Upscale Settings
+                      {/* Upscale Settings */}
+                      Enhance Settings
                     </h2>
                     <div className="space-y-6">
                       <div className="space-y-2">
-                        <Label>Upscale Factor</Label>
+                        {/* <Label>Upscale Factor</Label> */}
                         <div className="grid grid-cols-4 gap-2">
-                          {["2x", "4x"].map((factor) => (
+                          {["UPSCALE", "RELIGHT"].map((factor) => (
                             <Button
                               key={factor}
                               type="button"
@@ -420,13 +424,15 @@ export default function UpscalePage() {
                                 }
                               }}
                             >
-                              {factor}
+                              {factor[0].toUpperCase() +
+                                factor.slice(1).toLowerCase()}
                             </Button>
                           ))}
                         </div>
                       </div>
 
-                      {(customDimensions || upscaleFactor === "Custom") && (
+                      {(customDimensions ||
+                        upscaleFactor === ("Custom" as TaskType)) && (
                         <div className="space-y-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                           <div className="flex items-center justify-between">
                             <Label
@@ -575,7 +581,7 @@ export default function UpscalePage() {
                         ) : (
                           <>
                             <Wand2 className="mr-2 h-4 w-4" />
-                            Upscale Image
+                            {toCamelCase(upscaleFactor)} Image
                           </>
                         )}
                       </Button>
@@ -624,22 +630,22 @@ export default function UpscalePage() {
                             {originalDimensions.height}px
                           </span>
                         </div>
-                        <div className="flex justify-between">
+                        {/* <div className="flex justify-between">
                           <span className="text-slate-500 dark:text-slate-400">
                             Target Size:
                           </span>
                           <span className="font-medium">
                             {targetWidth} × {targetHeight}px
                           </span>
-                        </div>
+                        </div> */}
                         <div className="flex justify-between">
                           <span className="text-slate-500 dark:text-slate-400">
-                            Upscale Factor:
+                            Enhance Option
                           </span>
                           <span className="font-medium">
                             {customDimensions
                               ? calculateUpscalePercentage()
-                              : upscaleFactor}
+                              : toCamelCase(upscaleFactor)}
                           </span>
                         </div>
                         {/* <div className="flex justify-between">
