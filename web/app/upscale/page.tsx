@@ -891,13 +891,13 @@ export default function UpscalePage() {
                       </div>
 
                       <div className="flex space-x-4">
-                        {/* <Button
+                        <Button
                           onClick={() => setActiveTab("enhance")}
                           variant="outline"
                           className="flex-1"
                         >
                           Adjust Settings
-                        </Button> */}
+                        </Button>
                         <Button
                           onClick={handleReset}
                           variant="outline"

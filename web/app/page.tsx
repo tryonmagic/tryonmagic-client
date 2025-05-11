@@ -521,20 +521,20 @@ const features = [
       "Perfect for old photos or low-quality images",
     ],
   },
-  {
-    title: "Relight",
-    description: "Change the lighting of any image to create the perfect mood",
-    image:
-      "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=300&width=500",
-    icon: SunMedium,
-    link: "/relight",
-    capabilities: [
-      "Adjust lighting direction and intensity",
-      "Create dramatic shadows or soft illumination",
-      "Change time of day in outdoor photos",
-      "Enhance product photography lighting",
-    ],
-  },
+  // {
+  //   title: "Relight",
+  //   description: "Change the lighting of any image to create the perfect mood",
+  //   image:
+  //     "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=300&width=500",
+  //   icon: SunMedium,
+  //   link: "/relight",
+  //   capabilities: [
+  //     "Adjust lighting direction and intensity",
+  //     "Create dramatic shadows or soft illumination",
+  //     "Change time of day in outdoor photos",
+  //     "Enhance product photography lighting",
+  //   ],
+  // },
   {
     title: "Expand Image",
     description:
