@@ -1,9 +1,7 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Info, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { IFile } from "../type";
 import { generateThumbHash } from "../utils";
-import { clientAPI, s3UploadAPIClient } from "@/lib/api";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { AxiosMultiPartApiClient, Uploader, UploadProgress } from "../uploader";
 import toast from "react-hot-toast";
@@ -28,6 +26,7 @@ export default function ImageUploader(props: ImageUploaderProps) {
     useState<UploadProgress | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDragActive, setIsDragActive] = useState(false); // NEW
   const app = useAppBridge();
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,11 +126,54 @@ export default function ImageUploader(props: ImageUploaderProps) {
     return token;
   };
 
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+  };
+
+  // Extracted file handler for both input and drop
+  const handleFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const previewImageResult = reader.result as string;
+      setPreviewImage(previewImageResult);
+      setIsUploading(true);
+      try {
+        uploadMediaToS3(file, previewImageResult);
+      } catch (error) {
+        const err = error as Error;
+        toast.error(err.message ?? "Something went wrong!");
+        setIsUploading(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      handleFile(file);
+    }
+  };
+
   return (
     <div className="p-6">
       <div
         className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-8 text-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
         onClick={() => fileInputRef.current?.click()}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       >
         <input
           type="file"

@@ -49,7 +49,6 @@ import ImageUploader, {
   ImageInfo,
 } from "@/lib/uploader/components/ImageUploader";
 import Image from "next/image";
-import EnhancedImage from "@/components/ui/EnhanchedImage";
 import { getImageDimensions } from "@/lib/uploader/utils";
 
 interface ExampleCardProps {

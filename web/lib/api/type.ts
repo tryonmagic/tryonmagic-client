@@ -72,6 +72,7 @@ export enum TaskType {
   VTON = "VTON",
   UPSCALE = "UPSCALE",
   ENHANCE = "ENHANCE",
+  EXPAND_IMAGE = "EXPAND_IMAGE",
 }
 
 export interface Task<T = unknown> {
@@ -105,6 +106,16 @@ export interface VtonTaskResultData {
 export interface UpscaleTaskInput {
   sourceImageUrl: string;
   // scale: string;
+  imageSourceType: ImageSourceType;
+}
+
+export interface EnhanceImageTaskInput {
+  sourceImageUrl: string;
+  targetWidth: number;
+  targetHeight: number;
+  horizontalAlignment: string;
+  verticalAlignment: string;
+  expandPrompt: string;
   imageSourceType: ImageSourceType;
 }
 

@@ -40,6 +40,21 @@ import {
 } from "@/components/ui/tooltip";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
+import ImageUploader, {
+  ImageInfo,
+} from "@/lib/uploader/components/ImageUploader";
+import Image from "next/image";
+import { useAppBridge } from "@shopify/app-bridge-react";
+import {
+  EnhanceImageTaskInput,
+  ImageSourceType,
+  NewTask,
+  TaskProgress,
+  TaskStatus,
+  TaskType,
+} from "@/lib/api/type";
+import { newTask } from "@/lib/api/tasks";
+import { WebSocketClient } from "@/socket";
 
 interface ExampleCardProps {
   title: string;
@@ -93,17 +108,21 @@ function ExampleCard({ title, description, before, after }: ExampleCardProps) {
   );
 }
 
-// Expansion directions
-const expansionDirections = [
-  { id: "all", label: "All Sides", icon: Move },
-  { id: "horizontal", label: "Horizontal", icon: MoveHorizontal },
-  { id: "vertical", label: "Vertical", icon: MoveVertical },
-  { id: "top", label: "Top", icon: ArrowUp },
-  { id: "right", label: "Right", icon: ArrowRight },
-  { id: "bottom", label: "Bottom", icon: ArrowDown },
+type HorizontalAlignment = "left" | "center" | "right";
+type VerticalAlignment = "top" | "center" | "bottom";
+
+// Update alignment options
+const horizontalAlignments = [
   { id: "left", label: "Left", icon: ArrowLeftIcon },
+  { id: "center", label: "Center", icon: MoveHorizontal },
+  { id: "right", label: "Right", icon: ArrowRight },
 ];
 
+const verticalAlignments = [
+  { id: "top", label: "Top", icon: ArrowUp },
+  { id: "center", label: "Center", icon: MoveVertical },
+  { id: "bottom", label: "Bottom", icon: ArrowDown },
+];
 // Content fill styles
 const contentFillStyles = [
   {
@@ -135,18 +154,31 @@ const contentFillStyles = [
 
 export default function ExpandImagePage() {
   const [activeTab, setActiveTab] = useState("upload");
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedImageInfo, setUploadedImageInfo] = useState<ImageInfo | null>(
+    null,
+  );
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [originalDimensions, setOriginalDimensions] = useState({
     width: 0,
     height: 0,
   });
-  const [targetDimensions, setTargetDimensions] = useState({
+  const [targetDimensions, setTargetDimensions] = useState<{
+    width: number;
+    height: number;
+    dimensionId?: string;
+  }>({
     width: 0,
     height: 0,
   });
-  const [expansionDirection, setExpansionDirection] = useState("all");
+  const [imageAlignment, setImageAlignment] = useState<{
+    horizontal: HorizontalAlignment;
+    vertical: VerticalAlignment;
+  }>({
+    horizontal: "center",
+    vertical: "center",
+  });
+
   const [expansionAmount, setExpansionAmount] = useState(50);
   const [fillStyle, setFillStyle] = useState("seamless");
   const [backgroundColor, setBackgroundColor] = useState("#FFFFFF");
@@ -154,122 +186,112 @@ export default function ExpandImagePage() {
   const [preserveSubjects, setPreserveSubjects] = useState(true);
   const [enhanceQuality, setEnhanceQuality] = useState(true);
   const [matchLighting, setMatchLighting] = useState(true);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [taskProgress, setTaskProgress] = useState<TaskProgress | null>(null);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event && event.target) {
-          const result = event.target.result as string;
-          setUploadedImage(result);
+  const app = useAppBridge();
 
-          // Get image dimensions
-          const img = new Image();
-          img.onload = () => {
-            const width = img.width;
-            const height = img.height;
+  const onImageUploaded = (imageInfo: ImageInfo) => {
+    setUploadedImageInfo(imageInfo);
 
-            setOriginalDimensions({ width, height });
-
-            // Set initial target dimensions with 50% expansion
-            const expandedWidth = Math.round(width * 1.5);
-            const expandedHeight = Math.round(height * 1.5);
-            setTargetDimensions({
-              width: expandedWidth,
-              height: expandedHeight,
-            });
-          };
-          img.src = result;
-
-          setActiveTab("expand");
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+    setOriginalDimensions({
+      width: imageInfo.width,
+      height: imageInfo.height,
+    });
+    const expandedWidth = Math.round(imageInfo.width * 1.5);
+    const expandedHeight = Math.round(imageInfo.height * 1.5);
+    setTargetDimensions({
+      width: expandedWidth,
+      height: expandedHeight,
+    });
+    setActiveTab("expand");
   };
 
-  const handleExpansionDirectionChange = (direction: string) => {
-    setExpansionDirection(direction);
+  // const handleExpansionDirectionChange = (direction: ExpansionDirection) => {
+  //   setExpansionDirection(direction);
 
-    // Update target dimensions based on direction and amount
-    const expansionFactor = 1 + expansionAmount / 100;
-    let newWidth = originalDimensions.width;
-    let newHeight = originalDimensions.height;
+  //   // Update target dimensions based on direction and amount
+  //   const expansionFactor = 1 + expansionAmount / 100;
+  //   let newWidth = originalDimensions.width;
+  //   let newHeight = originalDimensions.height;
+  //   if (direction.horizontal === "center") {
+  //     newWidth = Math.round(originalDimensions.width * expansionFactor);
+  //   } else if (
+  //     direction.horizontal === "left" ||
+  //     direction.horizontal === "right"
+  //   ) {
+  //     newWidth = Math.round(
+  //       originalDimensions.width +
+  //         (originalDimensions.width * (expansionAmount / 100)) / 2,
+  //     );
+  //   }
 
-    if (
-      direction === "all" ||
-      direction === "horizontal" ||
-      direction === "right" ||
-      direction === "left"
-    ) {
-      newWidth = Math.round(originalDimensions.width * expansionFactor);
-    }
+  //   if (direction.vertical === "center") {
+  //     newHeight = Math.round(originalDimensions.height * expansionFactor);
+  //   } else if (
+  //     direction.vertical === "top" ||
+  //     direction.vertical === "bottom"
+  //   ) {
+  //     newHeight = Math.round(
+  //       originalDimensions.height +
+  //         (originalDimensions.height * (expansionAmount / 100)) / 2,
+  //     );
+  //   }
 
-    if (
-      direction === "all" ||
-      direction === "vertical" ||
-      direction === "top" ||
-      direction === "bottom"
-    ) {
-      newHeight = Math.round(originalDimensions.height * expansionFactor);
-    }
-
-    setTargetDimensions({ width: newWidth, height: newHeight });
-  };
-
-  const handleExpansionAmountChange = (value: number) => {
-    setExpansionAmount(value);
-
-    // Update target dimensions based on direction and new amount
-    const expansionFactor = 1 + value / 100;
-    let newWidth = originalDimensions.width;
-    let newHeight = originalDimensions.height;
-
-    if (
-      expansionDirection === "all" ||
-      expansionDirection === "horizontal" ||
-      expansionDirection === "right" ||
-      expansionDirection === "left"
-    ) {
-      newWidth = Math.round(originalDimensions.width * expansionFactor);
-    }
-
-    if (
-      expansionDirection === "all" ||
-      expansionDirection === "vertical" ||
-      expansionDirection === "top" ||
-      expansionDirection === "bottom"
-    ) {
-      newHeight = Math.round(originalDimensions.height * expansionFactor);
-    }
-
-    setTargetDimensions({ width: newWidth, height: newHeight });
-  };
+  //   setTargetDimensions({ width: newWidth, height: newHeight });
+  // };
 
   const handleExpandImage = async () => {
-    if (!uploadedImage) return;
+    if (!uploadedImageInfo) return;
 
     setIsProcessing(true);
+    const sessionToken = await app.idToken();
 
-    // Simulate processing delay
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    const taskPayload: NewTask<EnhanceImageTaskInput> = {
+      type: TaskType.EXPAND_IMAGE,
+      inputData: {
+        sourceImageUrl: uploadedImageInfo.uploadLocation,
+        imageSourceType: ImageSourceType.URL,
+        targetWidth: targetDimensions.width,
+        targetHeight: targetDimensions.height,
+        horizontalAlignment: imageAlignment.horizontal,
+        verticalAlignment: imageAlignment.vertical,
+        expandPrompt: contentPrompt,
+      },
+    };
 
-    // In a real app, you would call your AI service here
-    // For demo purposes, we'll use a placeholder image
-    setExpandedImage(
-      "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=1200&width=1600",
+    const response = await newTask<EnhanceImageTaskInput>(
+      sessionToken,
+      taskPayload,
     );
-    setIsProcessing(false);
-    setActiveTab("result");
+    const task = response.data.data;
+    if (!task) {
+      console.error("No task data returned");
+      return;
+    }
+    const websocket = new WebSocketClient(task.userId);
+    websocket.on<TaskProgress>("task-progress", async (data) => {
+      console.log("WebSocket data received:", data);
+      setTaskProgress(data);
+      if (data.status === TaskStatus.SUCCEEDED) {
+        setIsProcessing(false);
+        setActiveTab("result");
+        if (data.resultData?.outputImageUrl) {
+          setExpandedImage(data.resultData.outputImageUrl);
+          setIsProcessing(false);
+          setActiveTab("result");
+        }
+      }
+    });
   };
 
   const handleReset = () => {
-    setUploadedImage(null);
+    setUploadedImageInfo(null);
     setExpandedImage(null);
     setActiveTab("upload");
-    setExpansionDirection("all");
+    setImageAlignment({
+      horizontal: "center",
+      vertical: "center",
+    });
     setExpansionAmount(50);
     setFillStyle("seamless");
     setBackgroundColor("#FFFFFF");
@@ -292,6 +314,8 @@ export default function ExpandImagePage() {
   };
 
   // Preview of how the expansion will look
+  // ...existing code...
+
   const getExpansionPreview = () => {
     if (!originalDimensions.width) return {};
 
@@ -300,56 +324,72 @@ export default function ExpandImagePage() {
     const targetWidth = targetDimensions.width;
     const targetHeight = targetDimensions.height;
 
-    // Calculate the position of the original image within the expanded canvas
-    let left = "50%";
-    let top = "50%";
-    let width = "100%";
-    let height = "100%";
-    let transform = "translate(-50%, -50%)";
+    // Calculate width/height as percentage of target
+    const width = `${(originalWidth / targetWidth) * 100}%`;
+    const height = `${(originalHeight / targetHeight) * 100}%`;
 
-    if (expansionDirection === "right") {
-      left = "0";
-      transform = "none";
-      width = `${(originalWidth / targetWidth) * 100}%`;
-    } else if (expansionDirection === "left") {
-      left = "100%";
-      transform = "translateX(-100%)";
-      width = `${(originalWidth / targetWidth) * 100}%`;
-    } else if (expansionDirection === "bottom") {
-      top = "0";
-      transform = "none";
-      height = `${(originalHeight / targetHeight) * 100}%`;
-    } else if (expansionDirection === "top") {
-      top = "100%";
-      transform = "translateY(-100%)";
-      height = `${(originalHeight / targetHeight) * 100}%`;
-    } else if (expansionDirection === "horizontal") {
-      top = "50%";
-      transform = "translateY(-50%)";
-      width = `${(originalWidth / targetWidth) * 100}%`;
-      height = "100%";
-    } else if (expansionDirection === "vertical") {
-      left = "50%";
-      transform = "translateX(-50%)";
-      width = "100%";
-      height = `${(originalHeight / targetHeight) * 100}%`;
-    } else {
-      // "all" direction
-      width = `${(originalWidth / targetWidth) * 100}%`;
-      height = `${(originalHeight / targetHeight) * 100}%`;
+    // Horizontal alignment
+    let left: string;
+    switch (imageAlignment.horizontal) {
+      case "left":
+        left = "0";
+        break;
+      case "right":
+        left = "100%";
+        break;
+      case "center":
+      default:
+        left = "50%";
+        break;
     }
 
+    // Vertical alignment
+    let top: string;
+    switch (imageAlignment.vertical) {
+      case "top":
+        top = "0";
+        break;
+      case "bottom":
+        top = "100%";
+        break;
+      case "center":
+      default:
+        top = "50%";
+        break;
+    }
+
+    // Transform for alignment
+    let translateX = "";
+    let translateY = "";
+
+    if (imageAlignment.horizontal === "left") {
+      translateX = "0";
+    } else if (imageAlignment.horizontal === "center") {
+      translateX = "-50%";
+    } else if (imageAlignment.horizontal === "right") {
+      translateX = "-100%";
+    }
+
+    if (imageAlignment.vertical === "top") {
+      translateY = "0";
+    } else if (imageAlignment.vertical === "center") {
+      translateY = "-50%";
+    } else if (imageAlignment.vertical === "bottom") {
+      translateY = "-100%";
+    }
+
+    const transform = `translate(${translateX}, ${translateY})`;
+
     return {
-      position: "absolute",
+      position: "absolute" as const,
       left,
       top,
       width,
       height,
       transform,
-      border: "1px dashed rgba(255, 255, 255, 0.5)",
     };
   };
-
+  // ...existing code...
   return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
@@ -377,7 +417,7 @@ export default function ExpandImagePage() {
             </TabsTrigger>
             <TabsTrigger
               value="expand"
-              disabled={!uploadedImage || isProcessing}
+              disabled={!uploadedImageInfo || isProcessing}
             >
               Expand
             </TabsTrigger>
@@ -398,31 +438,7 @@ export default function ExpandImagePage() {
                     Upload Your Image
                   </h2>
                   <div className="space-y-4">
-                    <div
-                      className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-8 text-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        className="hidden"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                      />
-                      <div className="flex flex-col items-center justify-center space-y-3">
-                        <div className="rounded-full bg-purple-100 dark:bg-purple-900/30 p-3">
-                          <Upload className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-slate-900 dark:text-white">
-                            Click to upload or drag and drop
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            PNG, JPG or WEBP (max. 10MB)
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                    <ImageUploader onUploaded={onImageUploaded} />
 
                     <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-lg">
                       <div className="flex items-start space-x-3">
@@ -480,7 +496,7 @@ export default function ExpandImagePage() {
 
           {/* Expand Tab */}
           <TabsContent value="expand" className="space-y-4">
-            {uploadedImage && (
+            {uploadedImageInfo && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -492,208 +508,303 @@ export default function ExpandImagePage() {
                     <h2 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">
                       Expansion Settings
                     </h2>
-                    <div className="space-y-6">
-                      <div className="space-y-2">
-                        <Label>Expansion Direction</Label>
-                        <div className="grid grid-cols-4 gap-2">
-                          {expansionDirections.map((direction) => {
-                            const Icon = direction.icon;
-                            return (
-                              <Button
-                                key={direction.id}
-                                type="button"
-                                variant={
-                                  expansionDirection === direction.id
-                                    ? "default"
-                                    : "outline"
-                                }
-                                className={cn(
-                                  "flex flex-col py-3 h-auto",
-                                  expansionDirection === direction.id &&
-                                    "bg-purple-600 hover:bg-purple-700",
-                                )}
-                                onClick={() =>
-                                  handleExpansionDirectionChange(direction.id)
-                                }
-                              >
-                                <Icon className="h-5 w-5 mb-1" />
-                                <span className="text-xs">
-                                  {direction.label}
-                                </span>
-                              </Button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="expansion-amount">
-                            Expansion Amount
-                          </Label>
-                          <span className="text-sm text-slate-500">
-                            {expansionAmount}%
-                          </span>
-                        </div>
-                        <Slider
-                          id="expansion-amount"
-                          min={10}
-                          max={200}
-                          step={5}
-                          value={[expansionAmount]}
-                          onValueChange={(value) =>
-                            handleExpansionAmountChange(value[0])
-                          }
-                          className="py-2"
-                        />
-                        <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
-                          <span>
-                            Original: {originalDimensions.width} ×{" "}
-                            {originalDimensions.height}px
-                          </span>
-                          <span>
-                            New: {targetDimensions.width} ×{" "}
-                            {targetDimensions.height}px
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Content Fill Style</Label>
-                        <RadioGroup
-                          value={fillStyle}
-                          onValueChange={setFillStyle}
-                          className="space-y-2"
-                        >
-                          {contentFillStyles.map((style) => (
-                            <div
-                              key={style.id}
-                              className="flex items-start space-x-2"
+                    <div className="space-y-6 mb-8">
+                      {/* Image Dimensions */}
+                      <div className="space-y-4">
+                        <Label>Image Dimensions</Label>
+                        <div className="flex flex-wrap gap-4">
+                          {[
+                            {
+                              id: "square",
+                              label: "Square",
+                              width: 24,
+                              height: 24,
+                            },
+                            {
+                              id: "9:16",
+                              label: "9:16",
+                              width: 18,
+                              height: 32,
+                            },
+                            {
+                              id: "16:9",
+                              label: "16:9",
+                              width: 32,
+                              height: 18,
+                            },
+                            { id: "4:3", label: "4:3", width: 18, height: 24 },
+                            { id: "3:4", label: "3:4", width: 24, height: 18 },
+                            {
+                              id: "custom",
+                              label: "Custom",
+                              width: 65,
+                              height: 34,
+                            },
+                          ].map((dimension) => (
+                            <label
+                              key={dimension.id}
+                              htmlFor={`dimension-${dimension.id}`}
+                              className={cn(
+                                "flex flex-col items-center justify-center p-2 rounded transition-all",
+                                dimension.id === targetDimensions.dimensionId
+                                  ? "bg-blue-50"
+                                  : "bg-white hover:bg-gray-50",
+                              )}
                             >
-                              <RadioGroupItem
-                                value={style.id}
-                                id={style.id}
-                                className="mt-1"
+                              <input
+                                type="radio"
+                                id={`dimension-${dimension.id}`}
+                                name="image-dimension"
+                                value={dimension.id}
+                                checked={
+                                  dimension.id === targetDimensions.dimensionId
+                                }
+                                onChange={() => {
+                                  if (dimension.id === "custom") {
+                                    setTargetDimensions({
+                                      width: targetDimensions.width,
+                                      height: targetDimensions.height,
+                                      dimensionId: dimension.id,
+                                    });
+                                  } else if (dimension.id === "square") {
+                                    const maxSide = Math.max(
+                                      originalDimensions.width,
+                                      originalDimensions.height,
+                                    );
+                                    setTargetDimensions({
+                                      width: maxSide * 2,
+                                      height: maxSide * 2,
+                                      dimensionId: dimension.id,
+                                    });
+                                  } else {
+                                    const [w, h] = dimension.id
+                                      .split(":")
+                                      .map(Number);
+                                    setTargetDimensions({
+                                      width: Math.max(
+                                        Math.round(
+                                          (originalDimensions.height * w) / h,
+                                        ),
+                                        originalDimensions.width,
+                                      ),
+                                      height: Math.max(
+                                        Math.round(
+                                          (originalDimensions.width * h) / w,
+                                        ),
+                                        originalDimensions.height,
+                                      ),
+                                      dimensionId: dimension.id,
+                                    });
+                                  }
+                                }}
+                                className="sr-only"
                               />
-                              <Label
-                                htmlFor={style.id}
-                                className="font-normal cursor-pointer"
-                              >
-                                <span className="font-medium">
-                                  {style.label}
-                                </span>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">
-                                  {style.description}
-                                </p>
-                              </Label>
-                            </div>
+                              <div
+                                className={cn(
+                                  "border-2 rounded mb-1",
+                                  dimension.id === targetDimensions.dimensionId
+                                    ? "border-blue-500"
+                                    : "border-gray-400",
+                                )}
+                                style={{
+                                  width:
+                                    targetDimensions.dimensionId === "custom" &&
+                                    dimension.id === "custom"
+                                      ? "20px"
+                                      : dimension.width,
+                                  height:
+                                    targetDimensions.dimensionId === "custom" &&
+                                    dimension.id === "custom"
+                                      ? "30px"
+                                      : dimension.height,
+                                  maxWidth: "32px",
+                                  maxHeight: "32px",
+                                  animation:
+                                    targetDimensions.dimensionId === "custom" &&
+                                    dimension.id === "custom"
+                                      ? "pulse 1.5s infinite"
+                                      : "none",
+                                }}
+                              />
+                              <style jsx>{`
+                                @keyframes pulse {
+                                  0% {
+                                    width: 5px;
+                                    height: 10px;
+                                  }
+                                  50% {
+                                    width: 20px;
+                                    height: 25px;
+                                  }
+                                  100% {
+                                    width: 10px;
+                                    height: 5px;
+                                  }
+                                }
+                              `}</style>
+                              <span className="text-sm font-medium text-gray-700">
+                                {dimension.label}
+                              </span>
+                            </label>
                           ))}
-                        </RadioGroup>
+                        </div>
+                        {targetDimensions.dimensionId === "custom" && (
+                          <div className="flex gap-4 mt-4">
+                            <div className="flex-1">
+                              <Label className="text-sm text-slate-500 mb-1">
+                                Custom Width
+                              </Label>
+                              <Input
+                                type="number"
+                                value={targetDimensions.width || ""}
+                                onChange={(e) =>
+                                  setTargetDimensions((prev) => ({
+                                    ...prev,
+                                    width: parseInt(e.target.value) || 0,
+                                  }))
+                                }
+                                placeholder="Width"
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <Label className="text-sm text-slate-500 mb-1">
+                                Custom Height
+                              </Label>
+                              <Input
+                                type="number"
+                                value={targetDimensions.height || ""}
+                                onChange={(e) =>
+                                  setTargetDimensions((prev) => ({
+                                    ...prev,
+                                    height: parseInt(e.target.value) || 0,
+                                  }))
+                                }
+                                placeholder="Height"
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
-
-                      {fillStyle === "solid-color" && (
-                        <div className="space-y-2">
-                          <Label htmlFor="background-color">
-                            Background Color
-                          </Label>
-                          <div className="flex space-x-2">
-                            <div
-                              className="h-10 w-10 rounded-md border"
-                              style={{ backgroundColor: backgroundColor }}
-                            />
-                            <Input
-                              id="background-color"
-                              type="text"
-                              placeholder="#RRGGBB"
-                              value={backgroundColor}
-                              onChange={(e) =>
-                                setBackgroundColor(e.target.value)
-                              }
-                              className="flex-1"
-                            />
+                    </div>
+                    <div className="space-y-6">
+                      {/* --- Replace Expansion Direction with Image Alignment --- */}
+                      <div className="space-y-4">
+                        <Label>Image Alignment</Label>
+                        <div className="flex flex-col gap-4">
+                          {/* Horizontal */}
+                          <div>
+                            <Label className="text-sm text-slate-500 mb-1">
+                              Horizontal
+                            </Label>
+                            <div className="flex gap-2 mt-2">
+                              {horizontalAlignments.map((alignment) => {
+                                const Icon = alignment.icon;
+                                return (
+                                  <label
+                                    key={alignment.id}
+                                    htmlFor={`horizontal-${alignment.id}`}
+                                    className={cn(
+                                      "flex flex-row items-center px-6 py-2 rounded cursor-pointer border",
+                                      imageAlignment.horizontal === alignment.id
+                                        ? "bg-purple-600 text-white border-purple-700"
+                                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700",
+                                    )}
+                                  >
+                                    <input
+                                      type="radio"
+                                      id={`horizontal-${alignment.id}`}
+                                      name="horizontal-alignment"
+                                      value={alignment.id}
+                                      checked={
+                                        imageAlignment.horizontal ===
+                                        alignment.id
+                                      }
+                                      onChange={() =>
+                                        setImageAlignment((prev) => ({
+                                          ...prev,
+                                          horizontal:
+                                            alignment.id as HorizontalAlignment,
+                                        }))
+                                      }
+                                      className="sr-only"
+                                    />
+                                    <Icon className="h-6 w-8" />
+                                    <span className="text-xs">
+                                      {alignment.label}
+                                    </span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
+                          {/* Vertical */}
+                          <div>
+                            <Label className="text-sm text-slate-500 mb-1">
+                              Vertical
+                            </Label>
+                            <div className="flex gap-2 mt-2">
+                              {verticalAlignments.map((alignment) => {
+                                const Icon = alignment.icon;
+                                return (
+                                  <label
+                                    key={alignment.id}
+                                    htmlFor={`vertical-${alignment.id}`}
+                                    className={cn(
+                                      "flex flex-row items-center py-2 px-6 rounded cursor-pointer border",
+                                      imageAlignment.vertical === alignment.id
+                                        ? "bg-purple-600 text-white border-purple-700"
+                                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700",
+                                    )}
+                                  >
+                                    <input
+                                      type="radio"
+                                      id={`vertical-${alignment.id}`}
+                                      name="vertical-alignment"
+                                      value={alignment.id}
+                                      checked={
+                                        imageAlignment.vertical === alignment.id
+                                      }
+                                      onChange={() =>
+                                        setImageAlignment((prev) => ({
+                                          ...prev,
+                                          vertical:
+                                            alignment.id as VerticalAlignment,
+                                        }))
+                                      }
+                                      className="sr-only"
+                                    />
+                                    <Icon className="h-6 w-8" />
+                                    <span className="text-xs">
+                                      {alignment.label}
+                                    </span>
+                                  </label>
+                                );
+                              })}
+                            </div>
                           </div>
                         </div>
-                      )}
-
-                      {fillStyle === "prompt" && (
-                        <div className="space-y-2">
-                          <Label htmlFor="content-prompt">
-                            Content Generation Prompt
-                          </Label>
-                          <Textarea
-                            id="content-prompt"
-                            placeholder="Describe what content should be generated in the expanded areas..."
-                            value={contentPrompt}
-                            onChange={(e) => setContentPrompt(e.target.value)}
-                            className="min-h-[100px] resize-none"
-                          />
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            Be specific about style, colors, and elements to
-                            match the original image
-                          </p>
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <Label
-                            htmlFor="preserve-subjects"
-                            className="text-sm font-medium cursor-pointer"
-                          >
-                            Preserve Subjects
-                          </Label>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            Maintain integrity of main subjects during expansion
-                          </p>
-                        </div>
-                        <Switch
-                          id="preserve-subjects"
-                          checked={preserveSubjects}
-                          onCheckedChange={setPreserveSubjects}
-                          className="data-[state=checked]:bg-purple-600"
-                        />
                       </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <Label
-                            htmlFor="enhance-quality"
-                            className="text-sm font-medium cursor-pointer"
-                          >
-                            Enhance Quality
-                          </Label>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            Improve overall image quality during expansion
-                          </p>
-                        </div>
-                        <Switch
-                          id="enhance-quality"
-                          checked={enhanceQuality}
-                          onCheckedChange={setEnhanceQuality}
-                          className="data-[state=checked]:bg-purple-600"
+                      {/* --- End Image Alignment --- */}
+                      {/* ...rest of settings... */}
+                    </div>
+                    {/* Expanded prompt */}
+                    <div className="space-y-6 mt-8">
+                      <div className="space-y-2">
+                        <Label htmlFor="content-prompt">
+                          Content Generation Prompt
+                        </Label>
+                        <Textarea
+                          id="content-prompt"
+                          placeholder="Describe what content should be generated in the expanded areas..."
+                          value={contentPrompt}
+                          onChange={(e) => setContentPrompt(e.target.value)}
+                          className="min-h-[100px] resize-none"
                         />
+                        {/* <p className="text-xs text-slate-500 dark:text-slate-400">
+                          Be specific about style, colors, and elements to match
+                          the original image
+                        </p> */}
                       </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <Label
-                            htmlFor="match-lighting"
-                            className="text-sm font-medium cursor-pointer"
-                          >
-                            Match Lighting
-                          </Label>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            Ensure consistent lighting in expanded areas
-                          </p>
-                        </div>
-                        <Switch
-                          id="match-lighting"
-                          checked={matchLighting}
-                          onCheckedChange={setMatchLighting}
-                          className="data-[state=checked]:bg-purple-600"
-                        />
-                      </div>
-
                       <Button
                         onClick={handleExpandImage}
                         className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
@@ -725,23 +836,6 @@ export default function ExpandImagePage() {
                       Preview
                     </h2>
                     <div className="space-y-4">
-                      <div className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                        <img
-                          src={uploadedImage || "/placeholder.svg"}
-                          alt="Uploaded image"
-                          className="w-full h-auto object-contain"
-                        />
-                        <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center opacity-0 hover:opacity-100">
-                          <Button
-                            // variant="secondary"
-                            size="icon"
-                            onClick={handleReset}
-                          >
-                            <Trash2 className="h-5 w-5" />
-                          </Button>
-                        </div>
-                      </div>
-
                       <div className="bg-slate-800 rounded-lg overflow-hidden border border-slate-700 relative">
                         <div
                           className="w-full"
@@ -750,26 +844,33 @@ export default function ExpandImagePage() {
                             backgroundColor:
                               fillStyle === "solid-color"
                                 ? backgroundColor
-                                : "transparent",
+                                : "#1e293b",
                           }}
                         >
-                          {uploadedImage && (
-                            <div className="absolute inset-0 flex items-center justify-center">
+                          {uploadedImageInfo && (
+                            <div className="absolute inset-0">
                               <div
-                                className="relative"
-                                style={{
-                                  width: "100%",
-                                  height: "100%",
-                                  opacity: 0.7,
-                                }}
+                                className="absolute"
+                                style={
+                                  getExpansionPreview() as React.CSSProperties
+                                }
                               >
-                                <div
-                                  style={
-                                    getExpansionPreview() as React.CSSProperties
-                                  }
-                                >
-                                  <div className="w-full h-full bg-purple-500 bg-opacity-30 rounded-sm"></div>
+                                <div className="w-full h-full bg-purple-500/20 border border-purple-500/40">
+                                  <Image
+                                    src={
+                                      uploadedImageInfo.previewImageUrl ||
+                                      "/placeholder.svg"
+                                    }
+                                    alt="Uploaded image"
+                                    height={uploadedImageInfo.height}
+                                    width={uploadedImageInfo.width}
+                                    className="w-full h-full object-cover"
+                                  />
                                 </div>
+                              </div>
+                              {/* Show expansion areas */}
+                              <div className="absolute inset-0 pointer-events-none">
+                                <div className="w-full h-full border-2 border-dashed border-purple-500/30" />
                               </div>
                             </div>
                           )}
@@ -789,11 +890,11 @@ export default function ExpandImagePage() {
                               Direction:
                             </span>
                             <span className="font-medium capitalize">
-                              {
+                              {/* {
                                 expansionDirections.find(
                                   (d) => d.id === expansionDirection,
                                 )?.label
-                              }
+                              } */}
                             </span>
                           </div>
                           <div className="flex justify-between">
@@ -875,9 +976,14 @@ export default function ExpandImagePage() {
                             Original
                           </p>
                           <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 relative group">
-                            <img
-                              src={uploadedImage || "/placeholder.svg"}
+                            <Image
+                              src={
+                                uploadedImageInfo?.previewImageUrl ||
+                                "/placeholder.svg"
+                              }
                               alt="Original image"
+                              height={uploadedImageInfo?.height}
+                              width={uploadedImageInfo?.width}
                               className="w-full h-auto object-contain"
                             />
                             <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
@@ -902,9 +1008,11 @@ export default function ExpandImagePage() {
                             Expanded
                           </p>
                           <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 relative group">
-                            <img
+                            <Image
                               src={expandedImage || "/placeholder.svg"}
                               alt="Expanded image"
+                              height={targetDimensions.height}
+                              width={targetDimensions.width}
                               className="w-full h-auto object-contain"
                             />
                             <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
@@ -977,11 +1085,11 @@ export default function ExpandImagePage() {
                               Direction:
                             </span>
                             <span className="font-medium capitalize">
-                              {
+                              {/* {
                                 expansionDirections.find(
                                   (d) => d.id === expansionDirection,
                                 )?.label
-                              }
+                              } */}
                             </span>
                           </div>
                           <div className="flex justify-between">
