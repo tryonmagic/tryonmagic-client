@@ -25,58 +25,165 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  EditImageTaskInput,
+  EditMode,
+  EditType,
+  ImageSourceType,
+  NewTask,
+  TaskProgress,
+  TaskStatus,
+  TaskType,
+} from "@/lib/api/type";
+import { useAppBridge } from "@shopify/app-bridge-react";
+import ImageUploader, {
+  ImageInfo,
+} from "@/lib/uploader/components/ImageUploader";
+import { WebSocketClient } from "@/socket";
+import { newTask } from "@/lib/api/tasks";
 
 export default function MagicEraser() {
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedImageInfo, setUploadedImageInfo] = useState<ImageInfo | null>(
+    null,
+  );
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("upload");
-  const [brushSize, setBrushSize] = useState(20);
-  const [brushHardness, setBrushHardness] = useState(50);
-  const [eraserMode, setEraserMode] = useState("smart");
   const [isProcessing, setIsProcessing] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [textPrompt, setTextPrompt] = useState("");
+  const [editMode, setEditMode] = useState<EditMode>(EditMode.PROMPT);
+  const [hoverBoxIdx, setHoverBoxIdx] = useState<number | null>(null);
+  const [taskProgress, setTaskProgress] = useState<TaskProgress | null>(null);
+  const app = useAppBridge();
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (e && e.target) {
-          setUploadedImage(e.target.result as string);
-          setActiveTab("erase");
-        }
-      };
-      reader.onerror = () => {
-        console.error("Error reading file");
-      };
-      reader.readAsDataURL(file);
-    }
+  const [boxes, setBoxes] = useState<
+    { xPct: number; yPct: number; wPct: number; hPct: number }[]
+  >([]);
+  const [box, setBox] = useState<{
+    xPct: number;
+    yPct: number;
+    wPct: number;
+    hPct: number;
+  } | null>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [startPoint, setStartPoint] = useState<{
+    xPct: number;
+    yPct: number;
+  } | null>(null);
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
+
+  const onImageUploaded = (imageInfo: ImageInfo) => {
+    setUploadedImageInfo(imageInfo);
+
+    setActiveTab("erase");
   };
 
-  const handleErase = () => {
+  const handleErase = async () => {
+    if (!uploadedImageInfo) return;
     setIsProcessing(true);
 
-    // Log what's being erased based on mode
-    if (eraserMode === "promptErase") {
-      console.log(`Using text prompt to remove: "${textPrompt}"`);
-    } else {
-      console.log(`Using ${eraserMode} eraser mode`);
-    }
+    const sessionToken = await app.idToken();
 
-    // Simulate processing time
-    setTimeout(() => {
-      // In a real app, this would be where the AI processing happens
-      setResultImage(uploadedImage); // For demo, just use the original image
-      setIsProcessing(false);
-      setActiveTab("result");
-    }, 2000);
+    const newTaskPayload: NewTask<EditImageTaskInput> = {
+      type: TaskType.EDIT_IMAGE,
+      inputData: {
+        sourceImageUrl: uploadedImageInfo.uploadLocation,
+        imageSourceType: ImageSourceType.URL,
+        editType: EditType.INPAINT_REMOVE,
+        editMode,
+        editPrompt: textPrompt,
+        editRegion: boxes.map(box => ({
+          x: Math.round(box.xPct * uploadedImageInfo.width),
+          y: Math.round(box.yPct * uploadedImageInfo.height),
+          width: Math.round(box.wPct * uploadedImageInfo.width),
+          height: Math.round(box.hPct * uploadedImageInfo.height)
+        })),
+      },
+    };
+
+    const response = await newTask<EditImageTaskInput>(
+      sessionToken,
+      newTaskPayload,
+    );
+    const task = response.data.data;
+    if (!task) {
+      console.error("No task data returned");
+      return;
+    }
+    const websocket = new WebSocketClient(task.userId);
+    websocket.on<TaskProgress>("task-progress", async (data) => {
+      console.log("WebSocket data received:", data);
+      setTaskProgress(data);
+      if (data.status === TaskStatus.SUCCEEDED) {
+        setIsProcessing(false);
+        setActiveTab("result");
+        if (data.resultData?.outputImageUrl) {
+          setResultImage(data.resultData.outputImageUrl);
+        }
+      }
+    });
   };
 
   const resetImage = () => {
-    setUploadedImage(null);
+    setUploadedImageInfo(null);
     setResultImage(null);
     setActiveTab("upload");
+  };
+
+  // Helper to get mouse position as percentage of image
+  const getRelativePosition = (e: React.MouseEvent) => {
+    const img = imageRef.current;
+    if (!img) return { xPct: 0, yPct: 0 };
+    const rect = img.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    // Clamp to image bounds
+    const xClamped = Math.max(0, Math.min(x, rect.width));
+    const yClamped = Math.max(0, Math.min(y, rect.height));
+    return {
+      xPct: xClamped / rect.width,
+      yPct: yClamped / rect.height,
+    };
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!uploadedImageInfo) return;
+    const { xPct, yPct } = getRelativePosition(e);
+    setStartPoint({ xPct, yPct });
+    setBox(null);
+    setIsDrawing(true);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDrawing || !startPoint) return;
+    const { xPct, yPct } = getRelativePosition(e);
+    const x1 = startPoint.xPct;
+    const y1 = startPoint.yPct;
+    const x2 = xPct;
+    const y2 = yPct;
+    setBox({
+      xPct: Math.min(x1, x2),
+      yPct: Math.min(y1, y2),
+      wPct: Math.abs(x2 - x1),
+      hPct: Math.abs(y2 - y1),
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDrawing(false);
+  };
+
+  // Add current box to boxes list
+  const handleAddBox = () => {
+    if (box && box.wPct > 0 && box.hPct > 0) {
+      setBoxes((prev) => [...prev, box]);
+      setBox(null);
+    }
+  };
+
+  // Remove box by index
+  const handleRemoveBox = (idx: number) => {
+    setBoxes((prev) => prev.filter((_, i) => i !== idx));
   };
 
   return (
@@ -97,7 +204,7 @@ export default function MagicEraser() {
       >
         <TabsList className="grid grid-cols-3 max-w-md mx-auto">
           <TabsTrigger value="upload">Upload</TabsTrigger>
-          <TabsTrigger value="erase" disabled={!uploadedImage}>
+          <TabsTrigger value="erase" disabled={!uploadedImageInfo}>
             Erase
           </TabsTrigger>
           <TabsTrigger value="result" disabled={!resultImage}>
@@ -106,30 +213,7 @@ export default function MagicEraser() {
         </TabsList>
 
         <TabsContent value="upload" className="space-y-8">
-          <Card
-            className="border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 transition-colors cursor-pointer"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <CardContent className="flex flex-col items-center justify-center p-12 text-center">
-              <Upload className="h-16 w-16 text-muted-foreground mb-4" />
-              <h3 className="text-2xl font-semibold mb-2">Upload Your Image</h3>
-              <p className="text-muted-foreground mb-6 max-w-md">
-                Drag and drop your image here, or click to browse
-              </p>
-              <div className="relative">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-                <Button size="lg" className="relative z-10">
-                  <Upload className="mr-2 h-4 w-4" /> Select Image
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <ImageUploader onUploaded={onImageUploaded} />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <Card>
@@ -221,44 +305,133 @@ export default function MagicEraser() {
             <div className="lg:col-span-2">
               <Card className="overflow-hidden">
                 <CardContent className="p-0 relative">
-                  {uploadedImage && (
-                    <div className="relative w-full aspect-video bg-checkerboard">
-                      <img
-                        src={uploadedImage || "/placeholder.svg"}
-                        alt="Image to edit"
-                        className="w-full h-full object-contain"
+                  {/* Mode switch */}
+                  <div className="absolute top-2 left-2 z-10 bg-background/80 rounded px-2 py-1 flex gap-2 items-center">
+                    <Label
+                      htmlFor="erase-mode-box"
+                      className="flex items-center gap-1 cursor-pointer"
+                    >
+                      <input
+                        id="erase-mode-box"
+                        type="radio"
+                        checked={editMode === EditMode.REGION}
+                        onChange={() => setEditMode(EditMode.REGION)}
+                        className="accent-purple-600"
                       />
-                      <div className="absolute top-4 right-4 flex space-x-2">
-                        <Button size="icon" variant="secondary">
-                          <ZoomIn className="h-4 w-4" />
-                        </Button>
-                        <Button size="icon" variant="secondary">
-                          <ZoomOut className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div className="absolute bottom-4 left-4 flex space-x-2">
-                        <Button size="icon" variant="secondary">
-                          <Undo className="h-4 w-4" />
-                        </Button>
-                        <Button size="icon" variant="secondary">
-                          <Redo className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      Draw Box
+                    </Label>
+                    <Label
+                      htmlFor="erase-mode-prompt"
+                      className="flex items-center gap-1 cursor-pointer"
+                    >
+                      <input
+                        id="erase-mode-prompt"
+                        type="radio"
+                        checked={editMode === EditMode.PROMPT}
+                        onChange={() => setEditMode(EditMode.PROMPT)}
+                        className="accent-purple-600"
+                      />
+                      Prompt
+                    </Label>
+                  </div>
+                  {uploadedImageInfo && editMode === EditMode.REGION && (
+                    <div
+                      className="relative w-full bg-checkerboard"
+                      ref={imageContainerRef}
+                      style={{ cursor: "crosshair" }}
+                      onMouseDown={handleMouseDown}
+                      onMouseMove={handleMouseMove}
+                      onMouseUp={handleMouseUp}
+                    >
+                      <Image
+                        ref={imageRef}
+                        src={
+                          uploadedImageInfo.previewImageUrl ||
+                          "/placeholder.svg"
+                        }
+                        alt="Image to edit"
+                        width={600}
+                        height={400}
+                        className="w-full h-full object-contain select-none pointer-events-none"
+                        draggable={false}
+                      />
+                      {/* Render all boxes */}
+                      {boxes.map((b, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            position: "absolute",
+                            left: `${b.xPct * 100}%`,
+                            top: `${b.yPct * 100}%`,
+                            width: `${b.wPct * 100}%`,
+                            height: `${b.hPct * 100}%`,
+                            border: "2px solid #a855f7",
+                            background: "rgba(168,85,247,0.15)",
+                            pointerEvents: "none",
+                            zIndex: hoverBoxIdx === idx ? 20 : 10,
+                            boxShadow:
+                              hoverBoxIdx === idx
+                                ? "0 0 0 2px #73FFB5"
+                                : undefined,
+                            borderColor:
+                              hoverBoxIdx === idx ? "#73FFB5" : "#a855f7",
+                            transition: "border-color 0.15s, box-shadow 0.15s",
+                          }}
+                        />
+                      ))}
+                      {/* Render hovered box highlight */}
+                      {hoverBoxIdx !== null && boxes[hoverBoxIdx] && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            left: `${boxes[hoverBoxIdx].xPct * 100}%`,
+                            top: `${boxes[hoverBoxIdx].yPct * 100}%`,
+                            width: `${boxes[hoverBoxIdx].wPct * 100}%`,
+                            height: `${boxes[hoverBoxIdx].hPct * 100}%`,
+                            border: "2px solid #73FFB5",
+                            background: "rgba(245,158,66,0.15)",
+                            pointerEvents: "none",
+                            zIndex: 30,
+                            boxShadow: "0 0 0 4px #73FFB555",
+                            transition: "border-color 0.15s, box-shadow 0.15s",
+                          }}
+                        />
+                      )}
+                      {/* Render current drawing box */}
+                      {box && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            left: `${box.xPct * 100}%`,
+                            top: `${box.yPct * 100}%`,
+                            width: `${box.wPct * 100}%`,
+                            height: `${box.hPct * 100}%`,
+                            border: "2px dashed #a855f7",
+                            background: "rgba(168,85,247,0.1)",
+                            pointerEvents: "none",
+                          }}
+                        />
+                      )}
+                    </div>
+                  )}
+                  {uploadedImageInfo && editMode === EditMode.PROMPT && (
+                    <div className="flex items-center justify-center w-full bg-checkerboard">
+                      <Image
+                        ref={imageRef}
+                        src={
+                          uploadedImageInfo.previewImageUrl ||
+                          "/placeholder.svg"
+                        }
+                        alt="Image to edit"
+                        width={600}
+                        height={400}
+                        className="w-full h-full object-contain select-none pointer-events-none"
+                        draggable={false}
+                      />
                     </div>
                   )}
                 </CardContent>
               </Card>
-              <div className="flex justify-center mt-4 space-x-2">
-                <Button variant="outline" size="icon">
-                  <MousePointer className="h-4 w-4" />
-                </Button>
-                <Button variant="default" size="icon">
-                  <Eraser className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="icon">
-                  <Brush className="h-4 w-4" />
-                </Button>
-              </div>
             </div>
             <div>
               <Card>
@@ -268,104 +441,123 @@ export default function MagicEraser() {
                       Eraser Settings
                     </h3>
                     <div className="space-y-4">
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <Label>Brush Size: {brushSize}px</Label>
+                      {/* Box mode settings */}
+                      {editMode === EditMode.REGION && (
+                        <div className="space-y-2">
+                          <Label>Select Area to Erase</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Draw a box over the object you want to remove.
+                          </p>
+                          {/* Add Box Button */}
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={handleAddBox}
+                              disabled={
+                                !box || box.wPct === 0 || box.hPct === 0
+                              }
+                            >
+                              Add Box
+                            </Button>
+                            {box && uploadedImageInfo && (
+                              <span className="text-xs text-muted-foreground">
+                                {(() => {
+                                  const img = uploadedImageInfo;
+                                  const x = Math.round(box.xPct * img.width);
+                                  const y = Math.round(box.yPct * img.height);
+                                  const w = Math.round(box.wPct * img.width);
+                                  const h = Math.round(box.hPct * img.height);
+                                  return (
+                                    <>
+                                      Preview: x={x}, y={y}, w={w}, h={h}
+                                    </>
+                                  );
+                                })()}
+                              </span>
+                            )}
+                          </div>
+                          {(!box || !imageRef.current) && (
+                            <div className="text-xs text-muted-foreground">
+                              Click and drag on the image to select an area.
+                            </div>
+                          )}
                         </div>
-                        <Slider
-                          value={[brushSize]}
-                          min={1}
-                          max={100}
-                          step={1}
-                          onValueChange={(value) => setBrushSize(value[0])}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <Label>Brush Hardness: {brushHardness}%</Label>
+                      )}
+                      {/* Prompt mode settings */}
+                      {editMode === EditMode.PROMPT && (
+                        <div className="space-y-2">
+                          <Label htmlFor="prompt-textarea">
+                            Describe what to remove
+                          </Label>
+                          <textarea
+                            id="prompt-textarea"
+                            className="w-full min-h-[80px] p-2 rounded-md border border-input bg-background"
+                            placeholder="E.g., 'boat,bike'"
+                            value={textPrompt}
+                            onChange={(e) => setTextPrompt(e.target.value)}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Describe what you want to remove from the image. You
+                            can specify more than one prompt using comma.
+                          </p>
                         </div>
-                        <Slider
-                          value={[brushHardness]}
-                          min={0}
-                          max={100}
-                          step={1}
-                          onValueChange={(value) => setBrushHardness(value[0])}
-                        />
-                      </div>
+                      )}
                     </div>
                   </div>
-
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Eraser Mode</h3>
-                    <RadioGroup
-                      value={eraserMode}
-                      onValueChange={setEraserMode}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="smart" id="smart" />
-                        <Label htmlFor="smart">Smart (AI-powered)</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem
-                          value="content-aware"
-                          id="content-aware"
-                        />
-                        <Label htmlFor="content-aware">
-                          Content-Aware Fill
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="transparent" id="transparent" />
-                        <Label htmlFor="transparent">Transparent</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="promptErase" id="promptErase" />
-                        <Label htmlFor="promptErase">Text Prompt</Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-
-                  {eraserMode === "promptErase" && (
-                    <div className="space-y-4 p-4 bg-muted rounded-lg">
-                      <Label htmlFor="text-prompt">
-                        Describe what to remove
-                      </Label>
-                      <textarea
-                        id="text-prompt"
-                        className="w-full min-h-[100px] p-2 rounded-md border border-input bg-background"
-                        placeholder="E.g., 'Remove the person on the right' or 'Erase the trash can in the corner'"
-                        value={textPrompt}
-                        onChange={(e) => setTextPrompt(e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Be specific about what you want to remove. The AI will
-                        automatically detect and erase the described objects.
-                      </p>
+                  {/* List of boxes with remove button */}
+                  {editMode === EditMode.REGION && boxes.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold mb-2 text-sm">
+                        Selected Boxes
+                      </h4>
+                      <ul className="space-y-2">
+                        {boxes.map((b, idx) => {
+                          let x = 0,
+                            y = 0,
+                            w = 0,
+                            h = 0;
+                          if (uploadedImageInfo) {
+                            x = Math.round(b.xPct * uploadedImageInfo.width);
+                            y = Math.round(b.yPct * uploadedImageInfo.height);
+                            w = Math.round(b.wPct * uploadedImageInfo.width);
+                            h = Math.round(b.hPct * uploadedImageInfo.height);
+                          }
+                          return (
+                            <li
+                              key={idx}
+                              className="flex items-center justify-between bg-slate-50 px-2 py-1 rounded hover:bg-muted hover:border hover:border-muted-foreground/50 transition-colors"
+                              onMouseEnter={() => setHoverBoxIdx(idx)}
+                              onMouseLeave={() => setHoverBoxIdx(null)}
+                            >
+                              <span className="text-xs">
+                                x={x}, y={y}, w={w}, h={h}
+                              </span>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => handleRemoveBox(idx)}
+                                aria-label="Remove box"
+                              >
+                                ×
+                              </Button>
+                            </li>
+                          );
+                        })}
+                      </ul>
                     </div>
                   )}
-
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Advanced Options</h3>
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="preserve-edges">Preserve Edges</Label>
-                      <Switch id="preserve-edges" />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="texture-matching">Texture Matching</Label>
-                      <Switch id="texture-matching" defaultChecked />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="shadow-detection">Shadow Detection</Label>
-                      <Switch id="shadow-detection" defaultChecked />
-                    </div>
-                  </div>
-
                   <div className="pt-4">
                     <Button
                       className="w-full"
                       size="lg"
                       onClick={handleErase}
-                      disabled={isProcessing}
+                      disabled={
+                        isProcessing ||
+                        (editMode === EditMode.REGION
+                          ? boxes.length === 0
+                          : textPrompt.trim().length === 0)
+                      }
                     >
                       {isProcessing ? (
                         <>Processing...</>
@@ -403,11 +595,15 @@ export default function MagicEraser() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <Card>
               <CardContent className="p-0">
-                {uploadedImage && (
+                {uploadedImageInfo && (
                   <div className="relative w-full aspect-video bg-checkerboard">
-                    <img
-                      src={uploadedImage || "/placeholder.svg"}
+                    <Image
+                      src={
+                        uploadedImageInfo.previewImageUrl || "/placeholder.svg"
+                      }
                       alt="Original image"
+                      width={600}
+                      height={400}
                       className="w-full h-full object-contain"
                     />
                     <div className="absolute top-2 left-2 bg-background/80 text-foreground px-2 py-1 rounded text-sm">
@@ -421,9 +617,11 @@ export default function MagicEraser() {
               <CardContent className="p-0">
                 {resultImage && (
                   <div className="relative w-full aspect-video bg-checkerboard">
-                    <img
+                    <Image
                       src={resultImage || "/placeholder.svg"}
                       alt="Result image"
+                      width={600}
+                      height={400}
                       className="w-full h-full object-contain"
                     />
                     <div className="absolute top-2 left-2 bg-background/80 text-foreground px-2 py-1 rounded text-sm">

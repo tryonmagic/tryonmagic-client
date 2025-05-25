@@ -1,5 +1,5 @@
 {
   "eslint.workingDirectories": ["./web"],
-  "cSpell.words": ["shopifyapp", "thumbhash", "tryonmagic", "VTON"],
+  "cSpell.words": ["Inpaint", "shopifyapp", "thumbhash", "tryonmagic", "VTON"],
   "postman.settings.dotenv-detection-notification-visibility": false
 }

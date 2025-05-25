@@ -73,6 +73,7 @@ export enum TaskType {
   UPSCALE = "UPSCALE",
   ENHANCE = "ENHANCE",
   EXPAND_IMAGE = "EXPAND_IMAGE",
+  EDIT_IMAGE = "EDIT_IMAGE",
 }
 
 export interface Task<T = unknown> {
@@ -173,4 +174,30 @@ export interface Garment {
   tags: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export enum EditMode {
+  PROMPT = "PROMPT",
+  REGION = "REGION",
+}
+export enum EditType {
+  INPAINT_REMOVE = "INPAINT_REMOVE",
+  INPAINT_REPLACE = "INPAINT_REPLACE",
+  INPAINT_ADD = "INPAINT_ADD",
+}
+
+export interface EditRegion {
+  x: number; // required, min=0
+  y: number; // required, min=0
+  width: number; // required, min=1
+  height: number; // required, min=1
+}
+
+export interface EditImageTaskInput {
+  sourceImageUrl: string;
+  imageSourceType: ImageSourceType;
+  editType: EditType;
+  editMode: EditMode;
+  editPrompt?: string | null;
+  editRegion?: EditRegion[] | null;
 }
