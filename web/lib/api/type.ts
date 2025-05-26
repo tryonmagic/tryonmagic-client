@@ -181,9 +181,9 @@ export enum EditMode {
   REGION = "REGION",
 }
 export enum EditType {
-  INPAINT_REMOVE = "INPAINT_REMOVE",
-  INPAINT_REPLACE = "INPAINT_REPLACE",
-  INPAINT_ADD = "INPAINT_ADD",
+  INPAINT_REMOVE = "EDIT_MODE_INPAINT_REMOVAL",
+  INPAINT_REPLACE = "EDIT_MODE_INPAINT_REPLACE", 
+  INPAINT_INSERTION = "EDIT_MODE_INPAINT_INSERTION",
 }
 
 export interface EditRegion {
@@ -200,4 +200,8 @@ export interface EditImageTaskInput {
   editMode: EditMode;
   editPrompt?: string | null;
   editRegion?: EditRegion[] | null;
+  replacePrompt?: {
+    replaceFrom?: string | null;
+    replaceTo: string;
+  } | null;
 }
