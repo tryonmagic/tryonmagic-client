@@ -2,13 +2,17 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { motion } from "framer-motion"
-import { ArrowLeft, Upload, ImagePlus, Sparkles, Loader2, Download, Trash2, Info } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import {
+  ArrowLeft, Upload, ImagePlus, Sparkles, Loader2, Download, Trash2, Info,
+  Palette, Wand2, Camera, Layers, Zap, RefreshCw, Eye, Settings,
+  Brush, Scissors, Move3D, Sun, Moon, Droplets, Wind, Plus
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -16,254 +20,396 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import { Separator } from "@/components/ui/separator"
 
-const productScenes = [
+// Enhanced product editing modes
+const editingModes = [
   {
-    value: "studio",
-    label: "Studio",
-    image: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=100&width=150",
-    description: "Clean studio background with professional lighting",
+    id: "background",
+    title: "Smart Background",
+    description: "Replace or enhance product backgrounds with AI-generated scenes",
+    icon: Camera,
+    color: "from-blue-500 to-cyan-500",
+    features: ["Background removal", "Scene generation", "Lighting adjustment", "Shadow matching"]
   },
   {
-    value: "lifestyle",
-    label: "Lifestyle",
-    image: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=100&width=150",
-    description: "Natural lifestyle setting showing product in use",
+    id: "recolor",
+    title: "Product Recoloring",
+    description: "Change product colors while maintaining texture and details",
+    icon: Palette,
+    color: "from-purple-500 to-pink-500",
+    features: ["Color replacement", "Texture preservation", "Multiple variants", "Brand matching"]
   },
   {
-    value: "outdoor",
-    label: "Outdoor",
-    image: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=100&width=150",
-    description: "Outdoor environment with natural lighting",
+    id: "style",
+    title: "Style Transfer",
+    description: "Apply artistic styles and visual effects to your products",
+    icon: Brush,
+    color: "from-orange-500 to-red-500",
+    features: ["Artistic filters", "Mood enhancement", "Brand styling", "Creative effects"]
+  },
+  // {
+  //   id: "enhance",
+  //   title: "Product Enhancement",
+  //   description: "Improve product presentation with AI-powered enhancements",
+  //   icon: Wand2,
+  //   color: "from-green-500 to-emerald-500",
+  //   features: ["Detail enhancement", "Lighting optimization", "Quality upscaling", "Professional polish"]
+  // },
+  {
+    id: "scene",
+    title: "Scene Generation",
+    description: "Place products in realistic lifestyle and commercial settings",
+    icon: Move3D,
+    color: "from-indigo-500 to-purple-500",
+    features: ["Lifestyle scenes", "Commercial settings", "Context generation", "Brand environments"]
+  },
+  {
+    id: "variants",
+    title: "Product Variants",
+    description: "Generate multiple product variations and configurations",
+    icon: Layers,
+    color: "from-teal-500 to-blue-500",
+    features: ["Size variations", "Configuration options", "Angle generation", "Batch processing"]
+  }
+]
+
+// Enhanced background scenes with more creative options
+const backgroundScenes = [
+  {
+    value: "studio_minimal",
+    label: "Minimal Studio",
+    image: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=150&h=100&fit=crop",
+    description: "Clean, minimal studio with soft shadows",
+    mood: "professional"
+  },
+  {
+    value: "lifestyle_home",
+    label: "Modern Home",
+    image: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=150&h=100&fit=crop",
+    description: "Contemporary home interior setting",
+    mood: "cozy"
+  },
+  {
+    value: "outdoor_nature",
+    label: "Natural Outdoor",
+    image: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=150&h=100&fit=crop",
+    description: "Natural outdoor environment with organic lighting",
+    mood: "fresh"
+  },
+  {
+    value: "luxury_boutique",
+    label: "Luxury Boutique",
+    image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=150&h=100&fit=crop",
+    description: "High-end retail environment with premium feel",
+    mood: "elegant"
+  },
+  {
+    value: "industrial_loft",
+    label: "Industrial Loft",
+    image: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=150&h=100&fit=crop",
+    description: "Urban industrial setting with raw textures",
+    mood: "edgy"
+  },
+  {
+    value: "seasonal_winter",
+    label: "Winter Scene",
+    image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=150&h=100&fit=crop",
+    description: "Cozy winter atmosphere with warm lighting",
+    mood: "seasonal"
+  },
+  {
+    value: "tech_futuristic",
+    label: "Tech Future",
+    image: "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=150&h=100&fit=crop",
+    description: "Futuristic tech environment with neon accents",
+    mood: "innovative"
+  },
+  {
+    value: "vintage_retro",
+    label: "Vintage Retro",
+    image: "https://images.unsplash.com/photo-1493663284031-b7e3aaa4cab7?w=150&h=100&fit=crop",
+    description: "Nostalgic retro setting with vintage charm",
+    mood: "nostalgic"
+  }
+]
+
+// Enhanced style presets
+const stylePresets = [
+  {
+    value: "photorealistic",
+    label: "Photorealistic",
+    image: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=100&h=100&fit=crop",
+    description: "Ultra-realistic photography style",
+    intensity: "high"
+  },
+  {
+    value: "cinematic",
+    label: "Cinematic",
+    image: "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=100&h=100&fit=crop",
+    description: "Movie-like dramatic lighting and composition",
+    intensity: "medium"
   },
   {
     value: "minimalist",
     label: "Minimalist",
-    image: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=100&width=150",
-    description: "Clean, minimal background with subtle shadows",
+    image: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=100&h=100&fit=crop",
+    description: "Clean, simple aesthetic with negative space",
+    intensity: "low"
   },
   {
-    value: "luxury",
-    label: "Luxury",
-    image: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=100&width=150",
-    description: "Upscale luxury setting with elegant details",
+    value: "artistic",
+    label: "Artistic",
+    image: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=100&h=100&fit=crop",
+    description: "Creative artistic interpretation",
+    intensity: "high"
   },
   {
-    value: "tech",
-    label: "Tech",
-    image: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=100&width=150",
-    description: "Modern tech environment with futuristic elements",
+    value: "commercial",
+    label: "Commercial",
+    image: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=100&h=100&fit=crop",
+    description: "Professional commercial photography",
+    intensity: "medium"
   },
   {
-    value: "seasonal",
-    label: "Seasonal",
-    image: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=100&width=150",
-    description: "Seasonal themed background (summer, winter, etc.)",
-  },
+    value: "editorial",
+    label: "Editorial",
+    image: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=100&h=100&fit=crop",
+    description: "Magazine-style editorial presentation",
+    intensity: "medium"
+  }
 ]
 
-const productStyles = [
+// Color palette options for recoloring
+const colorPalettes = [
   {
-    value: "realistic",
-    label: "Realistic",
-    image: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=100&width=100",
-    description: "Photorealistic rendering with accurate details",
+    name: "Classic",
+    colors: ["#000000", "#FFFFFF", "#8B4513", "#000080", "#800000"]
   },
   {
-    value: "stylized",
-    label: "Stylized",
-    image: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=100&width=100",
-    description: "Artistic interpretation with enhanced colors",
+    name: "Vibrant",
+    colors: ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7"]
   },
   {
-    value: "dramatic",
-    label: "Dramatic",
-    image: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=100&width=100",
-    description: "Bold lighting and high contrast for impact",
+    name: "Pastel",
+    colors: ["#FFB3BA", "#BAFFC9", "#BAE1FF", "#FFFFBA", "#FFD3BA"]
   },
   {
-    value: "vintage",
-    label: "Vintage",
-    image: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=100&width=100",
-    description: "Retro aesthetic with period-appropriate styling",
+    name: "Earth",
+    colors: ["#8B4513", "#D2691E", "#CD853F", "#DEB887", "#F4A460"]
   },
   {
-    value: "flat-lay",
-    label: "Flat Lay",
-    image: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=100&width=100",
-    description: "Top-down composition with arranged elements",
-  },
+    name: "Monochrome",
+    colors: ["#000000", "#404040", "#808080", "#C0C0C0", "#FFFFFF"]
+  }
 ]
 
-const productCategories = [
-  {
-    value: "fashion",
-    label: "Fashion & Apparel",
-    image: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=100&width=100",
-    description: "Clothing, accessories, and wearable items",
-  },
-  {
-    value: "electronics",
-    label: "Electronics",
-    image: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=100&width=100",
-    description: "Gadgets, devices, and tech products",
-  },
-  {
-    value: "home",
-    label: "Home & Decor",
-    image: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=100&width=100",
-    description: "Furniture, decor, and home goods",
-  },
-  {
-    value: "beauty",
-    label: "Beauty & Cosmetics",
-    image: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=100&width=100",
-    description: "Makeup, skincare, and beauty products",
-  },
-  {
-    value: "food",
-    label: "Food & Beverage",
-    image: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=100&width=100",
-    description: "Food products, drinks, and culinary items",
-  },
-]
-
-interface OptionItemProps {
-  label: string
-  image: string
-  description?: string
+interface EditingModeCardProps {
+  mode: typeof editingModes[0]
+  isSelected: boolean
+  onClick: () => void
 }
 
-function OptionItem({ label, image, description }: OptionItemProps) {
-  return (
-    <div className="flex items-center space-x-3 p-1">
-      <div className="relative h-12 w-12 overflow-hidden rounded-md">
-        <img src={image || "/placeholder.svg"} alt={label} className="h-full w-full object-cover" />
-      </div>
-      <div>
-        <div className="font-medium">{label}</div>
-        {description && <div className="text-xs text-muted-foreground">{description}</div>}
-      </div>
-    </div>
-  )
-}
-
-interface VisualSelectProps {
-  value: string
-  onValueChange: (value: string) => void
-  options: any[]
-  label: string
-}
-
-function VisualSelect({ value, onValueChange, options, label }: VisualSelectProps) {
-  const selectedOption = options.find((option) => option.value === value)
+function EditingModeCard({ mode, isSelected, onClick }: EditingModeCardProps) {
+  const Icon = mode.icon
 
   return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger className="w-full">
-          <SelectValue>
-            {selectedOption && (
-              <div className="flex items-center space-x-3">
-                <div className="relative h-8 w-8 overflow-hidden rounded-md">
-                  <img
-                    src={selectedOption.image || "/placeholder.svg"}
-                    alt={selectedOption.label}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-                <span>{selectedOption.label}</span>
-              </div>
-            )}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          <div className="max-h-[300px] overflow-y-auto p-1">
-            {options.map((option) => (
-              <SelectItem
-                key={option.value}
-                value={option.value}
-                className="p-0 focus:bg-transparent data-[state=checked]:bg-transparent"
-              >
-                <div
-                  className={cn(
-                    "rounded-md p-2 transition-colors",
-                    value === option.value ? "bg-muted" : "hover:bg-muted/50",
-                  )}
-                >
-                  <OptionItem label={option.label} image={option.image} description={option.description} />
-                </div>
-              </SelectItem>
-            ))}
+    <motion.div
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      className={cn(
+        "relative overflow-hidden rounded-xl border-2 cursor-pointer transition-all duration-300",
+        isSelected
+          ? "border-purple-500 shadow-lg shadow-purple-500/25"
+          : "border-slate-200 dark:border-slate-700 hover:border-purple-300"
+      )}
+      onClick={onClick}
+    >
+      <div className={cn("absolute inset-0 bg-gradient-to-br opacity-10", mode.color)} />
+      <CardContent className="relative p-6">
+        <div className="flex items-start space-x-4">
+          <div className={cn("rounded-lg p-3 bg-gradient-to-br", mode.color)}>
+            <Icon className="h-6 w-6 text-white" />
           </div>
-        </SelectContent>
-      </Select>
-    </div>
-  )
-}
-
-interface ExampleCardProps {
-  title: string
-  description: string
-  before: string
-  after: string
-}
-
-function ExampleCard({ title, description, before, after }: ExampleCardProps) {
-  return (
-    <Card className="overflow-hidden border-0 shadow-lg">
-      <CardContent className="p-6">
-        <h3 className="font-bold text-lg mb-4 text-slate-900 dark:text-white">{title}</h3>
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div>
-            <p className="text-xs text-center mb-2 font-medium text-slate-500 dark:text-slate-400">Before</p>
-            <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
-              <Image
-                src={before || "/placeholder.svg"}
-                alt={`Before ${title}`}
-                width={300}
-                height={300}
-                className="object-cover w-full h-auto"
-              />
-            </div>
-          </div>
-          <div>
-            <p className="text-xs text-center mb-2 font-medium text-slate-500 dark:text-slate-400">After</p>
-            <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
-              <Image
-                src={after || "/placeholder.svg"}
-                alt={`After ${title}`}
-                width={300}
-                height={300}
-                className="object-cover w-full h-auto"
-              />
+          <div className="flex-1 min-w-0">
+            <h3 className="font-bold text-lg mb-2">{mode.title}</h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+              {mode.description}
+            </p>
+            <div className="flex flex-wrap gap-1">
+              {mode.features.map((feature, index) => (
+                <Badge key={index} variant="secondary" className="text-xs">
+                  {feature}
+                </Badge>
+              ))}
             </div>
           </div>
         </div>
-        <p className="text-sm text-slate-600 dark:text-slate-400">{description}</p>
       </CardContent>
-    </Card>
+    </motion.div>
+  )
+}
+
+interface ColorPaletteProps {
+  palette: typeof colorPalettes[0]
+  selectedColor: string
+  onColorSelect: (color: string) => void
+}
+
+function ColorPalette({ palette, selectedColor, onColorSelect }: ColorPaletteProps) {
+  return (
+    <div className="space-y-2">
+      <Label className="text-sm font-medium">{palette.name}</Label>
+      <div className="flex space-x-2">
+        {palette.colors.map((color) => (
+          <button
+            key={color}
+            className={cn(
+              "w-8 h-8 rounded-full border-2 transition-all duration-200",
+              selectedColor === color
+                ? "border-purple-500 scale-110 shadow-lg"
+                : "border-slate-300 hover:scale-105"
+            )}
+            style={{ backgroundColor: color }}
+            onClick={() => onColorSelect(color)}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+interface CustomColorInputProps {
+  selectedColor: string
+  onColorSelect: (color: string) => void
+}
+
+function CustomColorInput({ selectedColor, onColorSelect }: CustomColorInputProps) {
+  const [customColor, setCustomColor] = useState(selectedColor)
+  const [isValidColor, setIsValidColor] = useState(true)
+
+  const validateAndSetColor = (color: string) => {
+    setCustomColor(color)
+
+    // Validate hex color format
+    const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/
+    const isValid = hexRegex.test(color)
+    setIsValidColor(isValid)
+
+    if (isValid) {
+      onColorSelect(color)
+    }
+  }
+
+  const handleColorPickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const color = e.target.value
+    setCustomColor(color)
+    setIsValidColor(true)
+    onColorSelect(color)
+  }
+
+  return (
+    <div className="space-y-3">
+      <Label className="text-sm font-medium">Custom Color</Label>
+      <div className="flex space-x-3">
+        {/* Color Picker */}
+        <div className="relative">
+          <input
+            type="color"
+            value={customColor}
+            onChange={handleColorPickerChange}
+            className="w-12 h-10 rounded-lg border-2 border-slate-300 cursor-pointer overflow-hidden"
+            title="Pick a color"
+          />
+        </div>
+
+        {/* Hex Input */}
+        <div className="flex-1">
+          <Input
+            type="text"
+            placeholder="#FF6B6B"
+            value={customColor}
+            onChange={(e) => validateAndSetColor(e.target.value)}
+            className={cn(
+              "font-mono text-sm",
+              !isValidColor && "border-red-500 focus:border-red-500"
+            )}
+          />
+          {!isValidColor && (
+            <p className="text-xs text-red-500 mt-1">
+              Please enter a valid hex color (e.g., #FF6B6B)
+            </p>
+          )}
+        </div>
+
+        {/* Apply Button */}
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onColorSelect(customColor)}
+          disabled={!isValidColor}
+          className="px-3"
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Preview */}
+      <div className="flex items-center space-x-2">
+        <div
+          className="w-6 h-6 rounded-full border-2 border-slate-300"
+          style={{ backgroundColor: isValidColor ? customColor : '#transparent' }}
+        />
+        <span className="text-xs text-slate-500">
+          {isValidColor ? 'Preview' : 'Invalid color'}
+        </span>
+      </div>
+    </div>
   )
 }
 
 export default function AIProductPage() {
   const [activeTab, setActiveTab] = useState("upload")
-  const [formData, setFormData] = useState({
-    scene: "studio",
-    style: "realistic",
-    category: "fashion",
-    prompt: "Professional product photography with clean background and soft shadows",
-    negativePrompt: "distorted proportions, blurry, low quality",
-    preserveColors: true,
-    enhanceDetails: true,
-    lightingIntensity: 50,
-    shadowIntensity: 30,
-  })
+  const [selectedMode, setSelectedMode] = useState("background")
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null)
+  const [generatedImages, setGeneratedImages] = useState<string[]>([])
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const [formData, setFormData] = useState({
+    // Background settings
+    scene: "studio_minimal",
+    style: "photorealistic",
+    preserveProduct: true,
+    enhanceLighting: true,
+    lightingIntensity: 70,
+    shadowIntensity: 40,
+
+    // Recoloring settings
+    selectedColor: "#FF6B6B",
+    colorIntensity: 80,
+    preserveTexture: true,
+
+    // Style settings
+    styleIntensity: 60,
+    artisticEffect: "none",
+
+    // Enhancement settings
+    detailEnhancement: 70,
+    contrastBoost: 50,
+    saturationAdjust: 60,
+
+    // General settings
+    prompt: "",
+    negativePrompt: "distorted, blurry, low quality, artifacts",
+    numberOfVariants: 1,
+    aspectRatio: "1:1",
+    outputQuality: "high"
+  })
 
   const handleInputChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -275,7 +421,7 @@ export default function AIProductPage() {
       const reader = new FileReader()
       reader.onload = (event) => {
         setUploadedImage(event.target?.result as string)
-        setActiveTab("customize")
+        setActiveTab("edit")
       }
       reader.readAsDataURL(file)
     }
@@ -288,481 +434,500 @@ export default function AIProductPage() {
     setActiveTab("result")
 
     // Simulate AI generation delay
-    await new Promise((resolve) => setTimeout(resolve, 3000))
+    await new Promise((resolve) => setTimeout(resolve, 4000))
 
-    // In a real app, you would call your AI service here
-    // For demo purposes, we'll use a placeholder image
-    setGeneratedImage("https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=800&width=800")
+    // Generate multiple variants based on settings
+    const variants = Array.from({ length: formData.numberOfVariants }, (_, i) =>
+      `https://picsum.photos/800/800?random=${Date.now() + i}`
+    )
+
+    setGeneratedImages(variants)
+    setSelectedImageIndex(0)
     setIsGenerating(false)
   }
 
   const handleReset = () => {
     setUploadedImage(null)
-    setGeneratedImage(null)
+    setGeneratedImages([])
+    setSelectedImageIndex(0)
     setActiveTab("upload")
   }
 
+  const getCurrentModeSettings = () => {
+    switch (selectedMode) {
+      case "background":
+        return (
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <Label className="text-base font-semibold">Scene Selection</Label>
+              <div className="grid grid-cols-2 gap-3">
+                {backgroundScenes.map((scene) => (
+                  <div
+                    key={scene.value}
+                    className={cn(
+                      "relative overflow-hidden rounded-lg border-2 cursor-pointer transition-all",
+                      formData.scene === scene.value
+                        ? "border-purple-500 ring-2 ring-purple-200"
+                        : "border-slate-200 hover:border-purple-300"
+                    )}
+                    onClick={() => handleInputChange("scene", scene.value)}
+                  >
+                    <img
+                      src={scene.image}
+                      alt={scene.label}
+                      className="w-full h-20 object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-40 flex items-end">
+                      <div className="p-2 text-white">
+                        <p className="text-xs font-medium">{scene.label}</p>
+                        <Badge variant="secondary" className="text-xs mt-1">
+                          {scene.mood}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        )
+
+      case "recolor":
+        return (
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <Label className="text-base font-semibold">Color Palettes</Label>
+              {colorPalettes.map((palette) => (
+                <ColorPalette
+                  key={palette.name}
+                  palette={palette}
+                  selectedColor={formData.selectedColor}
+                  onColorSelect={(color) => handleInputChange("selectedColor", color)}
+                />
+              ))}
+            </div>
+
+            <Separator className="my-4" />
+
+            {/* Custom Color Input */}
+            <CustomColorInput
+              selectedColor={formData.selectedColor}
+              onColorSelect={(color) => handleInputChange("selectedColor", color)}
+            />
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label>Color Intensity</Label>
+                <span className="text-sm text-slate-500">{formData.colorIntensity}%</span>
+              </div>
+              <Slider
+                value={[formData.colorIntensity]}
+                onValueChange={(value) => handleInputChange("colorIntensity", value[0])}
+                max={100}
+                step={1}
+                className="py-2"
+              />
+            </div>
+
+          </div>
+        )
+
+      case "style":
+        return (
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <Label className="text-base font-semibold">Style Presets</Label>
+              <div className="grid grid-cols-2 gap-3">
+                {stylePresets.map((style) => (
+                  <div
+                    key={style.value}
+                    className={cn(
+                      "relative overflow-hidden rounded-lg border-2 cursor-pointer transition-all",
+                      formData.style === style.value
+                        ? "border-purple-500 ring-2 ring-purple-200"
+                        : "border-slate-200 hover:border-purple-300"
+                    )}
+                    onClick={() => handleInputChange("style", style.value)}
+                  >
+                    <img
+                      src={style.image}
+                      alt={style.label}
+                      className="w-full h-16 object-cover"
+                    />
+                    <div className="p-2">
+                      <p className="text-sm font-medium">{style.label}</p>
+                      <Badge variant="outline" className="text-xs mt-1">
+                        {style.intensity}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        )
+
+      default:
+        return <></>
+    }
+  }
+
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-[calc(100vh-3.5rem)] bg-gradient-to-br from-slate-50 via-white to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-purple-900 p-4 md:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
         <div className="flex items-center mb-8">
           <Button variant="ghost" size="icon" asChild className="mr-2">
             <Link href="/">
               <ArrowLeft className="h-5 w-5" />
-              <span className="sr-only">Back to home</span>
             </Link>
           </Button>
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
-              AI Product Transformer
+            <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600">
+              AI Product Studio
             </h1>
             <p className="text-slate-600 dark:text-slate-400">
-              Transform your product photos with AI-generated backgrounds and styling
+              Transform your products with advanced AI-powered editing and enhancement
             </p>
           </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 mb-8">
+          <TabsList className="grid w-full max-w-lg mx-auto grid-cols-3 mb-8">
             <TabsTrigger value="upload" disabled={isGenerating}>
+              <Upload className="h-4 w-4 mr-2" />
               Upload
             </TabsTrigger>
-            <TabsTrigger value="customize" disabled={!uploadedImage || isGenerating}>
-              Customize
+            <TabsTrigger value="edit" disabled={!uploadedImage || isGenerating}>
+              <Settings className="h-4 w-4 mr-2" />
+              Edit
             </TabsTrigger>
-            <TabsTrigger value="result" disabled={!uploadedImage || (!generatedImage && !isGenerating)}>
+            <TabsTrigger value="result" disabled={!uploadedImage || (!generatedImages.length && !isGenerating)}>
+              <Eye className="h-4 w-4 mr-2" />
               Result
             </TabsTrigger>
           </TabsList>
 
+          {/* Upload Tab */}
           <TabsContent value="upload" className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <Card className="overflow-hidden border-0 shadow-lg">
-                <CardContent className="p-6">
-                  <h2 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">Upload Your Product</h2>
-                  <div className="space-y-4">
-                    <div
-                      className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-8 text-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
-                      onClick={() => document.getElementById("product-image-upload")?.click()}
-                    >
-                      <input
-                        type="file"
-                        id="product-image-upload"
-                        className="hidden"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                      />
-                      <div className="flex flex-col items-center justify-center space-y-3">
-                        <div className="rounded-full bg-purple-100 dark:bg-purple-900/30 p-3">
-                          <Upload className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-slate-900 dark:text-white">
-                            Click to upload or drag and drop
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">PNG, JPG or WEBP (max. 10MB)</p>
-                        </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <Card className="overflow-hidden border-0 shadow-xl">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Upload className="h-5 w-5" />
+                    <span>Upload Your Product</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div
+                    className="border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-xl p-8 text-center hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors cursor-pointer group"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                    />
+                    <div className="flex flex-col items-center justify-center space-y-4">
+                      <div className="rounded-full bg-gradient-to-br from-purple-500 to-pink-500 p-4 group-hover:scale-110 transition-transform">
+                        <Upload className="h-8 w-8 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-lg font-medium text-slate-900 dark:text-white">
+                          Drop your product image here
+                        </p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                          or click to browse • PNG, JPG, WEBP (max 10MB)
+                        </p>
                       </div>
                     </div>
+                  </div>
 
-                    <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-lg">
-                      <div className="flex items-start space-x-3">
-                        <Info className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
-                        <div>
-                          <h3 className="font-medium text-amber-800 dark:text-amber-300 text-sm">
-                            Tips for best results
-                          </h3>
-                          <ul className="text-xs text-amber-700 dark:text-amber-400 mt-1 space-y-1 list-disc pl-4">
-                            <li>Use high-quality images with good lighting</li>
-                            <li>Product should be clearly visible and centered</li>
-                            <li>Simple backgrounds work best for extraction</li>
-                            <li>Avoid images with multiple products or complex shadows</li>
-                          </ul>
-                        </div>
+                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 p-6 rounded-xl">
+                    <div className="flex items-start space-x-3">
+                      <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                      <div>
+                        <h3 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">
+                          Pro Tips for Best Results
+                        </h3>
+                        <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-1">
+                          <li>• Use high-resolution images (1024px+ recommended)</li>
+                          <li>• Ensure good lighting and clear product visibility</li>
+                          <li>• Simple backgrounds work best for advanced editing</li>
+                          <li>• Center your product in the frame</li>
+                        </ul>
                       </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
+              {/* Editing Modes Preview */}
               <div className="space-y-6">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Example Transformations</h2>
-                <div className="grid grid-cols-1 gap-6">
-                  <ExampleCard
-                    title="Fashion Product"
-                    description="Transformed from basic studio shot to lifestyle setting with model and natural lighting."
-                    before="https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=300&width=300"
-                    after="https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=300&width=300"
-                  />
-                  <ExampleCard
-                    title="Electronics"
-                    description="Enhanced product details with dramatic lighting and tech-inspired environment."
-                    before="https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=300&width=300"
-                    after="https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=300&width=300"
-                  />
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                  What You Can Do
+                </h2>
+                <div className="grid grid-cols-1 gap-4">
+                  {editingModes.slice(0, 3).map((mode) => (
+                    <EditingModeCard
+                      key={mode.id}
+                      mode={mode}
+                      isSelected={false}
+                      onClick={() => { }}
+                    />
+                  ))}
                 </div>
               </div>
             </div>
           </TabsContent>
 
-          <TabsContent value="customize" className="space-y-4">
+          {/* Edit Tab */}
+          <TabsContent value="edit" className="space-y-6">
             {uploadedImage && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="grid grid-cols-1 md:grid-cols-2 gap-6"
+                className="grid grid-cols-1 lg:grid-cols-3 gap-6"
               >
-                <Card className="overflow-hidden">
-                  <CardContent className="p-6">
-                    <div className="space-y-4">
-                      <VisualSelect
-                        label="Product Category"
-                        value={formData.category}
-                        onValueChange={(value) => handleInputChange("category", value)}
-                        options={productCategories}
+                {/* Editing Modes */}
+                <div className="lg:col-span-1 space-y-4">
+                  <h3 className="text-lg font-semibold">Choose Editing Mode</h3>
+                  <div className="space-y-3">
+                    {editingModes.map((mode) => (
+                      <EditingModeCard
+                        key={mode.id}
+                        mode={mode}
+                        isSelected={selectedMode === mode.id}
+                        onClick={() => setSelectedMode(mode.id)}
                       />
+                    ))}
+                  </div>
+                </div>
 
-                      <VisualSelect
-                        label="Scene Type"
-                        value={formData.scene}
-                        onValueChange={(value) => handleInputChange("scene", value)}
-                        options={productScenes}
-                      />
+                {/* Settings Panel */}
+                <Card className="lg:col-span-1">
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Settings className="h-5 w-5" />
+                      <span>Settings</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {getCurrentModeSettings()}
 
-                      <VisualSelect
-                        label="Visual Style"
-                        value={formData.style}
-                        onValueChange={(value) => handleInputChange("style", value)}
-                        options={productStyles}
-                      />
+                    <Separator className="my-6" />
+
+                    {/* Common Settings */}
+                    {selectedMode !== "recolor" && <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Custom Instructions</Label>
+                        <Textarea
+                          placeholder="Describe specific requirements..."
+                          value={formData.prompt}
+                          onChange={(e) => handleInputChange("prompt", e.target.value)}
+                          className="min-h-[80px]"
+                        />
+                      </div>
 
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="lighting-slider">Lighting Intensity</Label>
-                          <span className="text-sm text-slate-500">{formData.lightingIntensity}%</span>
-                        </div>
-                        <Slider
-                          id="lighting-slider"
-                          min={0}
-                          max={100}
-                          step={1}
-                          value={[formData.lightingIntensity]}
-                          onValueChange={(value) => handleInputChange("lightingIntensity", value[0])}
-                          className="py-2"
-                        />
+                        <Label>Number of Variants</Label>
+                        <Select
+                          value={formData.numberOfVariants.toString()}
+                          onValueChange={(value) => handleInputChange("numberOfVariants", parseInt(value))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">1 variant</SelectItem>
+                            <SelectItem value="2">2 variants</SelectItem>
+                            <SelectItem value="3">3 variants</SelectItem>
+                            <SelectItem value="4">4 variants</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="shadow-slider">Shadow Intensity</Label>
-                          <span className="text-sm text-slate-500">{formData.shadowIntensity}%</span>
-                        </div>
-                        <Slider
-                          id="shadow-slider"
-                          min={0}
-                          max={100}
-                          step={1}
-                          value={[formData.shadowIntensity]}
-                          onValueChange={(value) => handleInputChange("shadowIntensity", value[0])}
-                          className="py-2"
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <Label htmlFor="preserve-colors" className="text-sm font-medium cursor-pointer">
-                            Preserve Original Colors
-                          </Label>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            Keep the original product colors intact
-                          </p>
-                        </div>
-                        <Switch
-                          id="preserve-colors"
-                          checked={formData.preserveColors}
-                          onCheckedChange={(checked) => handleInputChange("preserveColors", checked)}
-                          className="data-[state=checked]:bg-purple-600"
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <Label htmlFor="enhance-details" className="text-sm font-medium cursor-pointer">
-                            Enhance Product Details
-                          </Label>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">Improve texture and fine details</p>
-                        </div>
-                        <Switch
-                          id="enhance-details"
-                          checked={formData.enhanceDetails}
-                          onCheckedChange={(checked) => handleInputChange("enhanceDetails", checked)}
-                          className="data-[state=checked]:bg-purple-600"
-                        />
-                      </div>
-                    </div>
+                    </div>}
                   </CardContent>
                 </Card>
 
-                <div className="flex flex-col gap-6">
-                  <Card>
-                    <CardContent className="p-6">
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="prompt">Custom Instructions</Label>
-                          <Textarea
-                            id="prompt"
-                            placeholder="Describe how you want your product to look..."
-                            value={formData.prompt}
-                            onChange={(e) => handleInputChange("prompt", e.target.value)}
-                            className="min-h-[100px] resize-none"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="negativePrompt">Elements to Avoid</Label>
-                          <Textarea
-                            id="negativePrompt"
-                            placeholder="Describe elements to avoid in the generation..."
-                            value={formData.negativePrompt}
-                            onChange={(e) => handleInputChange("negativePrompt", e.target.value)}
-                            className="min-h-[100px] resize-none"
-                          />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardContent className="p-6">
-                      <h3 className="text-lg font-medium mb-4">Your Product Image</h3>
+                {/* Preview Panel */}
+                <Card className="lg:col-span-1">
+                  <CardHeader>
+                    <CardTitle>Preview</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
                       <div className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
                         <img
-                          src={uploadedImage || "/placeholder.svg"}
-                          alt="Uploaded product"
+                          src={uploadedImage}
+                          alt="Product preview"
                           className="w-full h-auto object-contain"
                         />
-                        <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center opacity-0 hover:opacity-100">
-                          <Button variant="secondary" size="icon" onClick={handleReset} className="mr-2">
-                            <Trash2 className="h-5 w-5" />
-                          </Button>
-                        </div>
                       </div>
 
                       <Button
                         onClick={handleGenerate}
-                        className="w-full mt-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                        className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
                         size="lg"
                       >
                         <Sparkles className="mr-2 h-4 w-4" />
-                        Transform Product
+                        Generate {formData.numberOfVariants} Variant{formData.numberOfVariants > 1 ? 's' : ''}
                       </Button>
-                    </CardContent>
-                  </Card>
-                </div>
+
+                      <Button
+                        onClick={handleReset}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Start Over
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               </motion.div>
             )}
           </TabsContent>
 
-          <TabsContent value="result" className="space-y-4">
+          {/* Result Tab */}
+          <TabsContent value="result" className="space-y-6">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5 }}
-              className="flex flex-col items-center justify-center"
+              className="w-full"
             >
-              <Card className="w-full max-w-2xl mx-auto overflow-hidden">
-                <CardContent className="p-6">
-                  {isGenerating ? (
-                    <div className="flex flex-col items-center justify-center min-h-[500px]">
-                      <Loader2 className="h-16 w-16 text-purple-600 animate-spin mb-4" />
-                      <p className="text-lg text-center text-slate-600 dark:text-slate-400">
-                        Transforming your product...
-                      </p>
-                      <p className="text-sm text-center text-slate-500 dark:text-slate-500 mt-2 max-w-md">
-                        Creating a {formData.style} style image with {formData.scene} setting for your{" "}
-                        {formData.category} product
-                      </p>
+              {isGenerating ? (
+                <Card className="w-full max-w-2xl mx-auto">
+                  <CardContent className="p-8">
+                    <div className="flex flex-col items-center justify-center min-h-[400px] space-y-6">
+                      <div className="relative">
+                        <Loader2 className="h-16 w-16 text-purple-600 animate-spin" />
+                        <div className="absolute inset-0 rounded-full bg-purple-600/20 animate-ping" />
+                      </div>
+                      <div className="text-center space-y-2">
+                        <p className="text-xl font-semibold text-slate-900 dark:text-white">
+                          AI is working its magic...
+                        </p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 max-w-md">
+                          Creating {formData.numberOfVariants} {selectedMode} variant{formData.numberOfVariants > 1 ? 's' : ''}
+                          with {formData.style} style
+                        </p>
+                      </div>
+                      <div className="flex space-x-2">
+                        {Array.from({ length: 4 }).map((_, i) => (
+                          <div
+                            key={i}
+                            className="w-2 h-2 bg-purple-600 rounded-full animate-bounce"
+                            style={{ animationDelay: `${i * 0.1}s` }}
+                          />
+                        ))}
+                      </div>
                     </div>
-                  ) : generatedImage ? (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
+                  </CardContent>
+                </Card>
+              ) : generatedImages.length > 0 ? (
+                <div className="space-y-6">
+                  {/* Image Comparison */}
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                          <p className="text-sm text-center mb-2 font-medium text-slate-500 dark:text-slate-400">
+                          <p className="text-sm font-medium text-center mb-3 text-slate-600 dark:text-slate-400">
                             Original
                           </p>
                           <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
                             <img
-                              src={uploadedImage || "/placeholder.svg"}
-                              alt="Original product"
+                              src={uploadedImage || ""}
+                              alt="Original"
                               className="w-full h-auto object-contain"
                             />
                           </div>
                         </div>
                         <div>
-                          <p className="text-sm text-center mb-2 font-medium text-slate-500 dark:text-slate-400">
-                            Transformed
+                          <p className="text-sm font-medium text-center mb-3 text-slate-600 dark:text-slate-400">
+                            AI Enhanced
                           </p>
-                          <div className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                          <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
                             <img
-                              src={generatedImage || "/placeholder.svg"}
-                              alt="Transformed product"
+                              src={generatedImages[selectedImageIndex]}
+                              alt="Enhanced"
                               className="w-full h-auto object-contain"
                             />
-                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center opacity-0 hover:opacity-100">
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button variant="secondary" size="icon" className="mr-2">
-                                      <Download className="h-5 w-5" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Download image</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Variants Grid */}
+                  {generatedImages.length > 1 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>All Variants</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          {generatedImages.map((image, index) => (
+                            <div
+                              key={index}
+                              className={cn(
+                                "relative rounded-lg overflow-hidden border-2 cursor-pointer transition-all",
+                                selectedImageIndex === index
+                                  ? "border-purple-500 ring-2 ring-purple-200"
+                                  : "border-slate-200 hover:border-purple-300"
+                              )}
+                              onClick={() => setSelectedImageIndex(index)}
+                            >
+                              <img
+                                src={image}
+                                alt={`Variant ${index + 1}`}
+                                className="w-full h-auto object-contain"
+                              />
+                              <div className="absolute top-2 left-2">
+                                <Badge variant="secondary" className="text-xs">
+                                  {index + 1}
+                                </Badge>
+                              </div>
                             </div>
-                          </div>
+                          ))}
                         </div>
-                      </div>
-
-                      <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg">
-                        <h3 className="font-medium text-sm mb-2">Transformation Details</h3>
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                          <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">Category:</span>
-                            <span className="font-medium">
-                              {productCategories.find((c) => c.value === formData.category)?.label}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">Scene:</span>
-                            <span className="font-medium">
-                              {productScenes.find((s) => s.value === formData.scene)?.label}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">Style:</span>
-                            <span className="font-medium">
-                              {productStyles.find((s) => s.value === formData.style)?.label}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">Lighting:</span>
-                            <span className="font-medium">{formData.lightingIntensity}%</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">Shadows:</span>
-                            <span className="font-medium">{formData.shadowIntensity}%</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">Enhanced Details:</span>
-                            <span className="font-medium">{formData.enhanceDetails ? "Yes" : "No"}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex space-x-4">
-                        <Button onClick={() => setActiveTab("customize")} variant="outline" className="flex-1">
-                          Modify Settings
-                        </Button>
-                        <Button
-                          onClick={handleGenerate}
-                          className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-                        >
-                          <Sparkles className="mr-2 h-4 w-4" />
-                          Generate New Variation
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center min-h-[500px]">
-                      <p className="text-lg text-center text-slate-600 dark:text-slate-400">
-                        Upload and customize your product to see the transformation
-                      </p>
-                      <Button onClick={() => setActiveTab("upload")} variant="outline" className="mt-4">
-                        Go to Upload
-                      </Button>
-                    </div>
+                      </CardContent>
+                    </Card>
                   )}
-                </CardContent>
-              </Card>
+
+                  {/* Actions */}
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <Button
+                      onClick={() => setActiveTab("edit")}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      <Settings className="mr-2 h-4 w-4" />
+                      Adjust Settings
+                    </Button>
+                    <Button
+                      onClick={handleGenerate}
+                      className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Generate New Variants
+                    </Button>
+                    <Button
+                      className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download Selected
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
             </motion.div>
           </TabsContent>
         </Tabs>
-
-        {/* Additional Examples Section */}
-        <section className="mt-16">
-          <h2 className="text-2xl font-bold mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
-            More Transformation Examples
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <ExampleCard
-              title="Home Decor"
-              description="Transform basic product shots into styled room settings that showcase your products in context."
-              before="https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=300&width=300"
-              after="https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=300&width=300"
-            />
-            <ExampleCard
-              title="Beauty Products"
-              description="Create elegant, high-end product photography with luxurious backgrounds and perfect lighting."
-              before="https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=300&width=300"
-              after="https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=300&width=300"
-            />
-            <ExampleCard
-              title="Food & Beverage"
-              description="Generate appetizing product shots with perfect styling and complementary backgrounds."
-              before="https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=300&width=300"
-              after="https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=300&width=300"
-            />
-          </div>
-        </section>
-
-        {/* How It Works Section */}
-        <section className="mt-16 mb-8">
-          <h2 className="text-2xl font-bold mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
-            How It Works
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="border-0 shadow-md">
-              <CardContent className="p-6 text-center">
-                <div className="rounded-full bg-purple-100 dark:bg-purple-900/30 p-4 mx-auto w-16 h-16 flex items-center justify-center mb-4">
-                  <Upload className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-                </div>
-                <h3 className="text-lg font-bold mb-2">1. Upload Your Product</h3>
-                <p className="text-slate-600 dark:text-slate-400 text-sm">
-                  Upload a high-quality image of your product. For best results, use images with clear lighting and
-                  minimal background distractions.
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="border-0 shadow-md">
-              <CardContent className="p-6 text-center">
-                <div className="rounded-full bg-purple-100 dark:bg-purple-900/30 p-4 mx-auto w-16 h-16 flex items-center justify-center mb-4">
-                  <ImagePlus className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-                </div>
-                <h3 className="text-lg font-bold mb-2">2. Customize Settings</h3>
-                <p className="text-slate-600 dark:text-slate-400 text-sm">
-                  Choose your desired scene, style, and adjust parameters like lighting and shadows. Add custom
-                  instructions to get exactly the look you want.
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="border-0 shadow-md">
-              <CardContent className="p-6 text-center">
-                <div className="rounded-full bg-purple-100 dark:bg-purple-900/30 p-4 mx-auto w-16 h-16 flex items-center justify-center mb-4">
-                  <Sparkles className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-                </div>
-                <h3 className="text-lg font-bold mb-2">3. Generate & Download</h3>
-                <p className="text-slate-600 dark:text-slate-400 text-sm">
-                  Our AI transforms your product image according to your specifications. Download the result or generate
-                  new variations until you're satisfied.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
       </div>
     </div>
   )
