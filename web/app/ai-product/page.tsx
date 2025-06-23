@@ -24,16 +24,35 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
+import { ImageInfo } from "@/lib/uploader/components/ImageUploader"
+import ImageUploader from "@/lib/uploader/components/ImageUploader"
+import { useAppBridge } from "@shopify/app-bridge-react"
+import { WebSocketClient } from "@/socket"
+import {
+  TaskProgress,
+  TaskStatus,
+  TaskType,
+  NewTask,
+  ProductImageEditTaskInput,
+  ProductImageEditingType,
+  ImageSourceType,
+  StyleType,
+  SceneType,
+  VariantType,
+  ProductImageEditTaskResultData
+} from "@/lib/api/type"
+import { createProductImageEditTask } from "@/lib/api/product-image-editing"
+import EnhancedImage from "@/components/ui/EnhanchedImage"
 
 // Enhanced product editing modes
 const editingModes = [
   {
-    id: "background",
-    title: "Smart Background",
-    description: "Replace or enhance product backgrounds with AI-generated scenes",
-    icon: Camera,
-    color: "from-blue-500 to-cyan-500",
-    features: ["Background removal", "Scene generation", "Lighting adjustment", "Shadow matching"]
+    id: "scene",
+    title: "Scene Generation",
+    description: "Replace backgrounds and place products in realistic lifestyle and commercial settings",
+    icon: Move3D,
+    color: "from-indigo-500 to-purple-500",
+    features: ["Background removal", "Scene generation", "Lifestyle scenes", "Commercial settings", "Lighting adjustment", "Shadow matching"]
   },
   {
     id: "recolor",
@@ -43,14 +62,14 @@ const editingModes = [
     color: "from-purple-500 to-pink-500",
     features: ["Color replacement", "Texture preservation", "Multiple variants", "Brand matching"]
   },
-  {
-    id: "style",
-    title: "Style Transfer",
-    description: "Apply artistic styles and visual effects to your products",
-    icon: Brush,
-    color: "from-orange-500 to-red-500",
-    features: ["Artistic filters", "Mood enhancement", "Brand styling", "Creative effects"]
-  },
+  // {
+  //   id: "style",
+  //   title: "Style Transfer",
+  //   description: "Apply artistic styles and visual effects to your products",
+  //   icon: Brush,
+  //   color: "from-orange-500 to-red-500",
+  //   features: ["Artistic filters", "Mood enhancement", "Brand styling", "Creative effects"]
+  // },
   // {
   //   id: "enhance",
   //   title: "Product Enhancement",
@@ -59,14 +78,6 @@ const editingModes = [
   //   color: "from-green-500 to-emerald-500",
   //   features: ["Detail enhancement", "Lighting optimization", "Quality upscaling", "Professional polish"]
   // },
-  {
-    id: "scene",
-    title: "Scene Generation",
-    description: "Place products in realistic lifestyle and commercial settings",
-    icon: Move3D,
-    color: "from-indigo-500 to-purple-500",
-    features: ["Lifestyle scenes", "Commercial settings", "Context generation", "Brand environments"]
-  },
   {
     id: "variants",
     title: "Product Variants",
@@ -373,121 +384,231 @@ function CustomColorInput({ selectedColor, onColorSelect }: CustomColorInputProp
 
 export default function AIProductPage() {
   const [activeTab, setActiveTab] = useState("upload")
-  const [selectedMode, setSelectedMode] = useState("background")
+  const [selectedMode, setSelectedMode] = useState("scene")
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
+  const [uploadedImageInfo, setUploadedImageInfo] = useState<ImageInfo | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedImages, setGeneratedImages] = useState<string[]>([])
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+  const [taskProgress, setTaskProgress] = useState<TaskProgress<ProductImageEditTaskResultData> | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const appBridge = useAppBridge()
 
   const [formData, setFormData] = useState({
-    // Background settings
+    // Smart Background settings
+    backgroundPrompt: "",
+    preserveLighting: true,
+    matchShadows: true,
+    enhanceQuality: true,
+    backgroundStyle: "studio_minimal",
+    lightingAdjustment: "natural",
+
+    // Style Transfer settings  
+    styleType: StyleType.ARTISTIC,
+    stylePrompt: "",
+    styleReferenceImageUrl: "",
+    intensity: 0.7,
+    preserveDetails: true,
+    brandGuidelines: "",
+
+    // Scene Generation settings
+    sceneType: SceneType.LIFESTYLE,
+    scenePrompt: "",
+    contextDescription: "",
+    lifestyleSettings: "",
+    brandEnvironment: "",
+    lightingConditions: "natural",
+    targetAudience: "",
+
+    // Product Variants settings
+    variantType: VariantType.SIZE,
+    variantPrompt: "",
+    numberOfVariants: 1,
+    sizeVariations: ["small", "medium", "large"],
+    configurationOptions: [],
+    angleVariations: ["front", "side", "back"],
+    colorVariations: ["#FF6B6B"],
+    materialVariations: [],
+
+    // Recolor settings
+    itemsToRecolor: "",
+
+    // Legacy settings for compatibility  
     scene: "studio_minimal",
     style: "photorealistic",
-    preserveProduct: true,
-    enhanceLighting: true,
-    lightingIntensity: 70,
-    shadowIntensity: 40,
-
-    // Recoloring settings
     selectedColor: "#FF6B6B",
-    colorIntensity: 80,
-    preserveTexture: true,
-
-    // Style settings
-    styleIntensity: 60,
-    artisticEffect: "none",
-
-    // Enhancement settings
-    detailEnhancement: 70,
-    contrastBoost: 50,
-    saturationAdjust: 60,
-
-    // General settings
     prompt: "",
-    negativePrompt: "distorted, blurry, low quality, artifacts",
-    numberOfVariants: 1,
-    aspectRatio: "1:1",
-    outputQuality: "high"
   })
 
   const handleInputChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        setUploadedImage(event.target?.result as string)
-        setActiveTab("edit")
-      }
-      reader.readAsDataURL(file)
-    }
-  }
+
 
   const handleGenerate = async () => {
-    if (!uploadedImage) return
+    if (!uploadedImageInfo) return
 
     setIsGenerating(true)
     setActiveTab("result")
+    setGeneratedImages([])
+    setTaskProgress({
+      status: TaskStatus.PENDING,
+      progress: 0,
+    })
 
-    // Simulate AI generation delay
-    await new Promise((resolve) => setTimeout(resolve, 4000))
+    try {
+      const sessionToken = await appBridge.idToken()
 
-    // Generate multiple variants based on settings
-    const variants = Array.from({ length: formData.numberOfVariants }, (_, i) =>
-      `https://picsum.photos/800/800?random=${Date.now() + i}`
-    )
+      // Map the selected mode to the processing type
+      const processingTypeMap: Record<string, ProductImageEditingType> = {
+        scene: ProductImageEditingType.SCENE_GENERATION,
+        style: ProductImageEditingType.STYLE_TRANSFER,
+        variants: ProductImageEditingType.PRODUCT_VARIANTS,
+        recolor: ProductImageEditingType.PRODUCT_COLOR_VARIANTS,
+      }
 
-    setGeneratedImages(variants)
-    setSelectedImageIndex(0)
-    setIsGenerating(false)
+      const taskInput: ProductImageEditTaskInput = {
+        sourceImageUrl: uploadedImageInfo.uploadLocation,
+        imageSourceType: ImageSourceType.URL,
+        processingType: processingTypeMap[selectedMode],
+
+        // Scene Generation fields (merged from Smart Background and Scene Generation)
+        ...(selectedMode === "scene" && {
+          // Background/Scene prompt and settings
+          backgroundPrompt: formData.prompt,
+          scenePrompt: formData.prompt,
+
+          // Background enhancement settings
+          preserveLighting: formData.preserveLighting,
+          matchShadows: formData.matchShadows,
+          enhanceQuality: formData.enhanceQuality,
+          backgroundStyle: formData.backgroundStyle,
+          lightingAdjustment: formData.lightingAdjustment,
+
+          // Scene generation settings
+          sceneType: formData.sceneType,
+          contextDescription: formData.contextDescription,
+          lifestyleSettings: formData.lifestyleSettings,
+          brandEnvironment: formData.brandEnvironment,
+          lightingConditions: formData.lightingConditions,
+          targetAudience: formData.targetAudience,
+        }),
+
+        // Style Transfer fields
+        ...(selectedMode === "style" && {
+          styleType: formData.styleType,
+          stylePrompt: formData.prompt,
+          intensity: formData.intensity,
+          preserveDetails: formData.preserveDetails,
+          brandGuidelines: formData.brandGuidelines,
+        }),
+
+        // Product Variants fields
+        ...(selectedMode === "variants" && {
+          variantType: formData.variantType,
+          variantPrompt: formData.prompt,
+          numberOfVariants: formData.numberOfVariants,
+          sizeVariations: formData.sizeVariations,
+          configurationOptions: formData.configurationOptions,
+          angleVariations: formData.angleVariations,
+          colorVariations: formData.colorVariations,
+          materialVariations: formData.materialVariations,
+        }),
+
+        // Recolor fields
+        ...(selectedMode === "recolor" && {
+          prompt: formData.prompt,
+          itemsToRecolor: formData.itemsToRecolor,
+          color: formData.selectedColor.replace("#", ""),
+        }),
+      }
+
+      const newTask: NewTask<ProductImageEditTaskInput> = {
+        type: TaskType.PRODUCT_IMAGE_EDITING,
+        inputData: taskInput,
+      }
+
+      const response = await createProductImageEditTask(sessionToken, newTask)
+      const task = response.data.data
+
+      if (!task) {
+        console.error("No task data returned")
+        setIsGenerating(false)
+        return
+      }
+
+      // Listen for WebSocket updates
+      const websocket = new WebSocketClient(task.userId)
+      websocket.on<TaskProgress<ProductImageEditTaskResultData>>("task-progress", (data) => {
+        console.log("WebSocket data received:", data)
+        setTaskProgress(data)
+
+        if (data.status === TaskStatus.SUCCEEDED) {
+          setIsGenerating(false)
+
+          if (data.resultData?.outputImageUrl) {
+            const images = Array.isArray(data.resultData.outputImageUrl)
+              ? data.resultData.outputImageUrl
+              : [data.resultData.outputImageUrl]
+            setGeneratedImages(images)
+            setSelectedImageIndex(0)
+          }
+        }
+
+        if (data.status === TaskStatus.FAILED) {
+          setIsGenerating(false)
+          console.error("Task failed:", data)
+        }
+      })
+
+    } catch (error) {
+      console.error("Error generating image:", error)
+      setIsGenerating(false)
+    }
   }
 
   const handleReset = () => {
     setUploadedImage(null)
+    setUploadedImageInfo(null)
     setGeneratedImages([])
     setSelectedImageIndex(0)
+    setTaskProgress(null)
     setActiveTab("upload")
+  }
+
+  const handleImageUploaded = (imageInfo: ImageInfo) => {
+    setUploadedImageInfo(imageInfo)
+    setUploadedImage(imageInfo.previewImageUrl)
+    setActiveTab("edit")
   }
 
   const getCurrentModeSettings = () => {
     switch (selectedMode) {
-      case "background":
+      case "scene":
         return (
           <div className="space-y-6">
+
             <div className="space-y-4">
-              <Label className="text-base font-semibold">Scene Selection</Label>
-              <div className="grid grid-cols-2 gap-3">
-                {backgroundScenes.map((scene) => (
-                  <div
-                    key={scene.value}
-                    className={cn(
-                      "relative overflow-hidden rounded-lg border-2 cursor-pointer transition-all",
-                      formData.scene === scene.value
-                        ? "border-purple-500 ring-2 ring-purple-200"
-                        : "border-slate-200 hover:border-purple-300"
-                    )}
-                    onClick={() => handleInputChange("scene", scene.value)}
-                  >
-                    <img
-                      src={scene.image}
-                      alt={scene.label}
-                      className="w-full h-20 object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black bg-opacity-40 flex items-end">
-                      <div className="p-2 text-white">
-                        <p className="text-xs font-medium">{scene.label}</p>
-                        <Badge variant="secondary" className="text-xs mt-1">
-                          {scene.mood}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {/* <div className="space-y-2">
+                <Label>Lighting Conditions</Label>
+                <Select
+                  value={formData.lightingConditions}
+                  onValueChange={(value) => handleInputChange("lightingConditions", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="natural">Natural Light</SelectItem>
+                    <SelectItem value="studio">Studio Lighting</SelectItem>
+                    <SelectItem value="dramatic">Dramatic</SelectItem>
+                    <SelectItem value="soft">Soft Diffused</SelectItem>
+                    <SelectItem value="warm">Warm Ambient</SelectItem>
+                    <SelectItem value="cool">Cool Professional</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div> */}
             </div>
 
           </div>
@@ -495,79 +616,131 @@ export default function AIProductPage() {
 
       case "recolor":
         return (
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <Label className="text-base font-semibold">Color Palettes</Label>
-              {colorPalettes.map((palette) => (
-                <ColorPalette
-                  key={palette.name}
-                  palette={palette}
+          <div className="space-y-6 mt-4">
+            <Tabs defaultValue="precise" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="precise" className="text-sm">
+                  Precise Recolor
+                </TabsTrigger>
+                <TabsTrigger value="creative" className="text-sm">
+                  Creative Recolor
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="precise" className="space-y-4 mt-4">
+                <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg">
+                  <div className="flex items-start space-x-2">
+                    <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                        100% Accurate Color Replacement
+                      </p>
+                      <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">
+                        Precise recolor items using advanced algorithms
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="font-semibold">Items to Recolor</Label>
+                    <Textarea
+                      placeholder="e.g., shirt sleeves, collar, buttons, logo, fabric pattern"
+                      value={formData.itemsToRecolor}
+                      onChange={(e) => handleInputChange("itemsToRecolor", e.target.value)}
+                      className="min-h-[60px]"
+                    />
+                    <p className="text-xs text-slate-500">
+                      Specify which parts of the product you want to recolor. Separate multiple items with commas.
+                    </p>
+                  </div>
+
+                </div>
+
+                <div className="space-y-4">
+                  <Label className="text-base font-semibold">Color Palettes</Label>
+                  {colorPalettes.map((palette) => (
+                    <ColorPalette
+                      key={palette.name}
+                      palette={palette}
+                      selectedColor={formData.selectedColor}
+                      onColorSelect={(color) => handleInputChange("selectedColor", color)}
+                    />
+                  ))}
+                </div>
+
+                <Separator className="my-4" />
+
+                {/* Custom Color Input */}
+                <CustomColorInput
                   selectedColor={formData.selectedColor}
                   onColorSelect={(color) => handleInputChange("selectedColor", color)}
                 />
-              ))}
-            </div>
 
-            <Separator className="my-4" />
+              </TabsContent>
 
-            {/* Custom Color Input */}
-            <CustomColorInput
-              selectedColor={formData.selectedColor}
-              onColorSelect={(color) => handleInputChange("selectedColor", color)}
-            />
+              <TabsContent value="creative" className="space-y-4 mt-4">
+                <div className="bg-purple-50 dark:bg-purple-950/30 p-4 rounded-lg">
+                  <div className="flex items-start space-x-2">
+                    <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-purple-800 dark:text-purple-300">
+                        AI-Powered Creative Recoloring
+                      </p>
+                      <p className="text-xs text-purple-700 dark:text-purple-400 mt-1">
+                        Creative color transformations with multiple colors and effects
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label>Color Intensity</Label>
-                <span className="text-sm text-slate-500">{formData.colorIntensity}%</span>
-              </div>
-              <Slider
-                value={[formData.colorIntensity]}
-                onValueChange={(value) => handleInputChange("colorIntensity", value[0])}
-                max={100}
-                step={1}
-                className="py-2"
-              />
-            </div>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Color Instructions</Label>
+                    <Textarea
+                      placeholder="e.g., 'Make it bright red with gold accents' or 'Change to gradient from blue to green'"
+                      value={formData.prompt}
+                      onChange={(e) => {
+                        handleInputChange("itemsToRecolor", "")
+                        handleInputChange("prompt", e.target.value)
+                      }}
+                      className="min-h-[80px]"
+                    />
+                  </div>
 
+                  <div className="space-y-4">
+                    <Label className="text-sm font-medium">Quick Color Suggestions</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        "Vibrant rainbow gradient",
+                        "Metallic gold finish",
+                        "Matte black with highlights",
+                        "Pastel color palette",
+                        "Neon glow effect",
+                        "Vintage faded colors"
+                      ].map((suggestion) => (
+                        <Button
+                          key={suggestion}
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-8 justify-start"
+                          onClick={() => handleInputChange("prompt", suggestion)}
+                        >
+                          {suggestion}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         )
 
       case "style":
-        return (
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <Label className="text-base font-semibold">Style Presets</Label>
-              <div className="grid grid-cols-2 gap-3">
-                {stylePresets.map((style) => (
-                  <div
-                    key={style.value}
-                    className={cn(
-                      "relative overflow-hidden rounded-lg border-2 cursor-pointer transition-all",
-                      formData.style === style.value
-                        ? "border-purple-500 ring-2 ring-purple-200"
-                        : "border-slate-200 hover:border-purple-300"
-                    )}
-                    onClick={() => handleInputChange("style", style.value)}
-                  >
-                    <img
-                      src={style.image}
-                      alt={style.label}
-                      className="w-full h-16 object-cover"
-                    />
-                    <div className="p-2">
-                      <p className="text-sm font-medium">{style.label}</p>
-                      <Badge variant="outline" className="text-xs mt-1">
-                        {style.intensity}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-          </div>
-        )
+        return <></>
 
       default:
         return <></>
@@ -600,11 +773,11 @@ export default function AIProductPage() {
               <Upload className="h-4 w-4 mr-2" />
               Upload
             </TabsTrigger>
-            <TabsTrigger value="edit" disabled={!uploadedImage || isGenerating}>
+            <TabsTrigger value="edit" disabled={!uploadedImageInfo || isGenerating}>
               <Settings className="h-4 w-4 mr-2" />
               Edit
             </TabsTrigger>
-            <TabsTrigger value="result" disabled={!uploadedImage || (!generatedImages.length && !isGenerating)}>
+            <TabsTrigger value="result" disabled={!uploadedImageInfo || (!generatedImages.length && !isGenerating)}>
               <Eye className="h-4 w-4 mr-2" />
               Result
             </TabsTrigger>
@@ -621,31 +794,7 @@ export default function AIProductPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div
-                    className="border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-xl p-8 text-center hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors cursor-pointer group"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                    />
-                    <div className="flex flex-col items-center justify-center space-y-4">
-                      <div className="rounded-full bg-gradient-to-br from-purple-500 to-pink-500 p-4 group-hover:scale-110 transition-transform">
-                        <Upload className="h-8 w-8 text-white" />
-                      </div>
-                      <div>
-                        <p className="text-lg font-medium text-slate-900 dark:text-white">
-                          Drop your product image here
-                        </p>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                          or click to browse • PNG, JPG, WEBP (max 10MB)
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                  <ImageUploader onUploaded={handleImageUploaded} />
 
                   <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 p-6 rounded-xl">
                     <div className="flex items-start space-x-3">
@@ -687,7 +836,7 @@ export default function AIProductPage() {
 
           {/* Edit Tab */}
           <TabsContent value="edit" className="space-y-6">
-            {uploadedImage && (
+            {uploadedImageInfo && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -710,17 +859,10 @@ export default function AIProductPage() {
 
                 {/* Settings Panel */}
                 <Card className="lg:col-span-1">
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <Settings className="h-5 w-5" />
-                      <span>Settings</span>
-                    </CardTitle>
-                  </CardHeader>
+
                   <CardContent>
                     {getCurrentModeSettings()}
-
-                    <Separator className="my-6" />
-
+                    <br />
                     {/* Common Settings */}
                     {selectedMode !== "recolor" && <div className="space-y-4">
                       <div className="space-y-2">
@@ -763,7 +905,7 @@ export default function AIProductPage() {
                     <div className="space-y-4">
                       <div className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
                         <img
-                          src={uploadedImage}
+                          src={uploadedImage || ""}
                           alt="Product preview"
                           className="w-full h-auto object-contain"
                         />
@@ -813,8 +955,12 @@ export default function AIProductPage() {
                           AI is working its magic...
                         </p>
                         <p className="text-sm text-slate-600 dark:text-slate-400 max-w-md">
-                          Creating {formData.numberOfVariants} {selectedMode} variant{formData.numberOfVariants > 1 ? 's' : ''}
-                          with {formData.style} style
+                          Creating {formData.numberOfVariants} {selectedMode === 'scene' ? 'scene generation' : selectedMode} variant{formData.numberOfVariants > 1 ? 's' : ''}
+                          {taskProgress?.status && (
+                            <span className="block mt-1">
+                              Status: {taskProgress.status.toLowerCase()}
+                            </span>
+                          )}
                         </p>
                       </div>
                       <div className="flex space-x-2">
@@ -852,9 +998,11 @@ export default function AIProductPage() {
                             AI Enhanced
                           </p>
                           <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                            <img
+                            <EnhancedImage
                               src={generatedImages[selectedImageIndex]}
                               alt="Enhanced"
+                              height={500}
+                              width={400}
                               className="w-full h-auto object-contain"
                             />
                           </div>
@@ -882,8 +1030,10 @@ export default function AIProductPage() {
                               )}
                               onClick={() => setSelectedImageIndex(index)}
                             >
-                              <img
+                              <EnhancedImage
                                 src={image}
+                                height={500}
+                                width={400}
                                 alt={`Variant ${index + 1}`}
                                 className="w-full h-auto object-contain"
                               />

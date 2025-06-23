@@ -188,3 +188,6 @@ how to set up Prisma, see the
 
 https://youtu.be/yke3_p9jN58
 https://github.com/Phantom-video/Phantom
+https://youtu.be/XoBpd0toZMk
+loraedit - video editor
+Ads generator bytedance - interacthuman

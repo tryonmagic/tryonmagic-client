@@ -74,6 +74,7 @@ export enum TaskType {
   ENHANCE = "ENHANCE",
   EXPAND_IMAGE = "EXPAND_IMAGE",
   EDIT_IMAGE = "EDIT_IMAGE",
+  PRODUCT_IMAGE_EDITING = "PRODUCT_IMAGE_EDITING",
 }
 
 export interface Task<T = unknown> {
@@ -204,4 +205,81 @@ export interface EditImageTaskInput {
     replaceFrom?: string | null;
     replaceTo: string;
   } | null;
+}
+
+// Product Image Editing Types
+export enum ProductImageEditingType {
+  SMART_BACKGROUND = "SMART_BACKGROUND",
+  STYLE_TRANSFER = "STYLE_TRANSFER", 
+  SCENE_GENERATION = "SCENE_GENERATION",
+  PRODUCT_VARIANTS = "PRODUCT_VARIANTS",
+  PRODUCT_COLOR_VARIANTS = "PRODUCT_COLOR_VARIANTS",
+}
+
+export enum StyleType {
+  ARTISTIC = "ARTISTIC",
+  MOOD = "MOOD",
+  BRAND = "BRAND",
+  CREATIVE = "CREATIVE",
+}
+
+export enum SceneType {
+  LIFESTYLE = "LIFESTYLE",
+  COMMERCIAL = "COMMERCIAL",
+  CONTEXT = "CONTEXT",
+  BRAND_ENVIRONMENT = "BRAND_ENVIRONMENT",
+}
+
+export enum VariantType {
+  SIZE = "SIZE",
+  CONFIGURATION = "CONFIGURATION",
+  ANGLE = "ANGLE",
+  BATCH = "BATCH",
+}
+
+export interface ProductImageEditTaskInput {
+  // Common fields
+  sourceImageUrl: string;
+  imageSourceType: ImageSourceType;
+  processingType: ProductImageEditingType;
+  
+  // Smart Background fields
+  backgroundPrompt?: string | null;
+  preserveLighting?: boolean;
+  matchShadows?: boolean;
+  enhanceQuality?: boolean;
+  backgroundStyle?: string | null;
+  lightingAdjustment?: string | null;
+  
+  // Style Transfer fields
+  styleType?: StyleType | null;
+  stylePrompt?: string | null;
+  styleReferenceImageUrl?: string | null;
+  styleReferenceImageType?: ImageSourceType | null;
+  intensity?: number;
+  preserveDetails?: boolean;
+  brandGuidelines?: string | null;
+  
+  // Scene Generation fields
+  sceneType?: SceneType | null;
+  scenePrompt?: string | null;
+  contextDescription?: string | null;
+  lifestyleSettings?: string | null;
+  brandEnvironment?: string | null;
+  lightingConditions?: string | null;
+  targetAudience?: string | null;
+  
+  // Product Variants fields
+  variantType?: VariantType | null;
+  variantPrompt?: string | null;
+  numberOfVariants?: number;
+  sizeVariations?: string[] | null;
+  configurationOptions?: string[] | null;
+  angleVariations?: string[] | null;
+  colorVariations?: string[] | null;
+  materialVariations?: string[] | null;
+}
+
+export interface ProductImageEditTaskResultData {
+  outputImageUrl: string | string[];
 }
