@@ -16,7 +16,7 @@ type ResponseData = {
   url: string;
 };
 
-export async function GET(req: NextRequest): Promise<ResponseData> {
+export async function GET(req: NextRequest): Promise<Response> {
   try {
     verifyRequest(req, true);
     const searchParams = req.nextUrl.searchParams;

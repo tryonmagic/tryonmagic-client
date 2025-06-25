@@ -30,7 +30,7 @@ interface FilterSidebarProps {
 }
 
 export function FilterSidebar({ isOpen, onClose }: FilterSidebarProps) {
-  const { resetFilters } = useFilters()
+  const { resetAllFilters } = useFilters()
 
   return (
     <div
@@ -61,7 +61,7 @@ export function FilterSidebar({ isOpen, onClose }: FilterSidebarProps) {
       </div>
 
       <div className="p-4 border-t flex justify-between">
-        <Button variant="outline" onClick={resetFilters}>
+        <Button variant="outline" onClick={resetAllFilters}>
           Reset All
         </Button>
         <Button onClick={onClose}>Apply Filters</Button>

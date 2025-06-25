@@ -20,7 +20,7 @@ export function FilterChips() {
   const activeFilters: Array<{ category: FilterCategory; value: string }> = []
 
   Object.entries(filters).forEach(([category, values]) => {
-    values.forEach((value) => {
+    (values as string[]).forEach((value: string) => {
       activeFilters.push({
         category: category as FilterCategory,
         value,
