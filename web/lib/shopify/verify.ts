@@ -1,4 +1,3 @@
-import { storeSession } from "@/lib/db/session-storage";
 import shopify from "@/lib/shopify/initialize-context";
 import { RequestedTokenType, Session } from "@shopify/shopify-api";
 
@@ -86,9 +85,7 @@ export async function tokenExchange({
       : RequestedTokenType.OfflineAccessToken,
   });
   const { session } = response;
-  if (store) {
-    await storeSession(session);
-  }
+
   return session;
 }
 
