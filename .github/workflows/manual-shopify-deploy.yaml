@@ -60,25 +60,55 @@ jobs:
           HOST: ${{ vars.HOST }}
           SCOPES: ${{ vars.SCOPES }}
 
+      - name: Configure Shopify App for Deployment
+        run: |
+          # Create shopify app config if it doesn't exist
+          if [ ! -f "shopify.app.toml" ]; then
+            echo "Creating shopify.app.toml configuration..."
+            cat > shopify.app.toml << EOF
+          client_id = "${{ secrets.SHOPIFY_API_KEY }}"
+          application_url = "${{ vars.HOST }}"
+          embedded = true
+          
+          [build]
+          include_config_on_deploy = true
+          
+          [access_scopes]
+          scopes = "${{ vars.SCOPES }}"
+          EOF
+          fi
+
       - name: Deploy to Shopify (Force)
         if: ${{ inputs.force_deploy }}
-        run: shopify app deploy --force
+        run: |
+          export SHOPIFY_CLI_PARTNERS_TOKEN="${{ secrets.SHOPIFY_CLI_PARTNERS_TOKEN }}"
+          export SHOPIFY_API_KEY="${{ secrets.SHOPIFY_API_KEY }}"
+          export SHOPIFY_API_SECRET="${{ secrets.SHOPIFY_API_SECRET }}"
+          export CI=true
+          shopify app deploy --force --no-color
         env:
           SHOPIFY_CLI_PARTNERS_TOKEN: ${{ secrets.SHOPIFY_CLI_PARTNERS_TOKEN }}
           SHOPIFY_API_KEY: ${{ secrets.SHOPIFY_API_KEY }}
           SHOPIFY_API_SECRET: ${{ secrets.SHOPIFY_API_SECRET }}
           HOST: ${{ vars.HOST }}
           SCOPES: ${{ vars.SCOPES }}
+          CI: true
 
       - name: Deploy to Shopify (Interactive)
         if: ${{ !inputs.force_deploy }}
-        run: shopify app deploy
+        run: |
+          export SHOPIFY_CLI_PARTNERS_TOKEN="${{ secrets.SHOPIFY_CLI_PARTNERS_TOKEN }}"
+          export SHOPIFY_API_KEY="${{ secrets.SHOPIFY_API_KEY }}"
+          export SHOPIFY_API_SECRET="${{ secrets.SHOPIFY_API_SECRET }}"
+          export CI=true
+          shopify app deploy --no-color
         env:
           SHOPIFY_CLI_PARTNERS_TOKEN: ${{ secrets.SHOPIFY_CLI_PARTNERS_TOKEN }}
           SHOPIFY_API_KEY: ${{ secrets.SHOPIFY_API_KEY }}
           SHOPIFY_API_SECRET: ${{ secrets.SHOPIFY_API_SECRET }}
           HOST: ${{ vars.HOST }}
           SCOPES: ${{ vars.SCOPES }}
+          CI: true
 
       - name: Deploy Success Notification
         if: success()

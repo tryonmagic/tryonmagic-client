@@ -22,8 +22,8 @@ Add these secrets to your GitHub repository settings:
 | Secret Name | Description | Required |
 |-------------|-------------|----------|
 | `SHOPIFY_CLI_PARTNERS_TOKEN` | Partners API token for CLI authentication | ✅ |
-| `SHOPIFY_API_KEY` | Your app's API key | ✅ |
-| `SHOPIFY_API_SECRET` | Your app's API secret | ✅ |
+| `SHOPIFY_API_KEY` | Your app's API key (Client ID) | ✅ |
+| `SHOPIFY_API_SECRET` | Your app's API secret (Client Secret) | ✅ |
 
 ### GitHub Variables
 Add these variables to your GitHub repository settings:
@@ -85,6 +85,30 @@ Each environment should have its own set of variables and secrets.
 - 📦 Version information is logged
 
 ### Troubleshooting
+
+#### Common Issues:
+
+**1. Authentication Error: "Authorization is required to continue"**
+```
+Error: Authorization is required to continue, but the current environment does not support interactive prompts.
+```
+**Solution:**
+- Ensure `SHOPIFY_CLI_PARTNERS_TOKEN` is correctly set in GitHub secrets
+- Verify the token has the necessary permissions
+- Check that `SHOPIFY_API_KEY` and `SHOPIFY_API_SECRET` match your app's credentials
+
+**2. Missing Lock File Error**
+```
+Error: Dependencies lock file is not found. Supported file patterns: package-lock.json,npm-shrinkwrap.json,yarn.lock
+```
+**Solution:** This is already fixed in the updated workflows (uses pnpm cache)
+
+**3. Build Failures**
+- Check that all environment variables are set correctly
+- Verify the build process works locally with `pnpm run build`
+- Ensure all dependencies are properly installed
+
+**General Troubleshooting:**
 - Check GitHub Actions logs for detailed error messages
 - Verify all secrets and variables are correctly set
 - Ensure Shopify Partners token has necessary permissions

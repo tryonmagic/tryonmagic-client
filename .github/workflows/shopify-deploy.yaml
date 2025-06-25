@@ -52,14 +52,55 @@ jobs:
           HOST: ${{ vars.HOST }}
           SCOPES: ${{ vars.SCOPES }}
 
+      - name: Configure Shopify App for Deployment
+        run: |
+          # Verify environment variables
+          echo "Checking Shopify CLI environment..."
+          echo "SHOPIFY_API_KEY: ${SHOPIFY_API_KEY:0:8}..."
+          echo "HOST: $HOST"
+          echo "SCOPES: $SCOPES"
+          
+          # Create shopify app config if it doesn't exist
+          if [ ! -f "shopify.app.toml" ]; then
+            echo "Creating shopify.app.toml configuration..."
+            cat > shopify.app.toml << EOF
+          client_id = "${{ secrets.SHOPIFY_API_KEY }}"
+          application_url = "${{ vars.HOST }}"
+          embedded = true
+          
+          [build]
+          include_config_on_deploy = true
+          
+          [access_scopes]
+          scopes = "${{ vars.SCOPES }}"
+          EOF
+          fi
+          
+          # Display current config
+          echo "Current shopify.app.toml:"
+          cat shopify.app.toml
+        env:
+          SHOPIFY_API_KEY: ${{ secrets.SHOPIFY_API_KEY }}
+          HOST: ${{ vars.HOST }}
+          SCOPES: ${{ vars.SCOPES }}
+
       - name: Deploy to Shopify
-        run: shopify app deploy --force
+        run: |
+          # Set up environment for Shopify CLI
+          export SHOPIFY_CLI_PARTNERS_TOKEN="${{ secrets.SHOPIFY_CLI_PARTNERS_TOKEN }}"
+          export SHOPIFY_API_KEY="${{ secrets.SHOPIFY_API_KEY }}"
+          export SHOPIFY_API_SECRET="${{ secrets.SHOPIFY_API_SECRET }}"
+          export CI=true
+          
+          # Deploy the app
+          shopify app deploy --force --no-color
         env:
           SHOPIFY_CLI_PARTNERS_TOKEN: ${{ secrets.SHOPIFY_CLI_PARTNERS_TOKEN }}
           SHOPIFY_API_KEY: ${{ secrets.SHOPIFY_API_KEY }}
           SHOPIFY_API_SECRET: ${{ secrets.SHOPIFY_API_SECRET }}
           HOST: ${{ vars.HOST }}
           SCOPES: ${{ vars.SCOPES }}
+          CI: true
 
       - name: Deploy Success Notification
         if: success()
