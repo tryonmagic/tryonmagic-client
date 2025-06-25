@@ -52,8 +52,6 @@ COPY --from=base --chown=nextjs:nodejs /app/web/public ./web/public
 # Copy only production node_modules
 COPY --from=base --chown=nextjs:nodejs /app/node_modules ./node_modules
 
-# Copy Prisma files if needed
-COPY --from=base --chown=nextjs:nodejs /app/web/prisma ./web/prisma
 
 # Switch to non-root user
 USER nextjs
