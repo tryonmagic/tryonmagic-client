@@ -22,7 +22,7 @@ RUN cd web && pnpm prisma generate
 # Copy source code (excluding node_modules and build artifacts)
 COPY . .
 
-# Set build arguments for environment variables
+# Set build arguments for environment variables (only what's needed during build)
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_S3_DOMAIN
 ARG NEXT_PUBLIC_IMAGE_PROXY_URL
@@ -38,7 +38,7 @@ ARG S3_REGION
 ARG S3_BUCKET
 ARG S3_ENDPOINT
 
-# Set environment variables for build
+# Set environment variables for build (only what's needed during build)
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_S3_DOMAIN=$NEXT_PUBLIC_S3_DOMAIN
 ENV NEXT_PUBLIC_IMAGE_PROXY_URL=$NEXT_PUBLIC_IMAGE_PROXY_URL
@@ -90,6 +90,15 @@ EXPOSE 3000
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+# Runtime environment variables (only what's needed at runtime)
+ENV API_URL=$API_URL
+ENV SHOPIFY_API_SECRET=$SHOPIFY_API_SECRET
+ENV SCOPES=$SCOPES
+ENV S3_ACCESS_ID=$S3_ACCESS_ID
+ENV S3_ACCESS_KEY=$S3_ACCESS_KEY
+ENV S3_REGION=$S3_REGION
+ENV S3_BUCKET=$S3_BUCKET
+ENV S3_ENDPOINT=$S3_ENDPOINT
 
 # Use dumb-init for proper signal handling
 ENTRYPOINT ["dumb-init", "--"]
