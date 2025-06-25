@@ -3,8 +3,8 @@
 client_id = "e7dec7c7c27e6a524aad9bbdad304045"
 application_url = "https://headphones-sandy-episodes-enormous.trycloudflare.com"
 embedded = true
-name = "prodigy-ai-app"
-handle = "prodigy-ai-app-1"
+name = "TryOnMagic"
+handle = "tryonmagic"
 
 [build]
 include_config_on_deploy = true

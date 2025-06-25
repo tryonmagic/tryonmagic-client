@@ -18,7 +18,7 @@ import PageWrapper from "./page-wrapper";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import ExampleDialog from "@/lib/uploader/components/image-upload-manager";
 
-function AboutProdigyAI() {
+function AboutTryOnMagic() {
   const app = useAppBridge();
   const handleOnclick = () => {
     app.idToken().then((token) => {
@@ -51,7 +51,7 @@ function AboutProdigyAI() {
           </h1>
           <p className="mx-auto mb-8 max-w-2xl text-lg text-slate-300 md:text-xl">
             Transform your creative vision with our suite of AI-powered tools.
-            From fashion models to image enhancement, ProdigyAI brings your
+            From fashion models to image enhancement, TryOnMagic brings your
             ideas to life.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
@@ -363,7 +363,7 @@ function AboutProdigyAI() {
               <CardContent className="p-0">
                 <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6 text-white">
                   <h3 className="text-2xl font-bold mb-2">
-                    200 ProdigyAI Points
+                    200 TryOnMagic Points
                   </h3>
                   <p className="opacity-90">
                     Everything you need to bring your creative vision to life
@@ -444,7 +444,7 @@ function AboutProdigyAI() {
             Ready to Transform Your Creative Process?
           </h2>
           <p className="text-slate-300 max-w-2xl mx-auto mb-8">
-            Join thousands of creators who are already using ProdigyAI to bring
+            Join thousands of creators who are already using TryOnMagic to bring
             their ideas to life
           </p>
           <Button
@@ -591,7 +591,7 @@ const beforeAfterExamples = [
 export default function Page() {
   return (
     <PageWrapper>
-      <AboutProdigyAI />
+      <AboutTryOnMagic />
     </PageWrapper>
   );
 }

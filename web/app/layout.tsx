@@ -35,7 +35,7 @@ export default function RootLayout({
           {children}
           {/* <AppBridgeNavMenu>
             <a href="/" rel="home">
-              ProdigyAI
+              TryOnMagic
             </a>
             <a href="/ai-model">AI Model</a>
             <a href="/ai-product">AI Product</a>
