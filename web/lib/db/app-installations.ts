@@ -16,7 +16,7 @@ export const AppInstallations = {
   delete: async function (shopDomain: string) {
     const shopSessions = await findSessionsByShop(shopDomain);
     if (shopSessions.length > 0) {
-      await deleteSessions(shopSessions.map((session) => session.id));
+      await deleteSessions(shopSessions.map((session: { id: string }) => session.id));
     }
   },
 };
