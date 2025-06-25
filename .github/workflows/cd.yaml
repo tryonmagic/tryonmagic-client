@@ -22,3 +22,11 @@ jobs:
       environment: ${{ github.ref_type == 'tag' && 'prod' || 'stg' }}
       tag: ${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
     secrets: inherit
+
+  shopify-deploy:
+    needs: [package, dispatch]
+    uses: ./.github/workflows/shopify-deploy.yaml
+    with:
+      environment: ${{ github.ref_type == 'tag' && 'prod' || 'stg' }}
+      tag: ${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
+    secrets: inherit
