@@ -1,27 +1,26 @@
-# Use the latest Node.js image
-FROM node:latest AS base
+# Use a smaller, more specific Node.js image
+FROM node:18-alpine AS base
 
 # Install pnpm globally
 RUN npm install -g pnpm
 
 WORKDIR /app
 
-# Copy workspace and lock files
+# Copy package files first for better layer caching
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY web/package.json web/pnpm-lock.yaml ./web/
+
+# Install dependencies with optimizations
+RUN pnpm install --frozen-lockfile --shamefully-hoist --ignore-scripts --prod=false
+
+# Copy Prisma schema for generation
 COPY web/prisma ./web/prisma
-
-# Install dependencies, but skip postinstall
-RUN pnpm install --frozen-lockfile --shamefully-hoist --ignore-scripts
-
-# Copy all source code
-COPY . .
-
-# Run postinstall manually (prisma generate)
-RUN pnpm --filter web run postinstall
 
 # Generate Prisma client
 RUN cd web && pnpm prisma generate
+
+# Copy source code (excluding node_modules and build artifacts)
+COPY . .
 
 # Set build arguments for environment variables
 ARG NEXT_PUBLIC_HOST
@@ -43,20 +42,30 @@ ENV HOST=$HOST
 RUN cd web && pnpm build
 
 # --- Production image ---
-FROM node:latest
+FROM node:18-alpine AS production
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
 
 WORKDIR /app
 
-# Copy standalone output
-COPY --from=base /app/web/.next/standalone ./
-COPY --from=base /app/web/.next/static ./web/.next/static
-COPY --from=base /app/web/public ./web/public
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nextjs -u 1001
 
-# Copy ALL node_modules from build (this is the key for pnpm/standalone)
-COPY --from=base /app/node_modules ./node_modules
+# Copy standalone output
+COPY --from=base --chown=nextjs:nodejs /app/web/.next/standalone ./
+COPY --from=base --chown=nextjs:nodejs /app/web/.next/static ./web/.next/static
+COPY --from=base --chown=nextjs:nodejs /app/web/public ./web/public
+
+# Copy only production node_modules
+COPY --from=base --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 # Copy Prisma files if needed
-COPY --from=base /app/web/prisma ./web/prisma
+COPY --from=base --chown=nextjs:nodejs /app/web/prisma ./web/prisma
+
+# Switch to non-root user
+USER nextjs
 
 # Expose port
 EXPOSE 3000
@@ -65,6 +74,9 @@ EXPOSE 3000
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+
+# Use dumb-init for proper signal handling
+ENTRYPOINT ["dumb-init", "--"]
 
 # Start the app
 CMD ["node", "server.js"]
