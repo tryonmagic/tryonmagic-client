@@ -15,12 +15,17 @@ web/dist
 web/out
 web/build
 
-# Environment files
+# Environment files (but keep .env.example)
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+web/.env
+web/.env.local
+web/.env.development.local
+web/.env.test.local
+web/.env.production.local
 
 # IDE files
 .vscode
@@ -111,7 +116,6 @@ temp/
 *.sw?
 
 # Large files and directories that slow down build
-node_modules
 web/node_modules
 **/.next
 **/.git
@@ -123,6 +127,10 @@ web/node_modules
 **/*.test.*
 **/*.spec.*
 **/e2e
+
+# TypeScript build info (can be regenerated)
+web/tsconfig.tsbuildinfo
+web/*.tsbuildinfo
 
 # Local development
 README.md
@@ -142,7 +150,6 @@ yarn-error.log*
 
 # Local env files
 .env*.local
-.env
 
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test

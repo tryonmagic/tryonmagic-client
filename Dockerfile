@@ -29,21 +29,8 @@ COPY --from=deps /app/web/node_modules ./web/node_modules
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY web/package.json web/pnpm-lock.yaml ./web/
 
-# Copy only necessary source files (not entire directory)
-COPY web/prisma ./web/prisma
-COPY web/app ./web/app
-COPY web/components ./web/components
-COPY web/lib ./web/lib
-COPY web/hooks ./web/hooks
-COPY web/data ./web/data
-COPY web/styles ./web/styles
-COPY web/types ./web/types
-COPY web/public ./web/public
-COPY web/*.ts ./web/
-COPY web/*.js ./web/
-COPY web/*.json ./web/
-COPY web/*.config.* ./web/
-COPY web/*.toml ./web/
+# Copy the entire web directory (excluding unwanted files via .dockerignore)
+COPY web ./web
 
 # Generate Prisma client
 RUN cd web && pnpm prisma generate
