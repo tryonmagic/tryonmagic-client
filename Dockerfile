@@ -28,9 +28,19 @@ ENV NEXT_PUBLIC_S3_DOMAIN=$NEXT_PUBLIC_S3_DOMAIN
 ENV NEXT_PUBLIC_IMAGE_PROXY_URL=$NEXT_PUBLIC_IMAGE_PROXY_URL
 ENV NEXT_PUBLIC_SHOPIFY_CLIENT_ID=$NEXT_PUBLIC_SHOPIFY_CLIENT_ID
 ENV HOST=$HOST
+ENV NODE_ENV=production
 
-# Build Next.js app
-RUN cd web && pnpm build
+# Build Next.js app and verify standalone output
+RUN cd web && \
+    echo "Building Next.js application..." && \
+    pnpm build && \
+    echo "Build completed. Checking for standalone output..." && \
+    ls -la .next/ && \
+    if [ ! -d ".next/standalone" ]; then \
+    echo "ERROR: Standalone output not found! Make sure output: 'standalone' is set in next.config.js"; \
+    exit 1; \
+    fi && \
+    echo "Standalone output found successfully"
 
 # --- Production image ---
 FROM node:18-alpine AS production
@@ -44,14 +54,13 @@ WORKDIR /app
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nextjs -u 1001
 
-# Copy standalone output
+# Copy standalone output and verify it exists
 COPY --from=base --chown=nextjs:nodejs /app/web/.next/standalone ./
 COPY --from=base --chown=nextjs:nodejs /app/web/.next/static ./web/.next/static
 COPY --from=base --chown=nextjs:nodejs /app/web/public ./web/public
 
-# Copy only production node_modules
-COPY --from=base --chown=nextjs:nodejs /app/node_modules ./node_modules
-
+# Copy Shopify app configuration
+COPY --from=base --chown=nextjs:nodejs /app/shopify.app.toml ./shopify.app.toml
 
 # Switch to non-root user
 USER nextjs
