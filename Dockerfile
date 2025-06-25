@@ -1,45 +1,72 @@
 # Use a smaller, more specific Node.js image
-FROM node:18-alpine AS base
+FROM node:18-alpine AS deps
 
 # Install pnpm globally
 RUN npm install -g pnpm
 
 WORKDIR /app
 
-# Copy package files first for better layer caching
+# Copy package files ONLY (not source code yet)
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY web/package.json web/pnpm-lock.yaml ./web/
 
-# Install dependencies with optimizations
+# Install dependencies in a separate layer for better caching
 RUN pnpm install --frozen-lockfile --shamefully-hoist --ignore-scripts --prod=false
 
-# Copy Prisma schema for generation
+# --- Builder Stage ---
+FROM node:18-alpine AS builder
+
+# Install pnpm globally
+RUN npm install -g pnpm
+
+WORKDIR /app
+
+# Copy node_modules from deps stage (cached layer)
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/web/node_modules ./web/node_modules
+
+# Copy package files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY web/package.json web/pnpm-lock.yaml ./web/
+
+# Copy only necessary source files (not entire directory)
 COPY web/prisma ./web/prisma
+COPY web/app ./web/app
+COPY web/components ./web/components
+COPY web/lib ./web/lib
+COPY web/hooks ./web/hooks
+COPY web/data ./web/data
+COPY web/styles ./web/styles
+COPY web/types ./web/types
+COPY web/public ./web/public
+COPY web/*.ts ./web/
+COPY web/*.js ./web/
+COPY web/*.json ./web/
+COPY web/*.config.* ./web/
+COPY web/*.toml ./web/
 
 # Generate Prisma client
 RUN cd web && pnpm prisma generate
 
-# Copy source code (excluding node_modules and build artifacts)
-COPY . .
-
-# Set build arguments for environment variables (only what's needed during build)
+# Set build arguments
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_S3_DOMAIN
 ARG NEXT_PUBLIC_IMAGE_PROXY_URL
 ARG NEXT_PUBLIC_SHOPIFY_CLIENT_ID
 ARG HOST
 
-# Set environment variables for build (only what's needed during build)
+# Set environment variables for build
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_S3_DOMAIN=$NEXT_PUBLIC_S3_DOMAIN
 ENV NEXT_PUBLIC_IMAGE_PROXY_URL=$NEXT_PUBLIC_IMAGE_PROXY_URL
 ENV NEXT_PUBLIC_SHOPIFY_CLIENT_ID=$NEXT_PUBLIC_SHOPIFY_CLIENT_ID
 ENV HOST=$HOST
+ENV NODE_ENV=production
 
 # Build Next.js app
 RUN cd web && pnpm build
 
-# --- Production image ---
+# --- Production Stage ---
 FROM node:18-alpine AS production
 
 # Install dumb-init for proper signal handling
@@ -48,19 +75,16 @@ RUN apk add --no-cache dumb-init
 WORKDIR /app
 
 # Create non-root user for security
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001
 
-# Copy standalone output
-COPY --from=base --chown=nextjs:nodejs /app/web/.next/standalone ./
-COPY --from=base --chown=nextjs:nodejs /app/web/.next/static ./web/.next/static
-COPY --from=base --chown=nextjs:nodejs /app/web/public ./web/public
+# Copy only production files from builder
+COPY --from=builder --chown=nextjs:nodejs /app/web/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/web/.next/static ./web/.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/web/public ./web/public
 
-# Copy only production node_modules
-COPY --from=base --chown=nextjs:nodejs /app/node_modules ./node_modules
-
-# Copy Prisma files if needed
-COPY --from=base --chown=nextjs:nodejs /app/web/prisma ./web/prisma
+# Copy Prisma files if needed at runtime
+COPY --from=builder --chown=nextjs:nodejs /app/web/prisma ./web/prisma
 
 # Switch to non-root user
 USER nextjs
