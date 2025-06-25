@@ -21,18 +21,76 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { v4 as uuidv4 } from "uuid";
 
-export const s3 = new S3({
-  credentials: {
-    accessKeyId: process.env.S3_ACCESS_ID!,
-    secretAccessKey: process.env.S3_ACCESS_KEY!,
-  },
-  region: process.env.S3_REGION,
-  endpoint: process.env.S3_ENDPOINT,
-});
+// Lazy initialization to prevent build-time issues with placeholder values
+let s3Instance: S3 | null = null;
+let s3Bucket: string | null = null;
+
+function getS3Instance(): S3 {
+  if (s3Instance) return s3Instance;
+  
+  // Skip validation during build time
+  if (process.env.NODE_ENV === 'production' && process.env.NEXT_PHASE === 'phase-production-build') {
+    // Return a dummy instance for build time
+    s3Instance = new S3({
+      credentials: {
+        accessKeyId: "dummy",
+        secretAccessKey: "dummy",
+      },
+      region: "us-east-1",
+      endpoint: "https://dummy.s3.amazonaws.com",
+    });
+    return s3Instance;
+  }
+  
+  // Validate that we have real values (not placeholders) at runtime
+  const accessKeyId = process.env.S3_ACCESS_ID;
+  const secretAccessKey = process.env.S3_ACCESS_KEY;
+  
+  if (!accessKeyId || accessKeyId === "placeholder_access_id" || 
+      !secretAccessKey || secretAccessKey === "placeholder_access_key") {
+    throw new Error("S3 credentials not properly configured");
+  }
+  
+  s3Instance = new S3({
+    credentials: {
+      accessKeyId: accessKeyId,
+      secretAccessKey: secretAccessKey,
+    },
+    region: process.env.S3_REGION,
+    endpoint: process.env.S3_ENDPOINT,
+  });
+  
+  return s3Instance;
+}
+
+function getS3Bucket(): string {
+  if (s3Bucket) return s3Bucket;
+  
+  // Skip validation during build time
+  if (process.env.NODE_ENV === 'production' && process.env.NEXT_PHASE === 'phase-production-build') {
+    s3Bucket = "dummy-bucket";
+    return s3Bucket;
+  }
+  
+  const bucket = process.env.S3_BUCKET;
+  if (!bucket) {
+    throw new Error("S3_BUCKET not configured");
+  }
+  
+  s3Bucket = bucket;
+  return s3Bucket;
+}
+
+// Export getter functions instead of instances directly
+export function getS3() {
+  return getS3Instance();
+}
+
+export function getS3BucketName() {
+  return getS3Bucket();
+}
 
 console.log(process.env);
-
-const S3_BUCKET = process.env.S3_BUCKET;
 
 export class StorageService {
   prefix: string;
@@ -45,11 +103,11 @@ export class StorageService {
   ): Promise<CreateMultiPartUploadResponse> {
     const key = this.getFileKey(dto);
     const params: CreateMultipartUploadCommandInput = {
-      Bucket: S3_BUCKET,
+      Bucket: getS3BucketName(),
       Key: String(key),
     };
 
-    const response = await s3.createMultipartUpload(params);
+    const response = await getS3().createMultipartUpload(params);
     const { UploadId: uploadId, Key } = response;
     if (!uploadId || !Key) {
       throw new Error("Please try later!");
@@ -65,13 +123,13 @@ export class StorageService {
       (_, i) => i + 1,
     ).map(async (partNumber) => {
       const params: UploadPartCommandInput = {
-        Bucket: S3_BUCKET,
+        Bucket: getS3BucketName(),
         Key: dto.key,
         UploadId: dto.uploadId,
         PartNumber: partNumber,
       };
       const command = new UploadPartCommand(params);
-      const preSignedUrl = await getSignedUrl(s3, command, {
+      const preSignedUrl = await getSignedUrl(getS3(), command, {
         expiresIn: 60 * 60,
       });
       return { partNumber, preSignedUrl };
@@ -82,7 +140,7 @@ export class StorageService {
 
   async completeMultiPart(dto: CompleteMultipartUploadRequest) {
     const params: CompleteMultipartUploadCommandInput = {
-      Bucket: S3_BUCKET,
+      Bucket: getS3BucketName(),
       Key: dto.key,
       UploadId: dto.uploadId,
       MultipartUpload: {
@@ -90,7 +148,7 @@ export class StorageService {
       },
     };
 
-    return await s3.completeMultipartUpload(params);
+    return await getS3().completeMultipartUpload(params);
   }
 
   async getPreSignedUrl(
@@ -98,25 +156,25 @@ export class StorageService {
   ): Promise<GetPreSignedUrlResponse> {
     const key = this.getFileKey(dto);
     const params: PutObjectCommandInput = {
-      Bucket: S3_BUCKET,
+      Bucket: getS3BucketName(),
       Key: key,
       ContentType: dto.contentType,
     };
     const command = new PutObjectCommand(params);
     return {
       key,
-      preSignedUrl: await getSignedUrl(s3, command, { expiresIn: 60 * 60 }),
+      preSignedUrl: await getSignedUrl(getS3(), command, { expiresIn: 60 * 60 }),
     };
   }
 
   async abortMultiPartUpload(dto: AbortMultipartUploadRequest) {
     const params: AbortMultipartUploadCommandInput = {
-      Bucket: S3_BUCKET,
+      Bucket: getS3BucketName(),
       Key: dto.key,
       UploadId: dto.uploadId,
     };
 
-    return await s3.abortMultipartUpload(params);
+    return await getS3().abortMultipartUpload(params);
   }
 
   getFileKey(dto: { fileName: string }) {

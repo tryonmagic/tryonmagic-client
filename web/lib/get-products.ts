@@ -1,6 +1,6 @@
 // Example of how to use the generated types from the backend
 
-import shopify from "@/lib/shopify/initialize-context";
+import getShopify from "@/lib/shopify/initialize-context";
 import { findSessionsByShop } from "./db/session-storage";
 import {
   GetProductsQuery,
@@ -21,6 +21,7 @@ const GET_PRODUCTS = /* GraphQL */ `
 
 export const getProducts = async (shop: string) => {
   const sessions = await findSessionsByShop(shop);
+  const shopify = getShopify();
   const client = new shopify.clients.Graphql({
     session: sessions[0],
   });

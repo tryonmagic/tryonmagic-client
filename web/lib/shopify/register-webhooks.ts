@@ -1,21 +1,28 @@
 import { DeliveryMethod, Session } from "@shopify/shopify-api";
-import { setupGDPRWebHooks } from "./gdpr";
-import shopify from "./initialize-context";
+import { serverSideAPI } from "../api";
+import getShopify from "./initialize-context";
 import { AppInstallations } from "../db/app-installations";
 
 let webhooksInitialized = false;
 
 export function addHandlers() {
   if (!webhooksInitialized) {
-    setupGDPRWebHooks("/api/webhooks");
-    shopify.webhooks.addHandlers({
-      ["APP_UNINSTALLED"]: {
+    getShopify().webhooks.addHandlers({
+      APP_UNINSTALLED: {
         deliveryMethod: DeliveryMethod.Http,
-        callbackUrl: "/api/webhooks",
-        callback: async (_topic, shop, _body) => {
-          console.log("Uninstalled app from shop: " + shop);
-          await AppInstallations.delete(shop);
-        },
+        callbackUrl: "/webhooks/app-uninstalled",
+      },
+      PRODUCTS_CREATE: {
+        deliveryMethod: DeliveryMethod.Http,
+        callbackUrl: "/webhooks/products-create",
+      },
+      PRODUCTS_UPDATE: {
+        deliveryMethod: DeliveryMethod.Http,
+        callbackUrl: "/webhooks/products-update",
+      },
+      PRODUCTS_DELETE: {
+        deliveryMethod: DeliveryMethod.Http,
+        callbackUrl: "/webhooks/products-delete",
       },
     });
     console.log("Added handlers");
@@ -27,6 +34,7 @@ export function addHandlers() {
 
 export async function registerWebhooks(session: Session) {
   addHandlers();
+  const shopify = getShopify();
   const responses = await shopify.webhooks.register({ session });
   console.log("Webhooks added", responses);
 }

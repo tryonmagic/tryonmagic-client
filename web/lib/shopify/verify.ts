@@ -1,6 +1,7 @@
-import { storeSession } from "@/lib/db/session-storage";
-import shopify from "@/lib/shopify/initialize-context";
+import getShopify from "@/lib/shopify/initialize-context";
 import { RequestedTokenType, Session } from "@shopify/shopify-api";
+import { NextRequest } from "next/server";
+import { loadSession, storeSession } from "../db/session-storage";
 
 export class AppNotInstalledError extends Error {
   constructor() {
@@ -39,18 +40,26 @@ export class ExpiredTokenError extends Error {
 }
 
 export async function verifyRequest(
-  req: Request,
-  isOnline: boolean,
+  req: NextRequest,
+  isOnline: boolean = false,
 ): Promise<{ shop: string; session: Session }> {
-  const bearerToken =
-    req.headers.get("x-shopify-session-token") ??
-    req.headers.get("authorization");
-  const bearerPresent = bearerToken?.startsWith("Bearer ");
-  const sessionToken = bearerToken?.replace("Bearer ", "");
-  if (!bearerPresent || !sessionToken) {
-    throw new Error("No bearer or session token present");
+  const shopify = getShopify();
+  const sessionId = await shopify.session.getCurrentId({
+    isOnline,
+    rawRequest: req,
+  });
+
+  if (!sessionId) {
+    throw new Error("No session found");
   }
-  return handleSessionToken(sessionToken, isOnline);
+
+  const session = await loadSession(sessionId);
+
+  if (!session) {
+    throw new Error("No session found");
+  }
+
+  return { shop: session.shop, session };
 }
 
 /**
@@ -70,6 +79,7 @@ export async function tokenExchange({
   online?: boolean;
   store?: boolean;
 }): Promise<Session> {
+  const shopify = getShopify();
   const response = await shopify.auth.tokenExchange({
     shop,
     sessionToken,
@@ -95,6 +105,7 @@ export async function handleSessionToken(
   online?: boolean,
   store?: boolean,
 ): Promise<{ shop: string; session: Session }> {
+  const shopify = getShopify();
   const payload = await shopify.session.decodeSessionToken(sessionToken);
   const shop = payload.dest.replace("https://", "");
   const session = await tokenExchange({ shop, sessionToken, online, store });

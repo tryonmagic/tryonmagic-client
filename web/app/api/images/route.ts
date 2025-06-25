@@ -7,7 +7,7 @@ import {
   GetUploadPartsPresignedUrlsRequest,
 } from "@/lib/uploader/type";
 import { NextRequest, NextResponse } from "next/server";
-import { s3, StorageService } from "./service";
+import { StorageService, getS3 } from "./service";
 
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest): Promise<Response> {
       Key,
     });
 
-    const url = await getSignedUrl(s3, command);
+    const url = await getSignedUrl(getS3(), command);
 
     return NextResponse.json({ url });
   } catch (error) {

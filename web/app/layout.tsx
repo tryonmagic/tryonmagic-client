@@ -8,7 +8,7 @@ import { NavMenu as AppBridgeNavMenu } from "@shopify/app-bridge-react";
 export const metadata: Metadata = {
   title: "Next.js Shopify App",
   other: {
-    "shopify-api-key": process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || "",
+    "shopify-api-key": process.env.NEXT_PUBLIC_SHOPIFY_CLIENT_ID || "",
     "shopify-app-origins": process.env.NEXT_PUBLIC_HOST || "",
   },
 };
