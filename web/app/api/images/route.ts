@@ -12,11 +12,7 @@ import { s3, StorageService } from "./service";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-type ResponseData = {
-  url: string;
-};
-
-export async function GET(req: NextRequest): Promise<ResponseData> {
+export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     verifyRequest(req, true);
     const searchParams = req.nextUrl.searchParams;
@@ -39,7 +35,7 @@ export async function GET(req: NextRequest): Promise<ResponseData> {
     return NextResponse.json({ url });
   } catch (error) {
     console.error("Error fetching image from S3:", error);
-    return new Response("Error fetching image from S3");
+    return new NextResponse("Error fetching image from S3");
   }
 }
 export async function POST(req: NextRequest, res: NextResponse) {
