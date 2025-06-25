@@ -245,9 +245,9 @@ function ImageUploadManager({
       }
     }
     fetchImages();
-  }, []);
+  }, [app]);
 
-  const handleOnProgress = ({
+  const handleOnProgress = useCallback(({
     id,
     fileName,
     uploadProgress,
@@ -275,18 +275,18 @@ function ImageUploadManager({
         return img;
       }),
     );
-  };
+  }, []);
 
-  const handleOnComplete = () => {
+  const handleOnComplete = useCallback(() => {
     setFileUploadingModalMeta((prevState) => ({
       ...(prevState as FileUploadingModalMeta),
       completed: true,
     }));
     setUploadingProgressMeta({});
     // fetchImages();
-  };
+  }, []);
 
-  const saveFile = async (key: string, file: File) => {
+  const saveFile = useCallback(async (key: string, file: File) => {
     const token = await app.idToken();
 
     const saveFileRequest: IFile = {
@@ -312,9 +312,9 @@ function ImageUploadManager({
       saveFileRequest,
     );
     return response.data;
-  };
+  }, [app]);
 
-  const handleOnSingleUploadFileComplete = async (key: string, file: File) => {
+  const handleOnSingleUploadFileComplete = useCallback(async (key: string, file: File) => {
     await saveFile(key, file);
     setFileUploadingModalMeta((prevState) => {
       const uploadedFile = prevState?.uploadedFile ?? new Set();
@@ -324,9 +324,9 @@ function ImageUploadManager({
         uploadedFile,
       };
     });
-  };
+  }, [saveFile]);
 
-  const uploadMediaToS3 = async (files: FileInfo[]) => {
+  const uploadMediaToS3 = useCallback(async (files: FileInfo[]) => {
     const getSessionToken = async () => {
       const token = await app.idToken();
       return token;
@@ -338,9 +338,9 @@ function ImageUploadManager({
       handleOnSingleUploadFileComplete,
       new AxiosMultiPartApiClient(getSessionToken),
     );
-  };
+  }, [app, handleOnProgress, handleOnComplete, handleOnSingleUploadFileComplete]);
 
-  const handleOnFileUpload = (files: FileInfo[]) => {
+  const handleOnFileUpload = useCallback((files: FileInfo[]) => {
     try {
       setFileUploadingModalMeta(getPreviewFilesWithCount(files));
       uploadMediaToS3(files);
@@ -348,7 +348,7 @@ function ImageUploadManager({
       const err = error as Error;
       toast.error(err.message ?? "Something went wrong!");
     }
-  };
+  }, [uploadMediaToS3]);
   // Handle file selection
   const handleFileSelect = useCallback(
     (files: FileList | null) => {
@@ -392,7 +392,7 @@ function ImageUploadManager({
       setUploadingCount((prev) => prev + files.length);
       handleOnFileUpload(fileInfos);
     },
-    [images],
+    [handleOnFileUpload],
   );
 
   // Handle drag and drop

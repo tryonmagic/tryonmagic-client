@@ -6,6 +6,10 @@ import { AppInstallations } from "../db/app-installations";
 let webhooksInitialized = false;
 
 export function addHandlers() {
+  if (!shopify) {
+    throw new Error("Shopify API not initialized. Missing environment variables.");
+  }
+
   if (!webhooksInitialized) {
     setupGDPRWebHooks("/api/webhooks");
     shopify.webhooks.addHandlers({
@@ -26,6 +30,10 @@ export function addHandlers() {
 }
 
 export async function registerWebhooks(session: Session) {
+  if (!shopify) {
+    throw new Error("Shopify API not initialized. Missing environment variables.");
+  }
+
   addHandlers();
   const responses = await shopify.webhooks.register({ session });
   console.log("Webhooks added", responses);

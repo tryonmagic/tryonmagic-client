@@ -20,6 +20,10 @@ const GET_PRODUCTS = /* GraphQL */ `
 `;
 
 export const getProducts = async (shop: string) => {
+  if (!shopify) {
+    throw new Error("Shopify API not initialized. Missing environment variables.");
+  }
+
   const sessions = await findSessionsByShop(shop);
   const client = new shopify.clients.Graphql({
     session: sessions[0],

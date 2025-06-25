@@ -273,13 +273,15 @@ function OptionItem({ label, image, description, color }: OptionItemProps) {
             style={{ backgroundColor: color }}
           />
         ) : (
-          <img
+          <Image
             src={
               image ||
-              "https://ig89yd5z8iykrgxva.lite.vusercontent.nethttps://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg"
+              "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg"
             }
             alt={label}
             className="h-full w-full object-cover"
+            width={100}
+            height={100}
           />
         )}
       </div>
@@ -323,13 +325,15 @@ function VisualSelect({
                       style={{ backgroundColor: selectedOption.color }}
                     />
                   ) : (
-                    <img
+                    <Image
                       src={
                         selectedOption.image ||
-                        "https://ig89yd5z8iykrgxva.lite.vusercontent.nethttps://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg"
+                        "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg"
                       }
                       alt={selectedOption.label}
                       className="h-full w-full object-cover"
+                      width={32}
+                      height={32}
                     />
                   )}
                 </div>
@@ -584,13 +588,15 @@ export default function AIFashionGenerator() {
                       <div className="space-y-2">
                         <div className="text-sm font-medium">Location</div>
                         <div className="h-24 rounded-md overflow-hidden">
-                          <img
+                          <Image
                             src={
                               selectedLocation ||
-                              "https://ig89yd5z8iykrgxva.lite.vusercontent.nethttps://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg"
+                              "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg"
                             }
                             alt="Selected location"
                             className="h-full w-full object-cover"
+                            width={150}
+                            height={96}
                           />
                         </div>
                       </div>

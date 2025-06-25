@@ -510,7 +510,7 @@ export default function ExpandImagePage() {
                                 className={cn(
                                   "flex flex-col py-3 h-auto",
                                   expansionDirection === direction.id &&
-                                    "bg-purple-600 hover:bg-purple-700",
+                                  "bg-purple-600 hover:bg-purple-700",
                                 )}
                                 onClick={() =>
                                   handleExpansionDirectionChange(direction.id)
@@ -726,10 +726,12 @@ export default function ExpandImagePage() {
                     </h2>
                     <div className="space-y-4">
                       <div className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                        <img
+                        <NextImage
                           src={uploadedImage || "/placeholder.svg"}
                           alt="Uploaded image"
                           className="w-full h-auto object-contain"
+                          width={400}
+                          height={400}
                         />
                         <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center opacity-0 hover:opacity-100">
                           <Button
@@ -875,10 +877,12 @@ export default function ExpandImagePage() {
                             Original
                           </p>
                           <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 relative group">
-                            <img
+                            <NextImage
                               src={uploadedImage || "/placeholder.svg"}
                               alt="Original image"
                               className="w-full h-auto object-contain"
+                              width={400}
+                              height={400}
                             />
                             <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
                               <TooltipProvider>
@@ -902,10 +906,12 @@ export default function ExpandImagePage() {
                             Expanded
                           </p>
                           <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 relative group">
-                            <img
+                            <NextImage
                               src={expandedImage || "/placeholder.svg"}
                               alt="Expanded image"
                               className="w-full h-auto object-contain"
+                              width={400}
+                              height={400}
                             />
                             <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
                               <div className="flex space-x-2">

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -32,13 +33,15 @@ export function OptionItem({
             style={{ backgroundColor: color }}
           />
         ) : (
-          <img
+          <Image
             src={
               image ||
-              "https://ig89yd5z8iykrgxva.lite.vusercontent.nethttps://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg"
+              "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg"
             }
             alt={label}
             className="h-full w-full object-cover"
+            width={48}
+            height={48}
           />
         )}
       </div>
@@ -86,13 +89,15 @@ export function VisualSelect({
                       style={{ backgroundColor: selectedOption.color }}
                     />
                   ) : (
-                    <img
+                    <Image
                       src={
                         selectedOption.image ||
-                        "https://ig89yd5z8iykrgxva.lite.vusercontent.nethttps://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg"
+                        "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg"
                       }
                       alt={selectedOption.label}
                       className="h-full w-full object-cover"
+                      width={32}
+                      height={32}
                     />
                   )}
                 </div>

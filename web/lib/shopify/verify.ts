@@ -42,6 +42,10 @@ export async function verifyRequest(
   req: Request,
   isOnline: boolean,
 ): Promise<{ shop: string; session: Session }> {
+  if (!shopify) {
+    throw new Error("Shopify API not initialized. Missing environment variables.");
+  }
+  
   const bearerToken =
     req.headers.get("x-shopify-session-token") ??
     req.headers.get("authorization");
@@ -70,6 +74,10 @@ export async function tokenExchange({
   online?: boolean;
   store?: boolean;
 }): Promise<Session> {
+  if (!shopify) {
+    throw new Error("Shopify API not initialized. Missing environment variables.");
+  }
+  
   const response = await shopify.auth.tokenExchange({
     shop,
     sessionToken,
@@ -95,6 +103,10 @@ export async function handleSessionToken(
   online?: boolean,
   store?: boolean,
 ): Promise<{ shop: string; session: Session }> {
+  if (!shopify) {
+    throw new Error("Shopify API not initialized. Missing environment variables.");
+  }
+  
   const payload = await shopify.session.decodeSessionToken(sessionToken);
   const shop = payload.dest.replace("https://", "");
   const session = await tokenExchange({ shop, sessionToken, online, store });
