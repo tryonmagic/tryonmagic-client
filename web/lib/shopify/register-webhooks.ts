@@ -1,7 +1,6 @@
 import { DeliveryMethod, Session } from "@shopify/shopify-api";
 import { setupGDPRWebHooks } from "./gdpr";
 import shopify from "./initialize-context";
-import { AppInstallations } from "../db/app-installations";
 
 let webhooksInitialized = false;
 
@@ -18,7 +17,6 @@ export function addHandlers() {
         callbackUrl: "/api/webhooks",
         callback: async (_topic, shop, _body) => {
           console.log("Uninstalled app from shop: " + shop);
-          await AppInstallations.delete(shop);
         },
       },
     });
