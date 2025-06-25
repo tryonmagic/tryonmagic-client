@@ -32,8 +32,6 @@ COPY web/package.json web/pnpm-lock.yaml ./web/
 # Copy the entire web directory (excluding unwanted files via .dockerignore)
 COPY web ./web
 
-# Generate Prisma client
-RUN cd web && pnpm prisma generate
 
 # Set build arguments
 ARG NEXT_PUBLIC_API_URL
@@ -70,8 +68,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/web/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/web/.next/static ./web/.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/web/public ./web/public
 
-# Copy Prisma files if needed at runtime
-COPY --from=builder --chown=nextjs:nodejs /app/web/prisma ./web/prisma
 
 # Switch to non-root user
 USER nextjs
