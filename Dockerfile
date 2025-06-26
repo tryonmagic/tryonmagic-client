@@ -1,12 +1,27 @@
 # syntax=docker.io/docker/dockerfile:1
 
 FROM node:20-alpine AS base
+ENV NODE_ENV="production"
 
 # Install dependencies only when needed
 FROM base AS deps
 # Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
+
+# Define build arguments
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_IMAGE_PROXY_URL
+ARG NEXT_PUBLIC_S3_DOMAIN
+ARG NEXT_PUBLIC_SHOPIFY_CLIENT_ID
+ARG HOST
+
+# Set build-time environment variables
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_IMAGE_PROXY_URL=$NEXT_PUBLIC_IMAGE_PROXY_URL
+ENV NEXT_PUBLIC_S3_DOMAIN=$NEXT_PUBLIC_S3_DOMAIN
+ENV NEXT_PUBLIC_SHOPIFY_CLIENT_ID=$NEXT_PUBLIC_SHOPIFY_CLIENT_ID
+ENV HOST=$HOST
 
 # Install dependencies based on the preferred package manager
 # Copy package files from web directory where the Next.js app is located
