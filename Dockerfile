@@ -16,10 +16,6 @@ ENV NODE_ENV="production"
 ARG PNPM_VERSION=10.6.2
 RUN npm install -g pnpm@$PNPM_VERSION
 
-# Install Shopify CLI
-RUN npm install -g @shopify/cli @shopify/theme
-
-
 # Throw-away build stage to reduce size of final image
 FROM base AS build
 
@@ -27,15 +23,20 @@ FROM base AS build
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3
 
-# Install node modules
+# Copy root package files for workspace setup
 COPY .npmrc package.json pnpm-lock.yaml ./
+
+# Copy web directory package files
+COPY web/package.json web/
+
+# Install dependencies (this will install both root and web dependencies)
 RUN pnpm install --frozen-lockfile --prod=false
 
 # Copy application code
 COPY . .
 
-# Build application
-RUN pnpm run build
+# Build application - use the web directory build command instead of root shopify build
+RUN cd web && pnpm run build
 
 # Remove development dependencies
 RUN pnpm prune --prod
