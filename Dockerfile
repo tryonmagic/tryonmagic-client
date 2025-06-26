@@ -1,93 +1,49 @@
-# Use a smaller, more specific Node.js image
-FROM node:23-alpine AS deps
+# syntax = docker/dockerfile:1
 
-# Install pnpm globally
-RUN npm install -g pnpm
+# Adjust NODE_VERSION as desired
+ARG NODE_VERSION=20.11.0
+FROM node:${NODE_VERSION}-slim AS base
 
+LABEL fly_launch_runtime="Node.js"
+
+# Node.js app lives here
 WORKDIR /app
 
-# Copy package files ONLY (not source code yet)
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY web/package.json web/pnpm-lock.yaml ./web/
+# Set production environment
+ENV NODE_ENV="production"
 
-# Install dependencies in a separate layer for better caching
-RUN pnpm install --frozen-lockfile --shamefully-hoist --ignore-scripts --prod=false
+# Install pnpm
+ARG PNPM_VERSION=10.6.2
+RUN npm install -g pnpm@$PNPM_VERSION
 
-# --- Builder Stage ---
-FROM node:23-alpine AS builder
 
-# Install pnpm globally
-RUN npm install -g pnpm
+# Throw-away build stage to reduce size of final image
+FROM base AS build
 
-WORKDIR /app
+# Install packages needed to build node modules
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3
 
-# Copy node_modules from deps stage (cached layer)
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/web/node_modules ./web/node_modules
+# Install node modules
+COPY .npmrc package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile --prod=false
 
-# Copy package files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY web/package.json web/pnpm-lock.yaml ./web/
+# Copy application code
+COPY . .
 
-# Copy Prisma schema first for generation
-COPY web/prisma ./web/prisma
+# Build application
+RUN pnpm run build
 
-# Generate Prisma client
-RUN cd web && pnpm prisma generate
+# Remove development dependencies
+RUN pnpm prune --prod
 
-# Copy the entire web directory (excluding unwanted files via .dockerignore)
-COPY web ./web
 
-# Set build arguments
-ARG NEXT_PUBLIC_API_URL
-ARG NEXT_PUBLIC_S3_DOMAIN
-ARG NEXT_PUBLIC_IMAGE_PROXY_URL
-ARG NEXT_PUBLIC_SHOPIFY_CLIENT_ID
-ARG HOST
+# Final stage for app image
+FROM base
 
-# Set environment variables for build
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_S3_DOMAIN=$NEXT_PUBLIC_S3_DOMAIN
-ENV NEXT_PUBLIC_IMAGE_PROXY_URL=$NEXT_PUBLIC_IMAGE_PROXY_URL
-ENV NEXT_PUBLIC_SHOPIFY_CLIENT_ID=$NEXT_PUBLIC_SHOPIFY_CLIENT_ID
-ENV HOST=$HOST
-ENV NODE_ENV=production
+# Copy built application
+COPY --from=build /app /app
 
-# Build Next.js app
-RUN cd web && pnpm build
-
-# --- Production Stage ---
-FROM node:23-alpine AS production
-
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
-
-WORKDIR /app
-
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001
-
-# Copy the entire web directory with build output
-COPY --from=builder --chown=nextjs:nodejs /app/web ./
-
-# Install production dependencies using npm to avoid pnpm symlink issues
-RUN npm install --omit=dev
-
-# Switch to non-root user
-USER nextjs
-
-# Expose port
+# Start the server by default, this can be overwritten at runtime
 EXPOSE 3000
-
-# Set environment variables for runtime
-ENV NODE_ENV=production
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
-
-# Use dumb-init for proper signal handling
-ENTRYPOINT ["dumb-init", "--"]
-
-# Start the app using npm
-CMD ["npm", "start"]
-
+CMD [ "node", "web/dist/index.js" ]
