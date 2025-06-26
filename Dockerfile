@@ -16,6 +16,9 @@ ENV NODE_ENV="production"
 ARG PNPM_VERSION=10.6.2
 RUN npm install -g pnpm@$PNPM_VERSION
 
+# Install Shopify CLI
+RUN npm install -g @shopify/cli @shopify/theme
+
 
 # Throw-away build stage to reduce size of final image
 FROM base AS build
