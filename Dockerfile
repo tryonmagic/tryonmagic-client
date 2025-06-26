@@ -1,5 +1,5 @@
 # Use a smaller, more specific Node.js image
-FROM node:18-alpine AS deps
+FROM node:23-alpine AS deps
 
 # Install pnpm globally
 RUN npm install -g pnpm
@@ -14,7 +14,7 @@ COPY web/package.json web/pnpm-lock.yaml ./web/
 RUN pnpm install --frozen-lockfile --shamefully-hoist --ignore-scripts --prod=false
 
 # --- Builder Stage ---
-FROM node:18-alpine AS builder
+FROM node:23-alpine AS builder
 
 # Install pnpm globally
 RUN npm install -g pnpm
@@ -29,9 +29,14 @@ COPY --from=deps /app/web/node_modules ./web/node_modules
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY web/package.json web/pnpm-lock.yaml ./web/
 
+# Copy Prisma schema first for generation
+COPY web/prisma ./web/prisma
+
+# Generate Prisma client
+RUN cd web && pnpm prisma generate
+
 # Copy the entire web directory (excluding unwanted files via .dockerignore)
 COPY web ./web
-
 
 # Set build arguments
 ARG NEXT_PUBLIC_API_URL
@@ -52,7 +57,7 @@ ENV NODE_ENV=production
 RUN cd web && pnpm build
 
 # --- Production Stage ---
-FROM node:18-alpine AS production
+FROM node:23-alpine AS production
 
 # Install dumb-init for proper signal handling
 RUN apk add --no-cache dumb-init
@@ -63,11 +68,11 @@ WORKDIR /app
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nextjs -u 1001
 
-# Copy only production files from builder
-COPY --from=builder --chown=nextjs:nodejs /app/web/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/web/.next/static ./web/.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/web/public ./web/public
+# Copy the entire web directory with build output
+COPY --from=builder --chown=nextjs:nodejs /app/web ./
 
+# Install production dependencies using npm to avoid pnpm symlink issues
+RUN npm install --omit=dev
 
 # Switch to non-root user
 USER nextjs
@@ -83,6 +88,6 @@ ENV HOSTNAME="0.0.0.0"
 # Use dumb-init for proper signal handling
 ENTRYPOINT ["dumb-init", "--"]
 
-# Start the app
-CMD ["node", "server.js"]
+# Start the app using npm
+CMD ["npm", "start"]
 
