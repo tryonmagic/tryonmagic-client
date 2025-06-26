@@ -41,7 +41,8 @@ jobs:
       - name: Build and push Deployment Image
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./web
+          file: ./web/Dockerfile
           push: true
           tags: |
             551588892498.dkr.ecr.us-west-2.amazonaws.com/prod-tryonmagic-client:deployment-${{ inputs.tag }}

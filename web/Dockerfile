@@ -37,39 +37,34 @@ ENV NEXT_PUBLIC_S3_DOMAIN=$NEXT_PUBLIC_S3_DOMAIN
 ENV NEXT_PUBLIC_SHOPIFY_CLIENT_ID=$NEXT_PUBLIC_SHOPIFY_CLIENT_ID
 ENV HOST=$HOST
 
-# Copy workspace configuration files first
-COPY .npmrc package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# Copy package files first for better caching
+COPY package.json package-lock.json* pnpm-lock.yaml* ./
 
-# Copy web directory package files and Prisma schema
-COPY web/package.json web/
-COPY web/prisma web/prisma/
+# Copy Prisma schema
+COPY prisma prisma/
 
-# Install dependencies for all workspaces
+# Install dependencies
 RUN pnpm install --frozen-lockfile
 
 # Copy application code
 COPY . .
 
-# Build application - use the web directory build command instead of root shopify build
-RUN cd web && pnpm run build
+# Build application
+RUN pnpm run build
 
 # Remove development dependencies
 RUN pnpm prune --prod
 
-
 # Final stage for app image
 FROM base
 
-WORKDIR /app/web
+WORKDIR /app
 
 # Copy built application
-COPY --from=build /app/web . 
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/node_modules ./.next/standalone/node_modules
-
-# Set NODE_PATH to resolve modules from both root and web node_modules
-ENV NODE_PATH=/app/node_modules:/app/web/node_modules
+COPY --from=build /app/.next/standalone ./
+COPY --from=build /app/.next/static ./.next/static
+COPY --from=build /app/public ./public
 
 # Start the server by default, this can be overwritten at runtime
 EXPOSE 3000
-CMD [ "node", ".next/standalone/server.js" ]
+CMD [ "node", "server.js" ] 

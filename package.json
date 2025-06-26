@@ -9,7 +9,9 @@
     "build": "shopify app build",
     "generate": "shopify app generate",
     "deploy": "shopify app deploy",
-    "docker-dev": "docker compose up -d"
+    "docker-dev": "docker compose up -d",
+    "docker-build": "cd web && docker build -t prodigy-ai-app .",
+    "docker-run": "docker run -p 3000:3000 prodigy-ai-app"
   },
   "author": "bb_bipul",
   "keywords": [
