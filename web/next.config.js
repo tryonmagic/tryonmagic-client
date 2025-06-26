@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: false,
   swcMinify: true,
-  // output: 'standalone', // Temporarily disabled to fix dependency issues
+  output: 'standalone', // Temporarily disabled to fix dependency issues
   env: {
     NEXT_PUBLIC_HOST: process.env.HOST,
   },

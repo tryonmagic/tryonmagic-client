@@ -11,10 +11,14 @@ WORKDIR /app
 # Install dependencies based on the preferred package manager
 # Copy package files from web directory where the Next.js app is located
 COPY web/package.json web/yarn.lock* web/package-lock.json* web/pnpm-lock.yaml* web/.npmrc* ./
+COPY web/prisma ./prisma
 RUN \
     if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
     elif [ -f package-lock.json ]; then npm ci; \
-    elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i --frozen-lockfile; \
+    elif [ -f pnpm-lock.yaml ]; then \
+    corepack enable && \
+    corepack prepare pnpm@8.15.4 --activate && \
+    pnpm i; \
     else echo "Lockfile not found." && exit 1; \
     fi
 
@@ -34,7 +38,10 @@ COPY web/ .
 RUN \
     if [ -f yarn.lock ]; then yarn run build; \
     elif [ -f package-lock.json ]; then npm run build; \
-    elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm run build; \
+    elif [ -f pnpm-lock.yaml ]; then \
+    corepack enable && \
+    corepack prepare pnpm@8.15.4 --activate && \
+    pnpm run build; \
     else echo "Lockfile not found." && exit 1; \
     fi
 
