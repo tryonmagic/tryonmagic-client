@@ -1,0 +1,59 @@
+name: Package
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      tag:
+        required: true
+        type: string
+
+jobs:
+  package:
+    name: Build and Push Docker Image to ECR
+    runs-on: ubuntu-8-cores
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          audience: sts.amazonaws.com
+          aws-region: us-west-2
+          role-to-assume: arn:aws:iam::551588892498:role/tryonmagic-ecr-github-action
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Deployment Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            551588892498.dkr.ecr.us-west-2.amazonaws.com/prod-tryonmagic-client:deployment-${{ inputs.tag }}
+          build-args: |
+            # Build-time environment variables (embedded in client-side code)
+            NEXT_PUBLIC_API_URL=${{ env.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_IMAGE_PROXY_URL=${{ env.NEXT_PUBLIC_IMAGE_PROXY_URL }}
+            NEXT_PUBLIC_S3_DOMAIN=${{ env.NEXT_PUBLIC_S3_DOMAIN }}
+            NEXT_PUBLIC_SHOPIFY_CLIENT_ID=${{ secrets.NEXT_PUBLIC_SHOPIFY_CLIENT_ID }}
+            HOST=${{ env.HOST }}
+            SHOPIFY_CLI_PARTNERS_TOKEN: ${{ secrets.SHOPIFY_CLI_PARTNERS_TOKEN }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64

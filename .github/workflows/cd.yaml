@@ -1,0 +1,24 @@
+name: CD
+on:
+  push:
+    branches: [main-redo]
+    tags: ['v*']
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  package:
+    uses: ./.github/workflows/package.yaml
+    with:
+      environment: ${{ github.ref_type == 'tag' && 'prod' || 'stg' }}
+      tag: ${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
+    secrets: inherit
+  dispatch:
+    needs: package
+    uses: ./.github/workflows/dispatch.yaml
+    with:
+      environment: ${{ github.ref_type == 'tag' && 'prod' || 'stg' }}
+      tag: ${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
+    secrets: inherit
