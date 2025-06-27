@@ -18,6 +18,7 @@ COPY web/prisma ./web/prisma/
 RUN pnpm install --frozen-lockfile
 
 # Copy the rest of the application code
+
 COPY . .
 
 # Change to web directory for build commands
