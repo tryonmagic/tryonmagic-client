@@ -11,7 +11,7 @@ on:
 
 jobs:
   update-deployment-tag:
-    runs-on: self-hosted
+    runs-on: CTLP-MAC-DK07
     environment: ${{ inputs.environment }}
     name: Update Deployment Tag
     steps:
