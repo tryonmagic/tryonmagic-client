@@ -1,4 +1,4 @@
-# Shopify App Template - Next.js App Router
+# Tryonamgic
 
 This is a template for building a
 [Shopify app](https://shopify.dev/apps/getting-started) using Next.js and
