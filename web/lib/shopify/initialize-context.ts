@@ -6,7 +6,7 @@ import {
 } from "@shopify/shopify-api";
 
 console.log(process.env.SCOPES?.split(","));
-const shopify = shopifyApi({
+const shopify = () => shopifyApi({
   apiKey: process.env.SHOPIFY_API_KEY || "",
   apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
   scopes: process.env.SCOPES?.split(",") || ["write_products"],

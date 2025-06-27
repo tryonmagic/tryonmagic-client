@@ -8,7 +8,7 @@ export function setupGDPRWebHooks(path: string) {
    *
    * https://shopify.dev/apps/webhooks/configuration/mandatory-webhooks#customers-data_request
    */
-  return shopify.webhooks.addHandlers({
+  return shopify().webhooks.addHandlers({
     CUSTOMERS_DATA_REQUEST: {
       deliveryMethod: DeliveryMethod.Http,
       callbackUrl: path,

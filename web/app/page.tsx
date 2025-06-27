@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import PageWrapper from "./page-wrapper";
+
 import { useAppBridge } from "@shopify/app-bridge-react";
 import ExampleDialog from "@/lib/uploader/components/image-upload-manager";
 
@@ -589,9 +589,5 @@ const beforeAfterExamples = [
 ];
 
 export default function Page() {
-  return (
-    <PageWrapper>
-      <AboutProdigyAI />
-    </PageWrapper>
-  );
+  return <AboutProdigyAI />;
 }

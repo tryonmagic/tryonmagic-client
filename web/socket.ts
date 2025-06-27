@@ -11,7 +11,7 @@ export class WebSocketClient {
   private status: WebSocketStatus = "CLOSED";
 
   constructor(userId: string) {
-    const wsUrl = "ws://localhost:8000/ws/" + userId;
+    const wsUrl = "ws://api.tryonmagic.com/ws/" + userId;
     if (!wsUrl) throw new Error("WebSocket URL not configured");
     this.url = wsUrl;
     this.connect();

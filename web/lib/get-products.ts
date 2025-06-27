@@ -21,7 +21,8 @@ const GET_PRODUCTS = /* GraphQL */ `
 
 export const getProducts = async (shop: string) => {
   const sessions = await findSessionsByShop(shop);
-  const client = new shopify.clients.Graphql({
+  const shopifyapi = shopify();
+  const client = new shopifyapi.clients.Graphql({
     session: sessions[0],
   });
   const { data, errors } = await client.request<GetProductsQuery>(

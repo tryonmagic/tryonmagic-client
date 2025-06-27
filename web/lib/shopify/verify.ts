@@ -70,7 +70,7 @@ export async function tokenExchange({
   online?: boolean;
   store?: boolean;
 }): Promise<Session> {
-  const response = await shopify.auth.tokenExchange({
+  const response = await shopify().auth.tokenExchange({
     shop,
     sessionToken,
     requestedTokenType: online
@@ -95,7 +95,7 @@ export async function handleSessionToken(
   online?: boolean,
   store?: boolean,
 ): Promise<{ shop: string; session: Session }> {
-  const payload = await shopify.session.decodeSessionToken(sessionToken);
+  const payload = await shopify().session.decodeSessionToken(sessionToken);
   const shop = payload.dest.replace("https://", "");
   const session = await tokenExchange({ shop, sessionToken, online, store });
   return { shop, session };
