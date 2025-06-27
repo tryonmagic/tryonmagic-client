@@ -11,6 +11,9 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY web/package.json ./web/
 
+# Copy Prisma schema file before installing dependencies
+COPY web/prisma ./web/prisma/
+
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
