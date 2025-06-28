@@ -1,17 +1,13 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "e7dec7c7c27e6a524aad9bbdad304045"
+client_id = "89fdcc9c35411de02394ed6192badc29"
 application_url = "https://app.tryonmagic.com"
 embedded = true
-name = "TryOnMagic"
-handle = "tryonmagic"
-
-[build]
-include_config_on_deploy = true
-automatically_update_urls_on_dev = false
+name = "tryonmagic-app"
+handle = "tryonmagic-app"
 
 [webhooks]
-api_version = "2025-01"
+api_version = "2025-04"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
@@ -26,3 +22,7 @@ redirect_urls = [
 
 [pos]
 embedded = false
+
+[build]
+include_config_on_deploy = true
+automatically_update_urls_on_dev = false

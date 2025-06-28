@@ -27,11 +27,24 @@ WORKDIR /app/web
 # Generate Prisma client
 RUN pnpm run postinstall
 
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_S3_DOMAIN
+ARG NEXT_PUBLIC_IMAGE_PROXY_URL
+ARG NEXT_PUBLIC_SHOPIFY_CLIENT_ID
+ARG HOST
+
+# Set environment variables for build (only what's needed during build)
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_S3_DOMAIN=$NEXT_PUBLIC_S3_DOMAIN
+ENV NEXT_PUBLIC_IMAGE_PROXY_URL=$NEXT_PUBLIC_IMAGE_PROXY_URL
+ENV NEXT_PUBLIC_SHOPIFY_CLIENT_ID=$NEXT_PUBLIC_SHOPIFY_CLIENT_ID
+ENV HOST=$HOST
+
 # Build the Next.js application
-# RUN pnpm run build
+RUN pnpm run build
 
 # Expose the port Next.js runs on
 EXPOSE 3000
 
 # Start the application
-CMD ["pnpm", "run", "dev"] 
+CMD ["pnpm", "run", "start"] 
