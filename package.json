@@ -1,6 +1,6 @@
 {
-  "name": "prodigy-ai-app",
-  "version": "2.0.1",
+  "name": "tryonmagic-app",
+  "version": "1.0.0",
   "main": "web/dist/index.js",
   "license": "MIT",
   "scripts": {
