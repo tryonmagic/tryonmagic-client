@@ -12,7 +12,14 @@ export const metadata: Metadata = {
     "shopify-app-origins": process.env.NEXT_PUBLIC_HOST || "",
   },
 };
-const inter = Inter({ subsets: ["latin"] });
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: 'swap',
+  preload: false,
+  fallback: ['system-ui', 'arial'],
+  adjustFontFallback: false
+});
 
 export default function RootLayout({
   children,
