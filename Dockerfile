@@ -28,10 +28,10 @@ WORKDIR /app/web
 RUN pnpm run postinstall
 
 # Build the Next.js application
-RUN pnpm run build
+# RUN pnpm run build
 
 # Expose the port Next.js runs on
 EXPOSE 3000
 
 # Start the application
-CMD ["pnpm", "run", "start"] 
+CMD ["pnpm", "run", "dev"] 
