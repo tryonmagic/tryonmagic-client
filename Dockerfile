@@ -4,22 +4,27 @@ FROM node:18-alpine
 # Install pnpm globally
 RUN npm install -g pnpm
 
+# Create app directory and set ownership
+RUN mkdir -p /app && chown -R node:node /app
+
 # Set working directory
 WORKDIR /app
 
-# Copy package files for dependency installation
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY web/package.json ./web/
+# Switch to node user for better security and to avoid permission issues
+USER node
+
+# Copy package files for dependency installation (with proper ownership)
+COPY --chown=node:node package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY --chown=node:node web/package.json ./web/
 
 # Copy Prisma schema file before installing dependencies
-COPY web/prisma ./web/prisma/
+COPY --chown=node:node web/prisma ./web/prisma/
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Copy the rest of the application code
-
-COPY . .
+# Copy the rest of the application code with proper ownership
+COPY --chown=node:node . .
 
 # Change to web directory for build commands
 WORKDIR /app/web
