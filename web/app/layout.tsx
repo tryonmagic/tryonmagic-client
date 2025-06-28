@@ -13,13 +13,13 @@ export const metadata: Metadata = {
   },
 };
 
-const inter = Inter({
-  subsets: ["latin"],
-  display: 'swap',
-  preload: false,
-  fallback: ['system-ui', 'arial'],
-  adjustFontFallback: false
-});
+// const inter = Inter({
+//   subsets: ["latin"],
+//   display: 'swap',
+//   preload: false,
+//   fallback: ['system-ui', 'arial'],
+//   adjustFontFallback: false
+// });
 
 export default function RootLayout({
   children,
@@ -36,7 +36,7 @@ export default function RootLayout({
         {/* eslint-disable-next-line @next/next/no-sync-scripts */}
         <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
       </head>
-      <body className={inter.className}>
+      <body>
         <Providers>
           <NavMenu />
           {children}
