@@ -95,6 +95,7 @@ export async function handleSessionToken(
   online?: boolean,
   store?: boolean,
 ): Promise<{ shop: string; session: Session }> {
+  
   const payload = await shopify().session.decodeSessionToken(sessionToken);
   const shop = payload.dest.replace("https://", "");
   const session = await tokenExchange({ shop, sessionToken, online, store });
