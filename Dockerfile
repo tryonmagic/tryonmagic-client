@@ -46,10 +46,10 @@ ENV NEXT_PUBLIC_SHOPIFY_CLIENT_ID=$NEXT_PUBLIC_SHOPIFY_CLIENT_ID
 ENV HOST=$HOST
 
 # Build the Next.js application
-# RUN pnpm run build
+RUN pnpm run build
 
 # Expose the port Next.js runs on
 EXPOSE 3000
 
 # Start the application
-CMD ["npm", "run", "dev"] 
+CMD ["pnpm", "run", "start"] 
