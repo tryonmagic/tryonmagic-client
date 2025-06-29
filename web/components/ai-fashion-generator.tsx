@@ -113,6 +113,13 @@ const races = [
     description: "American features and characteristics",
   },
   {
+    value: "russian",
+    label: "Russian",
+    image:
+      "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=100&width=100",
+    description: "Russian features and characteristics",
+  },
+  {
     value: "african",
     label: "African",
     image:
