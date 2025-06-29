@@ -232,6 +232,13 @@ export default function VirtualTryOnPage() {
     );
   });
 
+  const handleDownload = (images: string[]) => {
+    images.forEach((image) => {
+      const downloadUrl = `https://cdn.tryonmagic.com/images?url=${encodeURIComponent(image)}&download=true`;
+      window.open(downloadUrl, '_blank');
+    });
+  };
+
   // Handle model upload
   const handleModelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1396,32 +1403,43 @@ export default function VirtualTryOnPage() {
                             <h3 className="text-sm font-medium mb-3">
                               Variations
                             </h3>
-                            <div className="grid grid-cols-3 gap-3">
-                              {results.map((result) => (
-                                <div
-                                  key={result}
-                                  className={cn(
-                                    "relative aspect-[2/3] rounded-md overflow-hidden cursor-pointer border-2 transition-all",
-                                    selectedResult === result
-                                      ? "border-purple-600 shadow-md"
-                                      : "border-transparent hover:border-slate-300 dark:hover:border-slate-700",
-                                  )}
-                                  onClick={() => setSelectedResult(result)}
-                                >
-                                  <Image
-                                    src={result || "/placeholder.svg"}
-                                    alt={result}
-                                    fill
-                                    className="object-cover"
-                                  />
-                                  {selectedResult === result && (
-                                    <div className="absolute top-2 right-2 bg-purple-600 rounded-full p-1">
-                                      <CheckCircle2 className="h-4 w-4 text-white" />
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
+                            {results.length > 1 && (
+                              <Card>
+                                <CardHeader>
+                                  <CardTitle>All Variants</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {results.map((image, index) => (
+                                      <div
+                                        key={image}
+                                        className={cn(
+                                          "relative rounded-lg overflow-hidden border-2 cursor-pointer transition-all",
+                                          selectedResult === image
+                                            ? "border-purple-500 ring-2 ring-purple-200"
+                                            : "border-slate-200 hover:border-purple-300"
+                                        )}
+                                        onClick={() => setSelectedResult(image)}
+                                      >
+                                        <EnhancedImage
+                                          src={image}
+                                          height={500}
+                                          width={400}
+                                          alt={`Variant ${image}`}
+                                          className="w-full h-auto object-contain"
+                                        />
+                                        <div className="absolute top-2 left-2">
+                                          <Badge variant="secondary" className="text-xs">
+                                            {index}
+                                          </Badge>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            )}
+
                           </div>
                         )}
 
@@ -1445,9 +1463,9 @@ export default function VirtualTryOnPage() {
                             <Sparkles className="mr-2 h-4 w-4" />
                             Generate New Variations
                           </Button>
-                          <Button>
+                          <Button onClick={() => handleDownload(results)}>
                             <Download className="mr-2 h-4 w-4" />
-                            Download Result
+                            Download {results.length > 1 ? "All" : "Result"}
                           </Button>
                         </div>
                       </div>

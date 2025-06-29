@@ -7,9 +7,9 @@ import Image from "next/image"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  ArrowLeft, Upload, ImagePlus, Sparkles, Loader2, Download, Trash2, Info,
-  Palette, Wand2, Camera, Layers, Zap, RefreshCw, Eye, Settings,
-  Brush, Scissors, Move3D, Sun, Moon, Droplets, Wind, Plus
+  ArrowLeft, Upload, Sparkles, Loader2, Download, Trash2, Info,
+  Palette, Layers, RefreshCw, Eye, Settings,
+  Move3D, Plus
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -17,9 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Slider } from "@/components/ui/slider"
-import { Switch } from "@/components/ui/switch"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
