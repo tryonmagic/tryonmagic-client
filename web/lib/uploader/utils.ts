@@ -3,7 +3,7 @@ import { rgbaToThumbHash } from "./thumbhash";
 export const getImageDimensions = async (loc: File | string) => {
   const objectURL =
     typeof loc === "string"
-      ? `${process.env.NEXT_PUBLIC_IMAGE_PROXY_URL}?url=${encodeURIComponent(
+      ? `https://cdn.tryonmagic.com/images?url=${encodeURIComponent(
           loc,
         )}`
       : URL.createObjectURL(loc);
