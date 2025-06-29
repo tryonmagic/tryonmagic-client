@@ -1,13 +1,16 @@
 import axios from "axios";
 
-export const clientAPI = (sessionToken: string) =>
-  axios.create({
+export const clientAPI = (sessionToken: string) => {
+  console.log("clientAPI", process.env.NEXT_PUBLIC_API_URL);
+  return axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_URL,
     headers: {
       "Content-Type": "application/json",
       "x-shopify-session-token": `Bearer ${sessionToken}`,
     },
   });
+}
+  
 
 export const serverSideAPI = axios.create({
   baseURL: process.env.API_URL,
