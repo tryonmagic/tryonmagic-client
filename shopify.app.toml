@@ -1,6 +1,6 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "89fdcc9c35411de02394ed6192badc29"
+client_id = "bd03a74657a1e573c963b97e799d5231"
 application_url = "https://app.tryonmagic.com"
 embedded = true
 name = "TryOnMagic"
