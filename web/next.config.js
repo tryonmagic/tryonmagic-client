@@ -5,6 +5,8 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_HOST: process.env.HOST,
     NEXT_PUBLIC_SHOPIFY_API_KEY: process.env.SHOPIFY_API_KEY,
+    NEXT_PUBLIC_IMAGE_PROXY_URL: process.env.NEXT_PUBLIC_IMAGE_PROXY_URL,
+    NEXT_PUBLIC_S3_DOMAIN: process.env.NEXT_PUBLIC_S3_DOMAIN,
   },
   images: {
     domains: [
