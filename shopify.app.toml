@@ -3,8 +3,8 @@
 client_id = "89fdcc9c35411de02394ed6192badc29"
 application_url = "https://app.tryonmagic.com"
 embedded = true
-name = "tryonmagic-app"
-handle = "tryonmagic-app"
+name = "TryOnMagic"
+handle = "tryonmagic"
 
 [webhooks]
 api_version = "2025-04"
