@@ -19,6 +19,7 @@ import {
   Sparkles,
   Check,
   X,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -52,6 +53,8 @@ import { newTask as removeBackgroundTask } from "@/lib/api/tasks";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { WebSocketClient } from "@/socket";
 import EnhancedImage from "@/components/ui/EnhanchedImage";
+import toast from "react-hot-toast";
+import { AxiosError } from "axios";
 
 // Predefined background colors
 const backgroundColors = [
@@ -195,8 +198,21 @@ export default function RemoveBGPage() {
   const customImageInputRef = useRef<HTMLInputElement>(null);
   const [socket, setSocket] = useState<WebSocketClient | null>(null);
 
+  // Error states
+  const [removeBgError, setRemoveBgError] = useState<string | null>(null);
+  const [replaceBgError, setReplaceBgError] = useState<string | null>(null);
+
   const [openImageUploadDialog, setOpenImageUploadDialog] = useState(false);
   const app = useAppBridge();
+
+  // Cleanup WebSocket connection on unmount
+  useEffect(() => {
+    return () => {
+      if (socket) {
+        socket.disconnect();
+      }
+    };
+  }, [socket]);
 
   const handleCustomImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -214,10 +230,13 @@ export default function RemoveBGPage() {
     if (!uploadedImage) return;
 
     try {
+      // Clear previous errors
+      setRemoveBgError(null);
       setTaskProgress({
         status: TaskStatus.PENDING,
         progress: 0,
       });
+
       const sessionToken = await app.idToken();
 
       const newTask: NewTask<RemoveBackgroundTaskInput> = {
@@ -237,9 +256,13 @@ export default function RemoveBGPage() {
       );
       const task = response.data.data;
       if (!task) {
-        console.error("No task data returned");
+        const errorMessage = "Something went wrong, please try again";
+        setRemoveBgError(errorMessage);
+        toast.error(errorMessage);
+        setTaskProgress(null);
         return;
       }
+
       const websocket = new WebSocketClient(task.userId);
       websocket.on<TaskProgress>("task-progress", (data) => {
         console.log("WebSocket data received:", data);
@@ -247,13 +270,24 @@ export default function RemoveBGPage() {
         if (data.status === TaskStatus.SUCCEEDED) {
           setActiveTab("replace");
           setRemovedBgImage(data.resultData?.outputImageUrl || null);
+          toast.success("Background removed successfully!");
+        } else if (data.status === TaskStatus.FAILED) {
+          const errorMessage = "Failed to remove background";
+          setRemoveBgError(errorMessage);
+          toast.error(errorMessage);
+          setTaskProgress(null);
         }
       });
       setSocket(websocket);
     } catch (error) {
+      const errorMessage =
+        error instanceof AxiosError
+          ? error.response?.data.message
+          : "Failed to remove background. Please try again.";
+      setRemoveBgError(errorMessage);
+      setTaskProgress(null);
+      toast.error(errorMessage);
       console.error("Error removing background:", error);
-      // Handle error (e.g., show a notification)
-      alert("Failed to remove background. Please try again.");
     }
   };
 
@@ -267,6 +301,8 @@ export default function RemoveBGPage() {
     if (!removedBgImage) return;
 
     try {
+      // Clear previous errors
+      setReplaceBgError(null);
       setTaskProgress({
         status: TaskStatus.PENDING,
         progress: 0,
@@ -289,7 +325,10 @@ export default function RemoveBGPage() {
       );
       const task = response.data.data;
       if (!task) {
-        console.error("No task data returned");
+        const errorMessage = "Something went wrong, please try again";
+        setReplaceBgError(errorMessage);
+        toast.error(errorMessage);
+        setTaskProgress(null);
         return;
       }
       let webSocket = socket;
@@ -303,13 +342,23 @@ export default function RemoveBGPage() {
         if (data.status === TaskStatus.SUCCEEDED) {
           setActiveTab("result");
           setFinalImage(data.resultData?.outputImageUrl || null);
+          toast.success("Background replaced successfully!");
+        } else if (data.status === TaskStatus.FAILED) {
+          const errorMessage = "Failed to replace background";
+          setReplaceBgError(errorMessage);
+          toast.error(errorMessage);
+          setTaskProgress(null);
         }
       });
     } catch (error) {
+      const errorMessage =
+        error instanceof AxiosError
+          ? error.response?.data.message
+          : "Failed to replace background. Please try again.";
+      setReplaceBgError(errorMessage);
       setTaskProgress(null);
-      console.error("Error removing background:", error);
-      // Handle error (e.g., show a notification)
-      alert("Failed to remove background. Please try again.");
+      toast.error(errorMessage);
+      console.error("Error replacing background:", error);
     }
   };
 
@@ -323,6 +372,9 @@ export default function RemoveBGPage() {
     setReplaceBgSelectedImage(null);
     setCustomImageUrl("");
     setBackgroundPrompt("");
+    setRemoveBgError(null);
+    setReplaceBgError(null);
+    setTaskProgress(null);
   };
 
   const getBackgroundPreviewStyle = () => {
@@ -353,6 +405,8 @@ export default function RemoveBGPage() {
       )
     : false;
 
+  const hasErrors = removeBgError || replaceBgError;
+
   return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
@@ -381,13 +435,13 @@ export default function RemoveBGPage() {
             </TabsTrigger>
             <TabsTrigger
               value="remove"
-              disabled={!uploadedImage || isTaskProcessing}
+              disabled={!uploadedImage || (isTaskProcessing && !hasErrors)}
             >
               Remove
             </TabsTrigger>
             <TabsTrigger
               value="replace"
-              disabled={!removedBgImage || isTaskProcessing}
+              disabled={!removedBgImage || (isTaskProcessing && !hasErrors)}
             >
               Replace
             </TabsTrigger>
@@ -583,6 +637,11 @@ export default function RemoveBGPage() {
                             {taskProgress &&
                               TaskStatusMessageMapping[taskProgress.status]}
                           </>
+                        ) : removeBgError ? (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Retry Remove Background
+                          </>
                         ) : (
                           <>
                             <Eraser className="mr-2 h-4 w-4" />
@@ -590,6 +649,14 @@ export default function RemoveBGPage() {
                           </>
                         )}
                       </Button>
+
+                      {removeBgError && (
+                        <div className="mt-3 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
+                          <p className="text-sm text-red-700 dark:text-red-300">
+                            {removeBgError}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -918,6 +985,11 @@ export default function RemoveBGPage() {
                             {taskProgress &&
                               TaskStatusMessageMapping[taskProgress.status]}
                           </>
+                        ) : replaceBgError ? (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Retry Replace Background
+                          </>
                         ) : (
                           <>
                             <Sparkles className="mr-2 h-4 w-4" />
@@ -925,6 +997,14 @@ export default function RemoveBGPage() {
                           </>
                         )}
                       </Button>
+
+                      {replaceBgError && (
+                        <div className="mt-3 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
+                          <p className="text-sm text-red-700 dark:text-red-300">
+                            {replaceBgError}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
