@@ -1,0 +1,46 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="32" cy="32" r="30" fill="#8B5CF6" stroke="#8B5CF6" stroke-width="2"/>
+  
+  <!-- Shirt/T-shirt shape -->
+  <path d="M20 24C20 22.8954 20.8954 22 22 22H42C43.1046 22 44 22.8954 44 24V28C44 29.1046 43.1046 30 42 30H22C20.8954 30 20 29.1046 20 28V24Z" fill="white" stroke="white" stroke-width="1"/>
+  
+  <!-- Shirt collar -->
+  <path d="M26 22C26 20.8954 26.8954 20 28 20H36C37.1046 20 38 20.8954 38 22V24H26V22Z" fill="white" stroke="white" stroke-width="1"/>
+  
+  <!-- Shirt sleeves -->
+  <path d="M22 24C22 22.8954 22.8954 22 24 22H20C18.8954 22 18 22.8954 18 24V26C18 27.1046 18.8954 28 20 28H24C22.8954 28 22 27.1046 22 26V24Z" fill="white" stroke="white" stroke-width="1"/>
+  <path d="M42 24C42 22.8954 41.1046 22 40 22H44C45.1046 22 46 22.8954 46 24V26C46 27.1046 45.1046 28 44 28H40C41.1046 28 42 27.1046 42 26V24Z" fill="white" stroke="white" stroke-width="1"/>
+  
+  <!-- Magic sparkles -->
+  <!-- Top sparkle -->
+  <path d="M32 16L33.5 18.5L36 20L33.5 21.5L32 24L30.5 21.5L28 20L30.5 18.5L32 16Z" fill="white"/>
+  <circle cx="32" cy="20" r="1" fill="#8B5CF6"/>
+  
+  <!-- Bottom left sparkle -->
+  <path d="M18 36L19.5 38.5L22 40L19.5 41.5L18 44L16.5 41.5L14 40L16.5 38.5L18 36Z" fill="white"/>
+  <circle cx="18" cy="40" r="1" fill="#8B5CF6"/>
+  
+  <!-- Bottom right sparkle -->
+  <path d="M46 36L47.5 38.5L50 40L47.5 41.5L46 44L44.5 41.5L42 40L44.5 38.5L46 36Z" fill="white"/>
+  <circle cx="46" cy="40" r="1" fill="#8B5CF6"/>
+  
+  <!-- Center sparkle -->
+  <path d="M32 34L33 35.5L34.5 36.5L33 37.5L32 39L31 37.5L29.5 36.5L31 35.5L32 34Z" fill="white"/>
+  <circle cx="32" cy="36.5" r="0.5" fill="#8B5CF6"/>
+  
+  <!-- AI/Neural network dots -->
+  <circle cx="28" cy="26" r="1" fill="white"/>
+  <circle cx="36" cy="26" r="1" fill="white"/>
+  <circle cx="32" cy="28" r="1" fill="white"/>
+  <circle cx="30" cy="30" r="1" fill="white"/>
+  <circle cx="34" cy="30" r="1" fill="white"/>
+  
+  <!-- Connecting lines for neural network effect -->
+  <g stroke="white" stroke-width="0.5" opacity="0.7">
+    <line x1="28" y1="26" x2="32" y2="28"/>
+    <line x1="36" y1="26" x2="32" y2="28"/>
+    <line x1="32" y1="28" x2="30" y2="30"/>
+    <line x1="32" y1="28" x2="34" y2="30"/>
+  </g>
+</svg> 

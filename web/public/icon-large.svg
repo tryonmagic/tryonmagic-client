@@ -1,0 +1,85 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle with gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B5CF6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#EC4899;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="shirtGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:0.9" />
+      <stop offset="100%" style="stop-color:#F3F4F6;stop-opacity:0.9" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="rgba(0,0,0,0.1)"/>
+    </filter>
+  </defs>
+  
+  <!-- Main background circle -->
+  <circle cx="256" cy="256" r="240" fill="url(#bgGradient)" stroke="url(#bgGradient)" stroke-width="8" filter="url(#shadow)"/>
+  
+  <!-- Shirt/T-shirt shape -->
+  <path d="M160 192C160 183.163 167.163 176 176 176H336C344.837 176 352 183.163 352 192V224C352 232.837 344.837 240 336 240H176C167.163 240 160 232.837 160 224V192Z" fill="url(#shirtGradient)" stroke="#E5E7EB" stroke-width="4"/>
+  
+  <!-- Shirt collar -->
+  <path d="M208 176C208 167.163 215.163 160 224 160H288C296.837 160 304 167.163 304 176V192H208V176Z" fill="url(#shirtGradient)" stroke="#E5E7EB" stroke-width="4"/>
+  
+  <!-- Shirt sleeves -->
+  <path d="M176 192C176 183.163 183.163 176 192 176H160C151.163 176 144 183.163 144 192V208C144 216.837 151.163 224 160 224H192C183.163 224 176 216.837 176 208V192Z" fill="url(#shirtGradient)" stroke="#E5E7EB" stroke-width="4"/>
+  <path d="M336 192C336 183.163 328.837 176 320 176H352C360.837 176 368 183.163 368 192V208C368 216.837 360.837 224 352 224H320C328.837 224 336 216.837 336 208V192Z" fill="url(#shirtGradient)" stroke="#E5E7EB" stroke-width="4"/>
+  
+  <!-- Magic sparkles -->
+  <g filter="url(#glow)">
+    <!-- Top sparkle -->
+    <path d="M256 128L272 148L304 160L272 172L256 192L240 172L208 160L240 148L256 128Z" fill="#FCD34D"/>
+    <circle cx="256" cy="160" r="8" fill="#F59E0B"/>
+    
+    <!-- Bottom left sparkle -->
+    <path d="M144 288L160 308L192 320L160 332L144 352L128 332L96 320L128 308L144 288Z" fill="#FCD34D"/>
+    <circle cx="144" cy="320" r="8" fill="#F59E0B"/>
+    
+    <!-- Bottom right sparkle -->
+    <path d="M368 288L384 308L416 320L384 332L368 352L352 332L320 320L352 308L368 288Z" fill="#FCD34D"/>
+    <circle cx="368" cy="320" r="8" fill="#F59E0B"/>
+    
+    <!-- Center sparkle -->
+    <path d="M256 272L264 284L276 292L264 300L256 312L248 300L236 292L248 284L256 272Z" fill="#FCD34D"/>
+    <circle cx="256" cy="292" r="4" fill="#F59E0B"/>
+    
+    <!-- Additional small sparkles -->
+    <path d="M192 160L196 164L200 168L196 172L192 176L188 172L184 168L188 164L192 160Z" fill="#FCD34D"/>
+    <path d="M320 160L324 164L328 168L324 172L320 176L316 172L312 168L316 164L320 160Z" fill="#FCD34D"/>
+  </g>
+  
+  <!-- AI/Neural network dots -->
+  <g opacity="0.8">
+    <circle cx="224" cy="208" r="8" fill="#8B5CF6"/>
+    <circle cx="288" cy="208" r="8" fill="#8B5CF6"/>
+    <circle cx="256" cy="224" r="8" fill="#EC4899"/>
+    <circle cx="240" cy="240" r="8" fill="#8B5CF6"/>
+    <circle cx="272" cy="240" r="8" fill="#EC4899"/>
+    <circle cx="256" cy="256" r="6" fill="#8B5CF6"/>
+  </g>
+  
+  <!-- Connecting lines for neural network effect -->
+  <g opacity="0.4" stroke="#8B5CF6" stroke-width="2">
+    <line x1="224" y1="208" x2="256" y2="224"/>
+    <line x1="288" y1="208" x2="256" y2="224"/>
+    <line x1="256" y1="224" x2="240" y2="240"/>
+    <line x1="256" y1="224" x2="272" y2="240"/>
+    <line x1="240" y1="240" x2="256" y2="256"/>
+    <line x1="272" y1="240" x2="256" y2="256"/>
+  </g>
+  
+  <!-- Subtle inner glow -->
+  <circle cx="256" cy="256" r="200" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="4"/>
+  
+  <!-- Outer ring for app store requirements -->
+  <circle cx="256" cy="256" r="248" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="2"/>
+</svg> 
