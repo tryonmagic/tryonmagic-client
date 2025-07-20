@@ -1,7 +1,6 @@
 "use client";
 
 import type React from "react";
-import axios from "axios";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -64,6 +63,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAppBridge } from "@shopify/app-bridge-react";
+import { getUsageHistory } from "./queries";
 
 // Mock data for the profile
 const userData = {
@@ -177,10 +177,13 @@ export default function ProfilePage() {
   const shopifyApp = useAppBridge();
   console.log(shopifyApp);
   useEffect(() => {
-    axios.get("/test").then((response) => {
-      console.log(response.data);
-    });
-  }, []);
+    const fetchUsageHistory = async () => {
+      const token = await shopifyApp.idToken();
+      const usageHistory = await getUsageHistory(token);
+      console.log(usageHistory);
+    };
+    fetchUsageHistory();
+  }, [shopifyApp]);
 
   // Set the active tab based on URL parameter
   useEffect(() => {
@@ -251,99 +254,53 @@ export default function ProfilePage() {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {/* User Profile Card */}
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex flex-col items-center text-center">
-                    <div className="relative mb-4">
-                      <Avatar className="h-24 w-24">
-                        <AvatarImage
-                          src={userData.avatar}
-                          alt={userData.name}
-                        />
-                        <AvatarFallback>
-                          {userData.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <Button
-                        size="icon"
-                        variant="secondary"
-                        className="absolute bottom-0 right-0 h-8 w-8 rounded-full"
-                      >
-                        <Camera className="h-4 w-4" />
-                      </Button>
+            {/* Points Card */}
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle>Your Points</CardTitle>
+                <CardDescription>
+                  Current plan:{" "}
+                  <span className="font-medium">{userData.plan}</span>
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm text-slate-600 dark:text-slate-400">
+                        Available Points
+                      </span>
+                      <span className="text-sm font-medium">
+                        {userData.pointsAvailable} / {userData.pointsTotal}
+                      </span>
                     </div>
-                    <h2 className="text-xl font-bold">{userData.name}</h2>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {userData.email}
-                    </p>
+                    <Progress
+                      value={
+                        (userData.pointsAvailable / userData.pointsTotal) * 100
+                      }
+                      className="h-2"
+                    />
                     <div className="flex items-center mt-2 text-xs text-slate-500 dark:text-slate-500">
-                      <Calendar className="h-3 w-3 mr-1" />
-                      <span>Member since {userData.joinDate}</span>
-                    </div>
-                    <div className="mt-6 w-full">
-                      <Button variant="outline" className="w-full">
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit Profile
-                      </Button>
+                      <Clock className="h-3 w-3 mr-1" />
+                      <span>Points expire on {userData.pointsExpiry}</span>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
 
-              {/* Points Card */}
-              <Card className="md:col-span-2">
-                <CardHeader>
-                  <CardTitle>Your Points</CardTitle>
-                  <CardDescription>
-                    Current plan:{" "}
-                    <span className="font-medium">{userData.plan}</span>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    <div>
-                      <div className="flex justify-between mb-2">
-                        <span className="text-sm text-slate-600 dark:text-slate-400">
-                          Available Points
-                        </span>
-                        <span className="text-sm font-medium">
-                          {userData.pointsAvailable} / {userData.pointsTotal}
-                        </span>
-                      </div>
-                      <Progress
-                        value={
-                          (userData.pointsAvailable / userData.pointsTotal) *
-                          100
-                        }
-                        className="h-2"
-                      />
-                      <div className="flex items-center mt-2 text-xs text-slate-500 dark:text-slate-500">
-                        <Clock className="h-3 w-3 mr-1" />
-                        <span>Points expire on {userData.pointsExpiry}</span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <Button asChild>
-                        <Link href="/purchase">
-                          <CreditCard className="mr-2 h-4 w-4" />
-                          Buy More Points
-                        </Link>
-                      </Button>
-                      <Button variant="outline">
-                        <History className="mr-2 h-4 w-4" />
-                        View Purchase History
-                      </Button>
-                    </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Button asChild>
+                      <Link href="/purchase">
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        Buy More Points
+                      </Link>
+                    </Button>
+                    <Button variant="outline">
+                      <History className="mr-2 h-4 w-4" />
+                      View Purchase History
+                    </Button>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Usage Dashboard */}
             <Card>

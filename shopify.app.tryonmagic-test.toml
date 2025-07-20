@@ -1,0 +1,24 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "124072c1c7b3d13dc86335144cf0bd18"
+name = "tryonmagic-test"
+handle = "tryonmagic-test"
+application_url = "https://whale-factor-emphasis-vanilla.trycloudflare.com"
+embedded = true
+
+[build]
+include_config_on_deploy = true
+automatically_update_urls_on_dev = true
+
+[webhooks]
+api_version = "2025-07"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_customers,write_products"
+
+[auth]
+redirect_urls = ["https://whale-factor-emphasis-vanilla.trycloudflare.com/auth/callback", "https://whale-factor-emphasis-vanilla.trycloudflare.com/auth/shopify/callback", "https://whale-factor-emphasis-vanilla.trycloudflare.com/api/auth/callback"]
+
+[pos]
+embedded = false
