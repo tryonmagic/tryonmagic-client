@@ -41,16 +41,22 @@ export class ExpiredTokenError extends Error {
 export async function verifyRequest(
   req: Request,
   isOnline: boolean,
+  sessionToken?: string,
 ): Promise<{ shop: string; session: Session }> {
   const bearerToken =
     req.headers.get("x-shopify-session-token") ??
     req.headers.get("authorization");
-  const bearerPresent = bearerToken?.startsWith("Bearer ");
-  const sessionToken = bearerToken?.replace("Bearer ", "");
-  if (!bearerPresent || !sessionToken) {
+
+  const _sessionToken = sessionToken ?? bearerToken?.replace("Bearer ", "");
+  console.log({
+    sessionToken,
+    bearerToken,
+    _sessionToken,
+  });
+  if (!_sessionToken) {
     throw new Error("No bearer or session token present");
   }
-  return handleSessionToken(sessionToken, isOnline);
+  return handleSessionToken(_sessionToken, isOnline);
 }
 
 /**
@@ -95,7 +101,6 @@ export async function handleSessionToken(
   online?: boolean,
   store?: boolean,
 ): Promise<{ shop: string; session: Session }> {
-  
   const payload = await shopify().session.decodeSessionToken(sessionToken);
   const shop = payload.dest.replace("https://", "");
   const session = await tokenExchange({ shop, sessionToken, online, store });
