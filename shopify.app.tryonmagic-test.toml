@@ -3,7 +3,7 @@
 client_id = "124072c1c7b3d13dc86335144cf0bd18"
 name = "tryonmagic-test"
 handle = "tryonmagic-test"
-application_url = "https://whale-factor-emphasis-vanilla.trycloudflare.com"
+application_url = "https://ecuador-evaluated-stand-rn.trycloudflare.com"
 embedded = true
 
 [build]
@@ -18,7 +18,7 @@ api_version = "2025-07"
 scopes = "read_customers,write_products"
 
 [auth]
-redirect_urls = ["https://whale-factor-emphasis-vanilla.trycloudflare.com/auth/callback", "https://whale-factor-emphasis-vanilla.trycloudflare.com/auth/shopify/callback", "https://whale-factor-emphasis-vanilla.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://ecuador-evaluated-stand-rn.trycloudflare.com/auth/callback", "https://ecuador-evaluated-stand-rn.trycloudflare.com/auth/shopify/callback", "https://ecuador-evaluated-stand-rn.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false

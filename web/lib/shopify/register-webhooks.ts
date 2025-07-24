@@ -17,6 +17,28 @@ export function addHandlers() {
           await AppInstallations.delete(shop);
         },
       },
+      ["APP_SUBSCRIPTIONS_UPDATE"]: {
+        deliveryMethod: DeliveryMethod.Http,
+        callbackUrl: "/api/billing/refresh-subscription",
+        callback: async (topic, shop, body) => {
+          console.log(`Subscription updated for shop: ${shop}`, {
+            topic,
+            body,
+          });
+          // The actual refresh logic is handled in the API endpoint
+        },
+      },
+      ["APP_SUBSCRIPTIONS_APPROACHING_CAPPED_AMOUNT"]: {
+        deliveryMethod: DeliveryMethod.Http,
+        callbackUrl: "/api/billing/refresh-subscription",
+        callback: async (topic, shop, body) => {
+          console.log(`Subscription approaching cap for shop: ${shop}`, {
+            topic,
+            body,
+          });
+          // The actual refresh logic is handled in the API endpoint
+        },
+      },
     });
     console.log("Added handlers");
     webhooksInitialized = true;

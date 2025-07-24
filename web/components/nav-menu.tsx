@@ -9,7 +9,14 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 // Import additional icons and components at the top
-import { User, Settings, LogOut, CreditCard, History } from "lucide-react";
+import {
+  User,
+  Settings,
+  LogOut,
+  CreditCard,
+  History,
+  Receipt,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +39,7 @@ const navLinks = [
   // { href: "/relight", label: "Relight" },
   { href: "/expand-image", label: "Expand Image" },
   { href: "/magic-eraser", label: "Magic Eraser" },
+  { href: "/billing", label: "Billing" },
   { href: "/purchase", label: "Purchase" },
 ];
 
@@ -122,6 +130,12 @@ export function NavMenu() {
                     <Link href="/purchase" className="cursor-pointer">
                       <CreditCard className="mr-2 h-4 w-4" />
                       <span>Buy Points</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/billing" className="cursor-pointer">
+                      <Receipt className="mr-2 h-4 w-4" />
+                      <span>Billing</span>
                     </Link>
                   </DropdownMenuItem>
                 </DropdownMenuGroup>

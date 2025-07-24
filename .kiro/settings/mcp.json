@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "shopify-dev-mcp": {
+      "command": "shopify-dev-mcp",
+      "args": [],
+      "disabled": false,
+      "autoApprove": [
+        "get_started",
+        "search_dev_docs"
+      ]
+    }
+  }
+}
