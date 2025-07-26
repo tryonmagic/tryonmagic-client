@@ -41,9 +41,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { subscribedPlan } from "./queries";
+import { useAppBridge } from "@shopify/app-bridge-react";
+import { PaymentMethod, SubscriptionPlan } from "./type";
+import toast from "react-hot-toast";
 
 interface PricingTier {
-  id: string;
+  id: SubscriptionPlan;
   name: string;
   price: number;
   points: number;
@@ -67,10 +71,10 @@ interface FAQ {
 
 const pricingTiers: PricingTier[] = [
   {
-    id: "starter",
-    name: "Starter",
-    price: 9.99,
-    points: 100,
+    id: SubscriptionPlan.FREE,
+    name: "Free",
+    price: 0,
+    points: 10,
     description: "Perfect for trying out our AI tools",
     features: [
       "Generate 10 AI fashion models",
@@ -81,10 +85,10 @@ const pricingTiers: PricingTier[] = [
     ],
   },
   {
-    id: "standard",
-    name: "Standard",
-    price: 19.99,
-    points: 200,
+    id: SubscriptionPlan.BASIC,
+    name: "Basic",
+    price: 9.99,
+    points: 100,
     description: "Our most popular option for creators",
     features: [
       "Generate 20 AI fashion models",
@@ -96,9 +100,9 @@ const pricingTiers: PricingTier[] = [
     popular: true,
   },
   {
-    id: "pro",
+    id: SubscriptionPlan.PRO,
     name: "Professional",
-    price: 39.99,
+    price: 29.99,
     points: 500,
     description: "Ideal for professional creators and businesses",
     features: [
@@ -107,6 +111,20 @@ const pricingTiers: PricingTier[] = [
       "Upscale or relight 62 images",
       "Use Magic Eraser on 50 images",
       "Valid for 90 days",
+    ],
+  },
+  {
+    id: SubscriptionPlan.ENTERPRISE,
+    name: "Enterprise",
+    price: 99.99,
+    points: 2000,
+    description: "Ideal for large businesses and organizations",
+    features: [
+      "Generate 100 AI fashion models",
+      "Remove backgrounds from 200 images",
+      "Upscale or relight 125 images",
+      "Use Magic Eraser on 100 images",
+      "Valid for 180 days",
     ],
   },
 ];
@@ -189,15 +207,27 @@ export default function PurchasePage() {
   const [expandedFaqs, setExpandedFaqs] = useState<Record<number, boolean>>({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [purchaseComplete, setPurchaseComplete] = useState(false);
+  const appBridge = useAppBridge();
 
-  const handlePurchase = () => {
+  const handlePurchase = async () => {
     setIsProcessing(true);
 
-    // Simulate payment processing
-    setTimeout(() => {
+    try {
+      const token = await appBridge.idToken();
+      const response = await subscribedPlan(token, {
+        plan: selectedPlan.id,
+        paymentMethod: PaymentMethod.SHOPIFY,
+        referenceId: "1234567890",
+      });
+      toast.success(
+        `Points purchased successfully: ${response.data.data?.plan}`,
+      );
       setIsProcessing(false);
       setPurchaseComplete(true);
-    }, 2000);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to purchase points");
+    }
   };
 
   const toggleFaq = (index: number) => {
