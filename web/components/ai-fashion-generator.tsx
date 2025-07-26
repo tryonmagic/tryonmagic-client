@@ -30,6 +30,7 @@ import { WebSocketClient } from "@/socket";
 import { TaskProgress, TaskStatus } from "@/lib/api/type";
 import Image from "next/image";
 import EnhancedImage from "./ui/EnhanchedImage";
+import { AxiosError } from "axios";
 
 const locations = [
   {
@@ -394,6 +395,10 @@ export default function AIFashionGenerator() {
   const [activeTab, setActiveTab] = useState("form");
   const [overrideParameters, setOverrideParameters] = useState(false);
   const [taskProgress, setTaskProgress] = useState<TaskProgress | null>(null);
+  const [error, setError] = useState<{
+    message: string;
+    status: number;
+  } | null>(null);
   const appBridge = useAppBridge();
 
   const handleInputChange = (field: string, value: string) => {
@@ -402,39 +407,69 @@ export default function AIFashionGenerator() {
 
   const handleGenerate = async () => {
     setIsGenerating(true);
+    setError(null);
     setActiveTab("result");
-    const sessionToken = await appBridge.idToken();
-    const response = await generateAIModel(sessionToken, {
-      prompt: formData.prompt,
-      negativePrompt: formData.negativePrompt,
-      modelLocation: formData.location,
-      ethnicity: formData.race,
-      skinTone: formData.skinTone,
-      ageRange: formData.age,
-      aspectRatio: formData.aspectRatio,
-      overrideParameters,
-      gender: formData.gender,
-    });
-    const task = response.data.data;
-    if (!task) {
-      console.error("No task data returned");
-      return;
-    }
-
-    const websocket = new WebSocketClient(task.userId);
-    websocket.on<TaskProgress>("task-progress", (data) => {
-      console.log("WebSocket data received:", data);
-      setTaskProgress(data);
-      if (data.status === TaskStatus.SUCCEEDED) {
-        setIsGenerating(false);
-        setGeneratedImage(data.resultData?.outputImageUrl || "");
+    try {
+      const sessionToken = await appBridge.idToken();
+      const response = await generateAIModel(sessionToken, {
+        prompt: formData.prompt,
+        negativePrompt: formData.negativePrompt,
+        modelLocation: formData.location,
+        ethnicity: formData.race,
+        skinTone: formData.skinTone,
+        ageRange: formData.age,
+        aspectRatio: formData.aspectRatio,
+        overrideParameters,
+        gender: formData.gender,
+      });
+      const task = response.data.data;
+      if (!task) {
+        throw new Error("No task data returned from the server");
       }
-    });
+
+      const websocket = new WebSocketClient(task.userId);
+      websocket.on<TaskProgress>("task-progress", (data) => {
+        console.log("WebSocket data received:", data);
+        setTaskProgress(data);
+        if (data.status === TaskStatus.SUCCEEDED) {
+          setIsGenerating(false);
+          setGeneratedImage(data.resultData?.outputImageUrl || "");
+        } else if (data.status === TaskStatus.FAILED) {
+          setIsGenerating(false);
+          setError({
+            message: "Generation failed. Please try again.",
+            status: 400,
+          });
+        }
+      });
+    } catch (error) {
+      console.error("Error generating fashion model:", error);
+      setIsGenerating(false);
+      setTaskProgress(null);
+      setGeneratedImage("");
+      setError(
+        error instanceof AxiosError
+          ? {
+              message: error.response?.data.message,
+              status: error.response?.status || 400,
+            }
+          : {
+              message: "An unexpected error occurred. Please try again.",
+              status: 500,
+            },
+      );
+    }
   };
 
   const handleReset = () => {
     setGeneratedImage("");
+    setError(null);
     setActiveTab("form");
+  };
+
+  const handleRetry = () => {
+    setError(null);
+    handleGenerate();
   };
 
   // Get the selected location image for the preview
@@ -690,6 +725,19 @@ export default function AIFashionGenerator() {
                         Using your prompt to generate a custom fashion model
                       </p>
                     )}
+                  </div>
+                ) : error ? (
+                  <div className="flex flex-col items-center justify-center min-h-[500px]">
+                    <p className="text-lg text-center text-red-600 dark:text-red-400">
+                      {error.message}
+                    </p>
+                    <Button
+                      onClick={handleRetry}
+                      disabled={error.status === 403 || error.status === 401}
+                      className="mt-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                    >
+                      Retry Generation
+                    </Button>
                   </div>
                 ) : generatedImage ? (
                   <div className="space-y-4">
