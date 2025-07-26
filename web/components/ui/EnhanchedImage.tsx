@@ -52,8 +52,8 @@ export default function EnhancedImage({
   }, []);
 
   const handleDownload = () => {
-    const downloadUrl = `https://cdn.tryonmagic.com/images?url=${encodeURIComponent(src)}&download=true`;
-    window.open(downloadUrl, '_blank');
+    const downloadUrl = `${process.env.NEXT_PUBLIC_IMAGE_PROXY_URL}/images?url=${encodeURIComponent(src)}&download=true`;
+    window.open(downloadUrl, "_blank");
   };
 
   return (

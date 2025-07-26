@@ -234,8 +234,8 @@ export default function VirtualTryOnPage() {
 
   const handleDownload = (images: string[]) => {
     images.forEach((image) => {
-      const downloadUrl = `https://cdn.tryonmagic.com/images?url=${encodeURIComponent(image)}&download=true`;
-      window.open(downloadUrl, '_blank');
+      const downloadUrl = `${process.env.NEXT_PUBLIC_IMAGE_PROXY_URL}/images?url=${encodeURIComponent(image)}&download=true`;
+      window.open(downloadUrl, "_blank");
     });
   };
 
@@ -1417,7 +1417,7 @@ export default function VirtualTryOnPage() {
                                           "relative rounded-lg overflow-hidden border-2 cursor-pointer transition-all",
                                           selectedResult === image
                                             ? "border-purple-500 ring-2 ring-purple-200"
-                                            : "border-slate-200 hover:border-purple-300"
+                                            : "border-slate-200 hover:border-purple-300",
                                         )}
                                         onClick={() => setSelectedResult(image)}
                                       >
@@ -1429,7 +1429,10 @@ export default function VirtualTryOnPage() {
                                           className="w-full h-auto object-contain"
                                         />
                                         <div className="absolute top-2 left-2">
-                                          <Badge variant="secondary" className="text-xs">
+                                          <Badge
+                                            variant="secondary"
+                                            className="text-xs"
+                                          >
                                             {index}
                                           </Badge>
                                         </div>
@@ -1439,7 +1442,6 @@ export default function VirtualTryOnPage() {
                                 </CardContent>
                               </Card>
                             )}
-
                           </div>
                         )}
 

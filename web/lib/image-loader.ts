@@ -8,7 +8,7 @@ const imageLoader = ({
   width: number;
   quality?: number;
 }) => {
-  return `https://cdn.tryonmagic.com/images?url=${encodeURIComponent(
+  return `${process.env.NEXT_PUBLIC_IMAGE_PROXY_URL}/images?url=${encodeURIComponent(
     src,
   )}&w=${width}&q=${quality || 75}`;
 };
