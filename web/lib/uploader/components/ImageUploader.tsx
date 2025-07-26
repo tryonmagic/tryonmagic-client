@@ -16,6 +16,8 @@ export interface ImageInfo {
   previewImageUrl: string;
 }
 interface ImageUploaderProps {
+  placeholder?: string;
+  hideImagePreviewAfterUpload?: boolean;
   onUploaded: (imageInfo: ImageInfo) => void;
 }
 
@@ -74,6 +76,9 @@ export default function ImageUploader(props: ImageUploaderProps) {
     (file: File, previewImageResult: string) => async (key: string) => {
       await saveFile(key, file, previewImageResult); // Pass previewImageResult
       setIsUploading(false);
+      if (props.hideImagePreviewAfterUpload) {
+        setPreviewImage(null);
+      }
     };
 
   const saveFile = async (
@@ -225,7 +230,7 @@ export default function ImageUploader(props: ImageUploaderProps) {
             </div>
             <div>
               <p className="text-sm font-medium text-slate-900 dark:text-white">
-                Click to upload or drag and drop
+                {props.placeholder ?? "Click to upload or drag and drop"}
               </p>
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 PNG, JPG or WEBP (max. 10MB)

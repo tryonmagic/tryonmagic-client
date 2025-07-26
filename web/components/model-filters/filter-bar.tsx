@@ -53,7 +53,7 @@ export function FilterBar() {
   });
 
   return (
-    <div className="border border-gray-200 rounded-lg p-2 bg-white">
+    <div className="border border-gray-200 rounded-lg p-2 bg-white" hidden>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <svg

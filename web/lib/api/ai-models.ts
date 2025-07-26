@@ -1,5 +1,11 @@
 import { clientAPI } from ".";
-import { AIModel, CreateAIModel, Garment, GenericAPIResponse } from "./type";
+import {
+  AIModel,
+  CreateAIModel,
+  Garment,
+  GenericAPIResponse,
+  SuccessWithPaginationResponse,
+} from "./type";
 
 export const generateAIModel = (token: string, aiModel: CreateAIModel) => {
   return clientAPI(token).post<GenericAPIResponse<AIModel>>(
@@ -8,10 +14,20 @@ export const generateAIModel = (token: string, aiModel: CreateAIModel) => {
   );
 };
 
-export const getAIModels = async (token: string) => {
-  const response =
-    await clientAPI(token).get<GenericAPIResponse<AIModel[]>>("ai-models");
-  return response.data.data;
+export const getAIModels = async (
+  token: string,
+  page: number,
+  pageSize: number,
+) => {
+  const response = await clientAPI(token).get<
+    SuccessWithPaginationResponse<AIModel>
+  >("ai-models", {
+    params: {
+      page,
+      pageSize,
+    },
+  });
+  return response.data;
 };
 
 export const getGarments = async (token: string) => {

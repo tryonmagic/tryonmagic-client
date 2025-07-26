@@ -183,7 +183,7 @@ export enum EditMode {
 }
 export enum EditType {
   INPAINT_REMOVE = "EDIT_MODE_INPAINT_REMOVAL",
-  INPAINT_REPLACE = "EDIT_MODE_INPAINT_REPLACE", 
+  INPAINT_REPLACE = "EDIT_MODE_INPAINT_REPLACE",
   INPAINT_INSERTION = "EDIT_MODE_INPAINT_INSERTION",
 }
 
@@ -210,7 +210,7 @@ export interface EditImageTaskInput {
 // Product Image Editing Types
 export enum ProductImageEditingType {
   SMART_BACKGROUND = "SMART_BACKGROUND",
-  STYLE_TRANSFER = "STYLE_TRANSFER", 
+  STYLE_TRANSFER = "STYLE_TRANSFER",
   SCENE_GENERATION = "SCENE_GENERATION",
   PRODUCT_VARIANTS = "PRODUCT_VARIANTS",
   PRODUCT_COLOR_VARIANTS = "PRODUCT_COLOR_VARIANTS",
@@ -242,7 +242,7 @@ export interface ProductImageEditTaskInput {
   sourceImageUrl: string;
   imageSourceType: ImageSourceType;
   processingType: ProductImageEditingType;
-  
+
   // Smart Background fields
   backgroundPrompt?: string | null;
   preserveLighting?: boolean;
@@ -250,7 +250,7 @@ export interface ProductImageEditTaskInput {
   enhanceQuality?: boolean;
   backgroundStyle?: string | null;
   lightingAdjustment?: string | null;
-  
+
   // Style Transfer fields
   styleType?: StyleType | null;
   stylePrompt?: string | null;
@@ -259,7 +259,7 @@ export interface ProductImageEditTaskInput {
   intensity?: number;
   preserveDetails?: boolean;
   brandGuidelines?: string | null;
-  
+
   // Scene Generation fields
   sceneType?: SceneType | null;
   scenePrompt?: string | null;
@@ -268,7 +268,7 @@ export interface ProductImageEditTaskInput {
   brandEnvironment?: string | null;
   lightingConditions?: string | null;
   targetAudience?: string | null;
-  
+
   // Product Variants fields
   variantType?: VariantType | null;
   variantPrompt?: string | null;
@@ -282,4 +282,15 @@ export interface ProductImageEditTaskInput {
 
 export interface ProductImageEditTaskResultData {
   outputImageUrl: string | string[];
+}
+
+export interface SuccessWithPaginationResponse<T = unknown> {
+  code: number;
+  status: string;
+  message: string;
+  results: T[];
+  page: number;
+  limit: number;
+  totalPages: number;
+  totalResults: number;
 }

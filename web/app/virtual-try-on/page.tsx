@@ -2,8 +2,7 @@
 
 import type React from "react";
 
-import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -48,7 +47,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { useAIModels, useGarments } from "./hooks";
 import { FilterProvider } from "@/components/model-filters/filter-context";
 import { FilterBar } from "@/components/model-filters/filter-bar";
 import EnhancedImage from "@/components/ui/EnhanchedImage";
@@ -61,10 +59,17 @@ import {
   VTONModelMode,
   VTONTaskInput,
   VtonTaskResultData,
+  AIModel,
 } from "@/lib/api/type";
 import { newTask as newVTONTask } from "@/lib/api/tasks";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { WebSocketClient } from "@/socket";
+import { useAuthenticatedQuery } from "@/lib/hooks/useAuthenticatedQuery";
+import { getAIModelsQuery } from "./queries";
+import { getGarments } from "@/lib/api/ai-models";
+import ImageUploader, {
+  ImageInfo,
+} from "@/lib/uploader/components/ImageUploader";
 
 // Sample model gallery data
 const modelGallery = [
@@ -178,7 +183,6 @@ const sampleResults = [
 ];
 
 export default function VirtualTryOnPage() {
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState("model");
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [selectedGarment, setSelectedGarment] = useState<string | null>(null);
@@ -209,28 +213,45 @@ export default function VirtualTryOnPage() {
 
   const modelInputRef = useRef<HTMLInputElement>(null);
   const garmentInputRef = useRef<HTMLInputElement>(null);
-  const { data: aiModels, isLoading } = useAIModels();
-  const { data: garments } = useGarments();
-  const [ageFilter, setAgeFilter] = useState("all");
-  const [ethnicityFilter, setEthnicityFilter] = useState("all");
-  const [skinToneFilter, setSkinToneFilter] = useState("all");
+  const [aiModelUploadedImageInfo, setAiModelUploadedImageInfo] =
+    useState<ImageInfo | null>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const modelsPerPage = 10;
+
+  // const { data: aiModels, isLoading } = useAuthenticatedQuery()
+  const {
+    isLoading,
+    data: aiModels,
+    isFetching,
+  } = useAuthenticatedQuery({
+    queryKey: [
+      "ai-models",
+      {
+        page: currentPage,
+        pageSize: modelsPerPage,
+      },
+    ],
+    queryFn: getAIModelsQuery,
+    placeholderData: (value) => value,
+  });
+  const { data: garments } = useAuthenticatedQuery({
+    queryKey: ["garments"],
+    queryFn: getGarments,
+  });
   const [taskProgress, setTaskProgress] = useState<TaskProgress | null>(null);
 
-  // Filter models based on selected filter
-  const filteredModels = aiModels?.filter((model) => {
-    if (modelFilter === "all") return true;
-    return model.gender === modelFilter;
-  });
+  // Reset current page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [modelFilter]);
 
-  console.log({ garments });
-
-  // Filter garments based on selected filter
-  const filteredGarments = garments?.filter((garment) => {
-    if (garmentFilter === "all") return true;
-    return (
-      garment.outfitType === garmentFilter || garment.color === garmentFilter
-    );
-  });
+  // Calculate pagination
+  const totalModels = aiModels?.totalResults || 0;
+  const totalPages = aiModels?.totalPages || 0;
+  const currentModels = aiModels?.results ?? [];
+  console.log({ aiModels });
 
   const handleDownload = (images: string[]) => {
     images.forEach((image) => {
@@ -239,19 +260,10 @@ export default function VirtualTryOnPage() {
     });
   };
 
-  // Handle model upload
-  const handleModelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setUploadedModel(event.target.result as string);
-          setSelectedModel(null);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleImageUploaded = (imageInfo: ImageInfo) => {
+    setAiModelUploadedImageInfo(imageInfo);
+    setUploadedModel(imageInfo.previewImageUrl);
+    setSelectedModel(null);
   };
 
   // Handle garment upload
@@ -358,7 +370,9 @@ export default function VirtualTryOnPage() {
   const getModelSrc = () => {
     if (uploadedModel) return uploadedModel;
     if (selectedModel) {
-      const model = aiModels?.find((m) => m.id === selectedModel);
+      const model = aiModels?.results?.find(
+        (m: AIModel) => m.id === selectedModel,
+      );
       return model?.modelImageUrl || "";
     }
     return "";
@@ -451,78 +465,150 @@ export default function VirtualTryOnPage() {
                         <FilterBar />
                         {/* Model gallery */}
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                          {filteredModels?.map((model) => (
-                            <div
-                              key={model.id}
-                              className={cn(
-                                "relative aspect-[2/3] rounded-md overflow-hidden cursor-pointer border-2 transition-all",
-                                selectedModel === model.id
-                                  ? "border-purple-600 shadow-md"
-                                  : "border-transparent hover:border-slate-300 dark:hover:border-slate-700",
-                              )}
-                              onClick={() => {
-                                setSelectedModel(model.id);
-                                setUploadedModel(null);
-                              }}
-                            >
-                              <Image
-                                src={model.modelImageUrl || "/placeholder.svg"}
-                                alt={model.modelTitle}
-                                fill
-                                className="object-cover"
-                              />
-                              {selectedModel === model.id && (
-                                <div className="absolute top-2 right-2 bg-purple-600 rounded-full p-1">
-                                  <CheckCircle2 className="h-4 w-4 text-white" />
-                                </div>
-                              )}
-                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
-                                <div className="flex flex-wrap gap-1">
-                                  <Badge
-                                    variant="outline"
-                                    className="bg-black/50 text-white border-none text-xs"
-                                  >
-                                    {model.gender}
-                                  </Badge>
-                                  <Badge
-                                    variant="outline"
-                                    className="bg-black/50 text-white border-none text-xs"
-                                  >
-                                    {/* {model.styleTags?.join(", ")} */}
-                                  </Badge>
+                          {isFetching || isLoading ? (
+                            <div className="col-span-full text-center py-12">
+                              <Loader2 className="h-12 w-12 animate-spin text-purple-600 mx-auto mb-4" />
+                              <p className="text-slate-500 dark:text-slate-400">
+                                Loading models...
+                              </p>
+                            </div>
+                          ) : !aiModels?.results ||
+                            aiModels.results.length === 0 ? (
+                            <div className="col-span-full text-center py-12">
+                              <ImageIcon className="h-16 w-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+                              <p className="text-slate-500 dark:text-slate-400">
+                                No models available.
+                              </p>
+                            </div>
+                          ) : currentModels?.length === 0 ? (
+                            <div className="col-span-full text-center py-12">
+                              <ImageIcon className="h-16 w-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+                              <p className="text-slate-500 dark:text-slate-400">
+                                No models found matching your criteria.
+                              </p>
+                              <Button
+                                variant="outline"
+                                className="mt-4"
+                                onClick={() => setModelFilter("all")}
+                              >
+                                Clear filters
+                              </Button>
+                            </div>
+                          ) : (
+                            currentModels?.map((model) => (
+                              <div
+                                key={model.id}
+                                className={cn(
+                                  "relative aspect-[2/3] rounded-md overflow-hidden cursor-pointer border-2 transition-all",
+                                  selectedModel === model.id
+                                    ? "border-purple-600 shadow-md"
+                                    : "border-transparent hover:border-slate-300 dark:hover:border-slate-700",
+                                )}
+                                onClick={() => {
+                                  setSelectedModel(model.id);
+                                  setUploadedModel(null);
+                                  setAiModelUploadedImageInfo(null);
+                                }}
+                              >
+                                <Image
+                                  src={
+                                    model.modelImageUrl || "/placeholder.svg"
+                                  }
+                                  alt={model.modelTitle}
+                                  fill
+                                  className="object-cover"
+                                />
+                                {selectedModel === model.id && (
+                                  <div className="absolute top-2 right-2 bg-purple-600 rounded-full p-1">
+                                    <CheckCircle2 className="h-4 w-4 text-white" />
+                                  </div>
+                                )}
+                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                                  <div className="flex flex-wrap gap-1">
+                                    <Badge
+                                      variant="outline"
+                                      className="bg-black/50 text-white border-none text-xs"
+                                    >
+                                      {model.gender}
+                                    </Badge>
+                                    <Badge
+                                      variant="outline"
+                                      className="bg-black/50 text-white border-none text-xs"
+                                    >
+                                      {/* {model.styleTags?.join(", ")} */}
+                                    </Badge>
+                                  </div>
                                 </div>
                               </div>
+                            ))
+                          )}
+                        </div>
+                        {totalPages > 1 && (
+                          <div className="flex flex-col items-center mt-6 space-y-4">
+                            <div className="flex items-center justify-center space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  setCurrentPage((prev) =>
+                                    Math.max(1, prev - 1),
+                                  )
+                                }
+                                disabled={currentPage === 1}
+                              >
+                                Previous
+                              </Button>
+                              <div className="flex items-center space-x-1">
+                                {Array.from(
+                                  { length: totalPages },
+                                  (_, i) => i + 1,
+                                ).map((page) => (
+                                  <Button
+                                    key={page}
+                                    variant={
+                                      currentPage === page
+                                        ? "default"
+                                        : "outline"
+                                    }
+                                    size="sm"
+                                    onClick={() => setCurrentPage(page)}
+                                    className="w-8 h-8 p-0"
+                                  >
+                                    {page}
+                                  </Button>
+                                ))}
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  setCurrentPage((prev) =>
+                                    Math.min(totalPages, prev + 1),
+                                  )
+                                }
+                                disabled={currentPage === totalPages}
+                              >
+                                Next
+                              </Button>
                             </div>
-                          ))}
-                        </div>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                              Showing{" "}
+                              {currentPage * modelsPerPage - modelsPerPage + 1}-
+                              {Math.min(
+                                currentPage * modelsPerPage,
+                                totalModels,
+                              )}{" "}
+                              of {totalModels} models
+                            </p>
+                          </div>
+                        )}
                       </FilterProvider>
-
-                      {/* Upload option */}
-                      <div
-                        className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-8 text-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
-                        onClick={() => modelInputRef.current?.click()}
-                      >
-                        <input
-                          type="file"
-                          ref={modelInputRef}
-                          className="hidden"
-                          accept="image/*"
-                          onChange={handleModelUpload}
-                        />
-                        <div className="flex flex-col items-center justify-center space-y-3">
-                          <div className="rounded-full bg-purple-100 dark:bg-purple-900/30 p-3">
-                            <Upload className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-slate-900 dark:text-white">
-                              Upload your own model
-                            </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                              PNG, JPG or WEBP (max. 10MB)
-                            </p>
-                          </div>
-                        </div>
-                      </div>
+                      <ImageUploader
+                        key={selectedModel || uploadedModel}
+                        onUploaded={handleImageUploaded}
+                        placeholder="Upload your own model"
+                        hideImagePreviewAfterUpload
+                      />
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-between">
@@ -684,7 +770,7 @@ export default function VirtualTryOnPage() {
 
                       {/* Garment gallery */}
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                        {filteredGarments?.map((garment) => (
+                        {garments?.map((garment) => (
                           <div
                             key={garment.id}
                             className={cn(
@@ -914,7 +1000,7 @@ export default function VirtualTryOnPage() {
                               "flex flex-col items-center justify-center p-4 rounded-lg border-2 cursor-pointer transition-all",
                               tryOnCategory === OutfitType.FULL_BODY
                                 ? "border-purple-600 bg-purple-50 dark:bg-purple-900/20"
-                                : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600",
+                                : "border-slate-200 dark:border-slate-700",
                             )}
                             onClick={() =>
                               setTryOnCategory(OutfitType.FULL_BODY)
