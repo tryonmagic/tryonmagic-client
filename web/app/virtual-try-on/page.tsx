@@ -28,6 +28,8 @@ import {
   Settings,
   Wand2,
   ArrowRight,
+  XIcon,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,6 +48,12 @@ import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { FilterProvider } from "@/components/model-filters/filter-context";
 import { FilterBar } from "@/components/model-filters/filter-bar";
@@ -70,132 +78,34 @@ import { getGarments } from "@/lib/api/ai-models";
 import ImageUploader, {
   ImageInfo,
 } from "@/lib/uploader/components/ImageUploader";
-
-// Sample model gallery data
-const modelGallery = [
-  {
-    id: "model-1",
-    src: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=600&width=400",
-    alt: "Female model in casual pose",
-    gender: "female",
-    pose: "casual",
-  },
-  {
-    id: "model-2",
-    src: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=600&width=400",
-    alt: "Male model in formal pose",
-    gender: "male",
-    pose: "formal",
-  },
-  {
-    id: "model-3",
-    src: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=600&width=400",
-    alt: "Female model in active pose",
-    gender: "female",
-    pose: "active",
-  },
-  {
-    id: "model-4",
-    src: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=600&width=400",
-    alt: "Male model in casual pose",
-    gender: "male",
-    pose: "casual",
-  },
-  {
-    id: "model-5",
-    src: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=600&width=400",
-    alt: "Female model in formal pose",
-    gender: "female",
-    pose: "formal",
-  },
-  {
-    id: "model-6",
-    src: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=600&width=400",
-    alt: "Male model in active pose",
-    gender: "male",
-    pose: "active",
-  },
-];
-
-// Sample garment gallery data
-const garmentGallery = [
-  {
-    id: "garment-1",
-    src: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=400&width=400",
-    alt: "Blue t-shirt",
-    type: "top",
-    color: "blue",
-  },
-  {
-    id: "garment-2",
-    src: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=400&width=400",
-    alt: "Black jeans",
-    type: "bottom",
-    color: "black",
-  },
-  {
-    id: "garment-3",
-    src: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=400&width=400",
-    alt: "Red dress",
-    type: "full",
-    color: "red",
-  },
-  {
-    id: "garment-4",
-    src: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=400&width=400",
-    alt: "White shirt",
-    type: "top",
-    color: "white",
-  },
-  {
-    id: "garment-5",
-    src: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=400&width=400",
-    alt: "Beige pants",
-    type: "bottom",
-    color: "beige",
-  },
-  {
-    id: "garment-6",
-    src: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=400&width=400",
-    alt: "Black suit",
-    type: "full",
-    color: "black",
-  },
-];
-
-// Sample results for demonstration
-const sampleResults = [
-  {
-    id: "result-1",
-    src: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=600&width=400",
-    alt: "Virtual try-on result 1",
-  },
-  {
-    id: "result-2",
-    src: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=600&width=400",
-    alt: "Virtual try-on result 2",
-  },
-  {
-    id: "result-3",
-    src: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=600&width=400",
-    alt: "Virtual try-on result 3",
-  },
-];
+import { ImageGallery } from "@/lib/uploader/components/image-upload-manager";
+import { ImageType } from "@/lib/uploader/components/image-upload-manager";
+import Pagination from "@/components/ui/pagination";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import ImageUploadDialog from "@/lib/uploader/components/image-upload-manager";
+import { AxiosError } from "axios";
+import toast from "react-hot-toast";
 
 export default function VirtualTryOnPage() {
   const [activeTab, setActiveTab] = useState("model");
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
-  const [selectedGarment, setSelectedGarment] = useState<string | null>(null);
   const [uploadedModel, setUploadedModel] = useState<string | null>(null);
-  const [uploadedGarment, setUploadedGarment] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<string[]>([]);
   const [selectedResult, setSelectedResult] = useState<string | null>(null);
   const [modelFilter, setModelFilter] = useState("all");
-  const [garmentFilter, setGarmentFilter] = useState("all");
   const [zoom, setZoom] = useState(1);
   const appBridge = useAppBridge();
+  const [garmentImage, setGarmentImage] = useState<string | null>(null);
+  const [showImageGallery, setShowImageGallery] = useState(false);
+  const [galleryMode, setGalleryMode] = useState(false);
+  const garmentFileInputRef = useRef<HTMLInputElement>(null);
+  const [vtonError, setVtonError] = useState<string | null>(null);
 
   // Configuration options
   const [tryOnCategory, setTryOnCategory] = useState<OutfitType>(
@@ -211,8 +121,6 @@ export default function VirtualTryOnPage() {
   const [restoreBackground, setRestoreBackground] = useState(true);
   const [restoreClothes, setRestoreClothes] = useState(false);
 
-  const modelInputRef = useRef<HTMLInputElement>(null);
-  const garmentInputRef = useRef<HTMLInputElement>(null);
   const [aiModelUploadedImageInfo, setAiModelUploadedImageInfo] =
     useState<ImageInfo | null>(null);
 
@@ -260,37 +168,27 @@ export default function VirtualTryOnPage() {
     });
   };
 
-  const handleImageUploaded = (imageInfo: ImageInfo) => {
+  const handleAIModelImageUploaded = (imageInfo: ImageInfo) => {
     setAiModelUploadedImageInfo(imageInfo);
     setUploadedModel(imageInfo.previewImageUrl);
     setSelectedModel(null);
   };
 
-  // Handle garment upload
-  const handleGarmentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setUploadedGarment(event.target.result as string);
-          setSelectedGarment(null);
-        }
-      };
-      reader.readAsDataURL(file);
+  const handleGarmentImageUploaded = (imageInfo: ImageInfo) => {
+    setGarmentImage(imageInfo.uploadLocation);
+  };
+
+  const handleGarmentImageSelected = (selectedImages: ImageType[]) => {
+    if (selectedImages.length > 0) {
+      setGarmentImage(selectedImages[0].url);
     }
+    setShowImageGallery(false);
   };
 
   // Reset model selection
   const resetModel = () => {
     setUploadedModel(null);
     setSelectedModel(null);
-  };
-
-  // Reset garment selection
-  const resetGarment = () => {
-    setUploadedGarment(null);
-    setSelectedGarment(null);
   };
 
   // Generate random seed
@@ -300,70 +198,111 @@ export default function VirtualTryOnPage() {
 
   // Process the virtual try-on
   const processVirtualTryOn = async (defaultSeed = 42) => {
-    if (
-      (!selectedModel && !uploadedModel) ||
-      (!selectedGarment && !uploadedGarment)
-    ) {
+    if ((!selectedModel && !uploadedModel) || !garmentImage) {
       return;
     }
 
-    const sessionToken = await appBridge.idToken();
+    try {
+      // Clear previous errors
+      setVtonError(null);
 
-    setIsProcessing(true);
-    setProgress(0);
-    setActiveTab("results");
-    setResults([]);
-    setTaskProgress({
-      status: TaskStatus.PENDING,
-      progress: 0,
-    });
-    const newTask: NewTask<VTONTaskInput> = {
-      type: TaskType.VTON,
-      inputData: {
-        modelImage: getModelSrc(),
-        garmentImage: getGarmentSrc(),
-        outfitType: tryOnCategory,
-        modelMode,
-        numSamples,
-        seed: defaultSeed,
-      },
-    };
-    // Simulate processing with progress updates
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 70) {
-          clearInterval(interval);
-          return 70;
-        }
-        return prev + 5;
+      const sessionToken = await appBridge.idToken();
+
+      setIsProcessing(true);
+      setProgress(0);
+      setActiveTab("results");
+      setResults([]);
+      setTaskProgress({
+        status: TaskStatus.PENDING,
+        progress: 0,
       });
-    }, 500);
-    const response = await newVTONTask<VTONTaskInput>(sessionToken, newTask);
-    const task = response.data.data;
-    if (!task) {
-      console.error("No task data returned");
-      return;
-    }
-    const websocket = new WebSocketClient(task.userId);
-    websocket.on<TaskProgress<VtonTaskResultData>>("task-progress", (data) => {
-      console.log("WebSocket data received:", data);
-      setTaskProgress(data);
-      if (data.status === TaskStatus.SUCCEEDED) {
-        setActiveTab("results");
-        setProgress(100);
+      const newTask: NewTask<VTONTaskInput> = {
+        type: TaskType.VTON,
+        inputData: {
+          modelImage: getModelSrc(),
+          garmentImage: getGarmentSrc(),
+          outfitType: tryOnCategory,
+          modelMode,
+          numSamples,
+          seed: defaultSeed,
+        },
+      };
+      // Simulate processing with progress updates
+      const interval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 70) {
+            clearInterval(interval);
+            return 70;
+          }
+          return prev + 5;
+        });
+      }, 500);
+      const response = await newVTONTask<VTONTaskInput>(sessionToken, newTask);
+      const task = response.data.data;
+      if (!task) {
+        const errorMessage = "Something went wrong, please try again";
+        setVtonError(errorMessage);
+        toast.error(errorMessage);
         setIsProcessing(false);
-        setTimeout(() => {
-          setResults(data.resultData?.outputImageUrl ?? []);
-          setSelectedResult(data.resultData?.outputImageUrl[0] ?? null);
-        }, 200);
+        setTaskProgress(null);
+        return;
       }
-    });
+      const websocket = new WebSocketClient(task.userId);
+      websocket.on<TaskProgress<VtonTaskResultData>>(
+        "task-progress",
+        (data) => {
+          console.log("WebSocket data received:", data);
+          setTaskProgress(data);
+          if (data.status === TaskStatus.SUCCEEDED) {
+            setActiveTab("results");
+            setProgress(100);
+            setIsProcessing(false);
+            setTimeout(() => {
+              setResults(data.resultData?.outputImageUrl ?? []);
+              setSelectedResult(data.resultData?.outputImageUrl[0] ?? null);
+            }, 200);
+          } else if (data.status === TaskStatus.FAILED) {
+            const errorMessage = "Virtual try-on failed. Please try again.";
+            setVtonError(errorMessage);
+            toast.error(errorMessage);
+            setIsProcessing(false);
+            setTaskProgress(null);
+          }
+        },
+      );
+    } catch (error) {
+      console.error("Error processing virtual try-on:", error);
+      setIsProcessing(false);
+      setTaskProgress(null);
+      const errorMessage =
+        error instanceof AxiosError
+          ? error.response?.data?.message ||
+            "Failed to process virtual try-on. Please try again."
+          : "An unexpected error occurred. Please try again.";
+      setVtonError(errorMessage);
+    }
+  };
+
+  // Handle retry
+  const handleRetry = () => {
+    setVtonError(null);
+    processVirtualTryOn();
+  };
+
+  // Handle reset - clear all state
+  const handleReset = () => {
+    setVtonError(null);
+    setResults([]);
+    setSelectedResult(null);
+    setTaskProgress(null);
+    setIsProcessing(false);
+    setProgress(0);
+    setActiveTab("model");
   };
 
   // Check if we can proceed to the next step
   const canProceedToGarment = !!selectedModel || !!uploadedModel;
-  const canProceedToConfig =
-    canProceedToGarment && (!!selectedGarment || !!uploadedGarment);
+  const canProceedToConfig = canProceedToGarment && !!garmentImage;
   const canProcessTryOn = canProceedToConfig;
 
   // Get the current model image source
@@ -380,12 +319,8 @@ export default function VirtualTryOnPage() {
 
   // Get the current garment image source
   const getGarmentSrc = () => {
-    if (uploadedGarment) return uploadedGarment;
-    if (selectedGarment) {
-      const garment = garments?.find((g) => g.id === selectedGarment);
-      return garment?.imageUrl || "";
-    }
-    return "";
+    console.log("garmentImage", garmentImage);
+    return garmentImage!;
   };
 
   // Get the current result image source
@@ -400,29 +335,40 @@ export default function VirtualTryOnPage() {
       value === "model" ||
       (value === "garment" && canProceedToGarment) ||
       (value === "config" && canProceedToConfig) ||
-      (value === "results" && (isProcessing || results.length > 0))
+      (value === "results" && (isProcessing || results.length > 0 || vtonError))
     ) {
       setActiveTab(value);
     }
   };
+  const handleInsertImages = (
+    selectedImageIds: string[],
+    images: ImageType[],
+  ) => {
+    const selectedImages = images.filter((img) =>
+      selectedImageIds.includes(img.id),
+    );
+    console.log({ selectedImages });
+  };
 
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex items-center mb-8">
-          <Button variant="ghost" size="icon" asChild className="mr-2">
-            <Link href="/">
-              <ArrowLeft className="h-5 w-5" />
-              <span className="sr-only">Back to home</span>
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
-              Virtual Try-On
-            </h1>
-            <p className="text-slate-600 dark:text-slate-400">
-              Try clothes on virtual models with AI-powered fitting
-            </p>
+    <div className="min-h-[calc(100vh-3.5rem)] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pt-0 pl-8 pr-8 md:p-8">
+      <div className="max-w-7xl">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center">
+            <Button variant="ghost" size="icon" asChild className="mr-2">
+              <Link href="/">
+                <ArrowLeft className="h-5 w-5" />
+                <span className="sr-only">Back to home</span>
+              </Link>
+            </Button>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
+                Virtual Try-On
+              </h1>
+              <p className="text-slate-600 dark:text-slate-400">
+                Try clothes on virtual models with AI-powered fitting
+              </p>
+            </div>
           </div>
         </div>
 
@@ -431,7 +377,7 @@ export default function VirtualTryOnPage() {
           onValueChange={handleTabChange}
           className="w-full"
         >
-          <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-4 mb-8">
+          <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-4 mb-2">
             <TabsTrigger value="model">Model</TabsTrigger>
             <TabsTrigger value="garment" disabled={!canProceedToGarment}>
               Garment
@@ -448,12 +394,38 @@ export default function VirtualTryOnPage() {
           </TabsList>
 
           {/* Model Selection Tab */}
-          <TabsContent value="model" className="space-y-8">
+          <TabsContent value="model" className="space-y-1 overflow-y-hidden">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 space-y-6">
+              <div className="lg:col-span-2 space-y-2">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Select a Model</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      Select a Model
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 text-slate-400 hover:text-slate-600"
+                          >
+                            <Info className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-80 p-4 bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800">
+                          <h3 className="font-medium text-amber-800 dark:text-amber-300 text-sm mb-2">
+                            Tips for best results
+                          </h3>
+                          <ul className="text-xs text-amber-700 dark:text-amber-400 space-y-1 list-disc pl-4">
+                            <li>Use high-quality images with good lighting</li>
+                            <li>Choose models with a neutral pose</li>
+                            <li>
+                              Full-body images work best for complete outfits
+                            </li>
+                            <li>Simple backgrounds yield better results</li>
+                          </ul>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </CardTitle>
                     <CardDescription>
                       Choose from our gallery or upload your own model image
                     </CardDescription>
@@ -464,7 +436,7 @@ export default function VirtualTryOnPage() {
                       <FilterProvider>
                         <FilterBar />
                         {/* Model gallery */}
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-1">
                           {isFetching || isLoading ? (
                             <div className="col-span-full text-center py-12">
                               <Loader2 className="h-12 w-12 animate-spin text-purple-600 mx-auto mb-4" />
@@ -499,7 +471,7 @@ export default function VirtualTryOnPage() {
                               <div
                                 key={model.id}
                                 className={cn(
-                                  "relative aspect-[2/3] rounded-md overflow-hidden cursor-pointer border-2 transition-all",
+                                  "relative h-40 rounded-md overflow-hidden cursor-pointer border-2 transition-all",
                                   selectedModel === model.id
                                     ? "border-purple-600 shadow-md"
                                     : "border-transparent hover:border-slate-300 dark:hover:border-slate-700",
@@ -516,7 +488,7 @@ export default function VirtualTryOnPage() {
                                   }
                                   alt={model.modelTitle}
                                   fill
-                                  className="object-cover"
+                                  className="object-contain"
                                 />
                                 {selectedModel === model.id && (
                                   <div className="absolute top-2 right-2 bg-purple-600 rounded-full p-1">
@@ -543,72 +515,12 @@ export default function VirtualTryOnPage() {
                             ))
                           )}
                         </div>
-                        {totalPages > 1 && (
-                          <div className="flex flex-col items-center mt-6 space-y-4">
-                            <div className="flex items-center justify-center space-x-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  setCurrentPage((prev) =>
-                                    Math.max(1, prev - 1),
-                                  )
-                                }
-                                disabled={currentPage === 1}
-                              >
-                                Previous
-                              </Button>
-                              <div className="flex items-center space-x-1">
-                                {Array.from(
-                                  { length: totalPages },
-                                  (_, i) => i + 1,
-                                ).map((page) => (
-                                  <Button
-                                    key={page}
-                                    variant={
-                                      currentPage === page
-                                        ? "default"
-                                        : "outline"
-                                    }
-                                    size="sm"
-                                    onClick={() => setCurrentPage(page)}
-                                    className="w-8 h-8 p-0"
-                                  >
-                                    {page}
-                                  </Button>
-                                ))}
-                              </div>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  setCurrentPage((prev) =>
-                                    Math.min(totalPages, prev + 1),
-                                  )
-                                }
-                                disabled={currentPage === totalPages}
-                              >
-                                Next
-                              </Button>
-                            </div>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
-                              Showing{" "}
-                              {currentPage * modelsPerPage - modelsPerPage + 1}-
-                              {Math.min(
-                                currentPage * modelsPerPage,
-                                totalModels,
-                              )}{" "}
-                              of {totalModels} models
-                            </p>
-                          </div>
-                        )}
+                        <Pagination
+                          currentPage={currentPage}
+                          totalPages={totalPages}
+                          onPageChange={setCurrentPage}
+                        />
                       </FilterProvider>
-                      <ImageUploader
-                        key={selectedModel || uploadedModel}
-                        onUploaded={handleImageUploaded}
-                        placeholder="Upload your own model"
-                        hideImagePreviewAfterUpload
-                      />
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-between">
@@ -628,48 +540,47 @@ export default function VirtualTryOnPage() {
                     </Button>
                   </CardFooter>
                 </Card>
-
-                <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-lg">
-                  <div className="flex items-start space-x-3">
-                    <Info className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
-                    <div>
-                      <h3 className="font-medium text-amber-800 dark:text-amber-300 text-sm">
-                        Tips for best results
-                      </h3>
-                      <ul className="text-xs text-amber-700 dark:text-amber-400 mt-1 space-y-1 list-disc pl-4">
-                        <li>Use high-quality images with good lighting</li>
-                        <li>Choose models with a neutral pose</li>
-                        <li>Full-body images work best for complete outfits</li>
-                        <li>Simple backgrounds yield better results</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
               </div>
 
               <div>
                 <Card className="sticky top-8">
                   <CardHeader>
-                    <CardTitle>Preview</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      Preview
+                    </CardTitle>
                     <CardDescription>Your selected model</CardDescription>
+                    <div className="absolute top-6 right-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedModel(null);
+                          setUploadedModel(null);
+                          setAiModelUploadedImageInfo(null);
+                        }}
+                        disabled={!selectedModel && !uploadedModel}
+                      >
+                        Clear
+                      </Button>
+                    </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="h-[400px]">
                     {selectedModel || uploadedModel ? (
-                      <div className="relative aspect-[2/3] rounded-md overflow-hidden border border-slate-200 dark:border-slate-700">
+                      <div className="relative h-full rounded-md border border-slate-200 dark:border-slate-700 overflow-hidden">
                         <Image
                           src={getModelSrc() || "/placeholder.svg"}
                           alt="Selected model"
                           fill
-                          className="object-cover"
+                          className="object-contain"
                         />
                       </div>
                     ) : (
-                      <div className="aspect-[2/3] rounded-md border border-slate-200 dark:border-slate-700 flex items-center justify-center bg-slate-100 dark:bg-slate-800">
+                      <div className="h-full rounded-md border border-slate-200 dark:border-slate-700 flex items-center justify-center bg-slate-100 dark:bg-slate-800">
                         <div className="text-center p-4">
-                          <User className="h-12 w-12 mx-auto mb-2 text-slate-400" />
-                          <p className="text-sm text-slate-500 dark:text-slate-400">
-                            No model selected
-                          </p>
+                          <ImageUploader
+                            onUploaded={handleAIModelImageUploaded}
+                            placeholder="Upload your own model"
+                            hideImagePreviewAfterUpload
+                          />
                         </div>
                       </div>
                     )}
@@ -685,214 +596,113 @@ export default function VirtualTryOnPage() {
               <div className="lg:col-span-2 space-y-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Select a Garment</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      Select Garment
+                    </CardTitle>
                     <CardDescription>
-                      Choose from our gallery or upload your own garment image
+                      Upload or select a garment image to try on your model
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-6">
-                      {/* Filter controls */}
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          variant={
-                            garmentFilter === "all" ? "default" : "outline"
-                          }
-                          size="sm"
-                          onClick={() => setGarmentFilter("all")}
-                        >
-                          All
-                        </Button>
-                        <Button
-                          variant={
-                            garmentFilter === "top" ? "default" : "outline"
-                          }
-                          size="sm"
-                          onClick={() => setGarmentFilter("top")}
-                        >
-                          Tops
-                        </Button>
-                        <Button
-                          variant={
-                            garmentFilter === "bottom" ? "default" : "outline"
-                          }
-                          size="sm"
-                          onClick={() => setGarmentFilter("bottom")}
-                        >
-                          Bottoms
-                        </Button>
-                        <Button
-                          variant={
-                            garmentFilter === "full" ? "default" : "outline"
-                          }
-                          size="sm"
-                          onClick={() => setGarmentFilter("full")}
-                        >
-                          Full Outfits
-                        </Button>
-                        <Button
-                          variant={
-                            garmentFilter === "black" ? "default" : "outline"
-                          }
-                          size="sm"
-                          onClick={() => setGarmentFilter("black")}
-                        >
-                          Black
-                        </Button>
-                        <Button
-                          variant={
-                            garmentFilter === "white" ? "default" : "outline"
-                          }
-                          size="sm"
-                          onClick={() => setGarmentFilter("white")}
-                        >
-                          White
-                        </Button>
-                        <Button
-                          variant={
-                            garmentFilter === "blue" ? "default" : "outline"
-                          }
-                          size="sm"
-                          onClick={() => setGarmentFilter("blue")}
-                        >
-                          Blue
-                        </Button>
-                        <Button
-                          variant={
-                            garmentFilter === "red" ? "default" : "outline"
-                          }
-                          size="sm"
-                          onClick={() => setGarmentFilter("red")}
-                        >
-                          Red
-                        </Button>
-                      </div>
-
-                      {/* Garment gallery */}
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                        {garments?.map((garment) => (
-                          <div
-                            key={garment.id}
-                            className={cn(
-                              "relative aspect-square rounded-md overflow-hidden cursor-pointer border-2 transition-all",
-                              selectedGarment === garment.id
-                                ? "border-purple-600 shadow-md"
-                                : "border-transparent hover:border-slate-300 dark:hover:border-slate-700",
-                            )}
-                            onClick={() => {
-                              setSelectedGarment(garment.id);
-                              setUploadedGarment(null);
-                              setTryOnCategory(garment.outfitType);
-                            }}
-                          >
-                            <Image
-                              src={garment.imageUrl || "/placeholder.svg"}
-                              alt={garment.id}
-                              fill
-                              className="object-cover"
-                            />
-                            {selectedGarment === garment.id && (
-                              <div className="absolute top-2 right-2 bg-purple-600 rounded-full p-1">
-                                <CheckCircle2 className="h-4 w-4 text-white" />
-                              </div>
-                            )}
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
-                              <div className="flex flex-wrap gap-1">
-                                <Badge
-                                  variant="outline"
-                                  className="bg-black/50 text-white border-none text-xs"
-                                >
-                                  {garment.outfitType}
-                                </Badge>
-                                <Badge
-                                  variant="outline"
-                                  className="bg-black/50 text-white border-none text-xs"
-                                >
-                                  {garment.color}
-                                </Badge>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Upload option */}
-                      <div
-                        className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-8 text-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
-                        onClick={() => garmentInputRef.current?.click()}
-                      >
-                        <input
-                          type="file"
-                          ref={garmentInputRef}
-                          className="hidden"
-                          accept="image/*"
-                          onChange={handleGarmentUpload}
-                        />
-                        <div className="flex flex-col items-center justify-center space-y-3">
-                          <div className="rounded-full bg-purple-100 dark:bg-purple-900/30 p-3">
-                            <Upload className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-slate-900 dark:text-white">
-                              Upload your own garment
-                            </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                              PNG, JPG or WEBP (max. 10MB)
-                            </p>
+                    <div className="space-y-4">
+                      {/* Mode Toggle */}
+                      <div className="flex items-center justify-center">
+                        <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                          <div className="flex">
+                            <button
+                              onClick={() => setGalleryMode(false)}
+                              className={cn(
+                                "px-4 py-2 rounded-md text-sm font-medium transition-all",
+                                !galleryMode
+                                  ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
+                                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100",
+                              )}
+                            >
+                              Upload New
+                            </button>
+                            <button
+                              onClick={() => setGalleryMode(true)}
+                              className={cn(
+                                "px-4 py-2 rounded-md text-sm font-medium transition-all",
+                                galleryMode
+                                  ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
+                                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100",
+                              )}
+                            >
+                              Choose from Gallery
+                            </button>
                           </div>
                         </div>
                       </div>
+
+                      {/* Upload Mode */}
+                      {!galleryMode && (
+                        <div className="h-56">
+                          <ImageUploader
+                            onUploaded={handleGarmentImageUploaded}
+                            placeholder="Upload your own garment"
+                            hideImagePreviewAfterUpload
+                          />
+                        </div>
+                      )}
+
+                      {/* Gallery Mode */}
+                      {galleryMode && (
+                        <div className="space-y-4">
+                          <div className="text-center">
+                            <h3 className="text-lg font-medium mb-2">
+                              Select from Gallery
+                            </h3>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                              Choose from your previously uploaded images
+                            </p>
+                          </div>
+
+                          <div className=" p-1 text-center">
+                            <Button
+                              onClick={() => setShowImageGallery(true)}
+                              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                            >
+                              <ImageIcon className="mr-2 h-4 w-4" />
+                              Open Image Gallery
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
-                  <CardFooter className="flex justify-between">
+                  <CardFooter className="flex justify-end">
                     <Button
-                      variant="outline"
-                      onClick={() => setActiveTab("model")}
+                      onClick={() => setActiveTab("config")}
+                      disabled={!garmentImage}
                     >
-                      <ArrowLeft className="mr-2 h-4 w-4" />
-                      Back to Model
+                      Next: Configure Try-On
+                      <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        onClick={resetGarment}
-                        disabled={!selectedGarment && !uploadedGarment}
-                      >
-                        Reset Selection
-                      </Button>
-                      <Button
-                        onClick={() => setActiveTab("config")}
-                        disabled={!selectedGarment && !uploadedGarment}
-                      >
-                        Next: Configure
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </div>
                   </CardFooter>
                 </Card>
-
-                <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-lg">
-                  <div className="flex items-start space-x-3">
-                    <Info className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
-                    <div>
-                      <h3 className="font-medium text-amber-800 dark:text-amber-300 text-sm">
+                <div className="flex items-start gap-2 mt-4 space-y-6">
+                  <div className="p-4 w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Info className="h-5 w-5 text-slate-400" />
+                      <h3 className="font-medium text-amber-800 dark:text-amber-300 text-sm ">
                         Tips for garment selection
                       </h3>
-                      <ul className="text-xs text-amber-700 dark:text-amber-400 mt-1 space-y-1 list-disc pl-4">
-                        <li>
-                          Use images with clean backgrounds for better results
-                        </li>
-                        <li>
-                          Flat-lay garment photos work best for accurate fitting
-                        </li>
-                        <li>
-                          Make sure the entire garment is visible in the image
-                        </li>
-                        <li>
-                          Higher resolution images produce better try-on results
-                        </li>
-                      </ul>
                     </div>
+                    <ul className="text-xs text-amber-700 dark:text-amber-400 space-y-1 list-disc pl-4">
+                      <li>
+                        Use images with clean backgrounds for better results
+                      </li>
+                      <li>
+                        Flat-lay garment photos work best for accurate fitting
+                      </li>
+                      <li>
+                        Make sure the entire garment is visible in the image
+                      </li>
+                      <li>
+                        Higher resolution images produce better try-on results
+                      </li>
+                    </ul>
                   </div>
                 </div>
               </div>
@@ -926,7 +736,7 @@ export default function VirtualTryOnPage() {
                       <div>
                         <p className="text-sm font-medium mb-2">Garment</p>
                         <div className="aspect-square rounded-md overflow-hidden border border-slate-200 dark:border-slate-700">
-                          {selectedGarment || uploadedGarment ? (
+                          {garmentImage ? (
                             <Image
                               src={getGarmentSrc() || "/placeholder.svg"}
                               alt="Selected garment"
@@ -939,6 +749,42 @@ export default function VirtualTryOnPage() {
                               <Shirt className="h-8 w-8 text-slate-400" />
                             </div>
                           )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg">
+                      <h3 className="text-sm font-medium mb-2">
+                        Selected Options
+                      </h3>
+                      <div className="space-y-1 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 dark:text-slate-400">
+                            Category:
+                          </span>
+                          <span className="font-medium capitalize">
+                            {tryOnCategory}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 dark:text-slate-400">
+                            Mode:
+                          </span>
+                          <span className="font-medium capitalize">
+                            {modelMode}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 dark:text-slate-400">
+                            Samples:
+                          </span>
+                          <span className="font-medium">{numSamples}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 dark:text-slate-400">
+                            Seed:
+                          </span>
+                          <span className="font-medium">{seed}</span>
                         </div>
                       </div>
                     </div>
@@ -1296,13 +1142,38 @@ export default function VirtualTryOnPage() {
                       Back to Garment
                     </Button>
                     <Button
-                      onClick={() => processVirtualTryOn()}
+                      onClick={() =>
+                        vtonError ? handleRetry() : processVirtualTryOn()
+                      }
                       className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                      disabled={isProcessing}
                     >
-                      <Wand2 className="mr-2 h-4 w-4" />
-                      Generate Virtual Try-On
+                      {isProcessing ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : vtonError ? (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Try Again
+                        </>
+                      ) : (
+                        <>
+                          <Wand2 className="mr-2 h-4 w-4" />
+                          Generate Virtual Try-On
+                        </>
+                      )}
                     </Button>
                   </CardFooter>
+
+                  {vtonError && (
+                    <div className="mt-3 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
+                      <p className="text-sm text-red-700 dark:text-red-300">
+                        {vtonError}
+                      </p>
+                    </div>
+                  )}
                 </Card>
               </div>
 
@@ -1335,7 +1206,7 @@ export default function VirtualTryOnPage() {
                       <div>
                         <p className="text-sm font-medium mb-2">Garment</p>
                         <div className="aspect-square rounded-md overflow-hidden border border-slate-200 dark:border-slate-700">
-                          {selectedGarment || uploadedGarment ? (
+                          {garmentImage ? (
                             <Image
                               src={getGarmentSrc() || "/placeholder.svg"}
                               alt="Selected garment"
@@ -1375,9 +1246,35 @@ export default function VirtualTryOnPage() {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-slate-500 dark:text-slate-400">
-                            Samples:
+                            Cover Feet:
                           </span>
-                          <span className="font-medium">{numSamples}</span>
+                          <span className="font-medium">
+                            {coverFeet ? "Yes" : "No"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 dark:text-slate-400">
+                            Adjust Hands:
+                          </span>
+                          <span className="font-medium">
+                            {adjustHands ? "Yes" : "No"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 dark:text-slate-400">
+                            Restore Background:
+                          </span>
+                          <span className="font-medium">
+                            {restoreBackground ? "Yes" : "No"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 dark:text-slate-400">
+                            Restore Clothes:
+                          </span>
+                          <span className="font-medium">
+                            {restoreClothes ? "Yes" : "No"}
+                          </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-slate-500 dark:text-slate-400">
@@ -1429,6 +1326,23 @@ export default function VirtualTryOnPage() {
                   </div>
                 </CardContent>
               </Card>
+            ) : vtonError ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <div className="mb-8 text-center">
+                    <XIcon className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    <h3 className="text-xl font-medium mb-2">
+                      Virtual Try-On Failed
+                    </h3>
+                    <p className="text-red-500 dark:text-red-300 max-w-md mx-auto">
+                      {vtonError}
+                    </p>
+                    <Button className="mt-4" onClick={handleRetry}>
+                      Try Again
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             ) : results.length > 0 ? (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2">
@@ -1441,61 +1355,34 @@ export default function VirtualTryOnPage() {
                           : "Generated result based on your settings"}
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="p-6">
-                      <div className="space-y-6">
+                    <CardContent className="p-4">
+                      <div className="space-y-4">
                         {/* Main result view */}
-                        <div className="relative aspect-[2/3] rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                        <div className="relative aspect-[3/4] rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 max-w-xs mx-auto">
                           {selectedResult && (
                             <Image
                               src={getResultSrc() || "/placeholder.svg"}
                               alt="Virtual try-on result"
-                              fill
+                              height={250}
+                              width={200}
                               className="object-contain"
                               style={{ transform: `scale(${zoom})` }}
                             />
                           )}
-
-                          {/* Zoom controls */}
-                          <div className="absolute bottom-4 right-4 flex space-x-2">
-                            <Button
-                              variant="secondary"
-                              size="icon"
-                              onClick={() =>
-                                setZoom(Math.max(zoom - 0.25, 0.5))
-                              }
-                            >
-                              <ZoomOut className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="secondary"
-                              size="icon"
-                              onClick={() => setZoom(Math.min(zoom + 0.25, 2))}
-                            >
-                              <ZoomIn className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="secondary"
-                              size="icon"
-                              onClick={() => setZoom(1)}
-                            >
-                              <RotateCcw className="h-4 w-4" />
-                            </Button>
-                          </div>
                         </div>
 
                         {/* Variations */}
                         {results.length > 1 && (
                           <div>
-                            <h3 className="text-sm font-medium mb-3">
-                              Variations
-                            </h3>
                             {results.length > 1 && (
                               <Card>
-                                <CardHeader>
-                                  <CardTitle>All Variants</CardTitle>
+                                <CardHeader className="pb-2">
+                                  <CardTitle className="text-base">
+                                    All Variants
+                                  </CardTitle>
                                 </CardHeader>
-                                <CardContent>
-                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <CardContent className="pt-0">
+                                  <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
                                     {results.map((image, index) => (
                                       <div
                                         key={image}
@@ -1509,15 +1396,16 @@ export default function VirtualTryOnPage() {
                                       >
                                         <EnhancedImage
                                           src={image}
-                                          height={500}
-                                          width={400}
+                                          height={120}
+                                          width={90}
                                           alt={`Variant ${image}`}
+                                          hideFullscreenPreview
                                           className="w-full h-auto object-contain"
                                         />
-                                        <div className="absolute top-2 left-2">
+                                        <div className="absolute top-1 left-1">
                                           <Badge
                                             variant="secondary"
-                                            className="text-xs"
+                                            className="text-xs px-1 py-0"
                                           >
                                             {index}
                                           </Badge>
@@ -1532,27 +1420,50 @@ export default function VirtualTryOnPage() {
                         )}
 
                         {/* Action buttons */}
-                        <div className="flex flex-wrap gap-3">
+                        <div className="flex flex-wrap gap-2">
                           <Button
                             variant="outline"
+                            size="sm"
                             onClick={() => setActiveTab("config")}
                           >
-                            <Settings className="mr-2 h-4 w-4" />
+                            <Settings className="mr-2 h-3 w-3" />
                             Adjust Settings
                           </Button>
                           <Button
                             variant="outline"
+                            size="sm"
                             onClick={() =>
-                              processVirtualTryOn(
-                                Math.floor(Math.random() * (2 ** 32 - 5)) + 1,
-                              )
+                              vtonError
+                                ? handleRetry()
+                                : processVirtualTryOn(
+                                    Math.floor(Math.random() * (2 ** 32 - 5)) +
+                                      1,
+                                  )
                             }
+                            disabled={isProcessing}
                           >
-                            <Sparkles className="mr-2 h-4 w-4" />
-                            Generate New Variations
+                            {isProcessing ? (
+                              <>
+                                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                                Processing...
+                              </>
+                            ) : vtonError ? (
+                              <>
+                                <RefreshCw className="mr-2 h-3 w-3" />
+                                Try Again
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="mr-2 h-3 w-3" />
+                                Generate New Variations
+                              </>
+                            )}
                           </Button>
-                          <Button onClick={() => handleDownload(results)}>
-                            <Download className="mr-2 h-4 w-4" />
+                          <Button
+                            size="sm"
+                            onClick={() => handleDownload(results)}
+                          >
+                            <Download className="mr-2 h-3 w-3" />
                             Download {results.length > 1 ? "All" : "Result"}
                           </Button>
                         </div>
@@ -1680,10 +1591,7 @@ export default function VirtualTryOnPage() {
                     Configure your virtual try-on settings and generate results
                     to see them here.
                   </p>
-                  <Button
-                    className="mt-4"
-                    onClick={() => setActiveTab("model")}
-                  >
+                  <Button className="mt-4" onClick={handleReset}>
                     Start Over
                   </Button>
                 </CardContent>
@@ -1740,6 +1648,16 @@ export default function VirtualTryOnPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Image Gallery Dialog */}
+      {showImageGallery && (
+        <ImageUploadDialog
+          onImagesSelected={handleGarmentImageSelected}
+          imageSelectionLimit={1}
+          onClose={() => setShowImageGallery(false)}
+          hideUploadButton
+        />
+      )}
     </div>
   );
 }

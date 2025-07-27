@@ -1,11 +1,14 @@
-import { SuccessWithPaginationResponse } from "@/lib/api/type";
+import {
+  PaginationResponseData,
+  SuccessWithPaginationResponse,
+} from "@/lib/api/type";
 
 import { AIModel } from "@/lib/api/type";
 import { clientAPI } from "@/lib/api";
 import { AuthenticatedQueryFunction } from "@/lib/hooks/useAuthenticatedQuery";
 
 export const getAIModelsQuery: AuthenticatedQueryFunction<
-  SuccessWithPaginationResponse<AIModel>,
+  PaginationResponseData<AIModel>,
   [
     "ai-models",
     {
@@ -26,5 +29,5 @@ export const getAIModelsQuery: AuthenticatedQueryFunction<
     params,
   });
 
-  return res.data;
+  return res.data.data;
 };
