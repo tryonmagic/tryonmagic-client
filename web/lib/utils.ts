@@ -24,3 +24,10 @@ export default function debounce(func: (...args: any[]) => void, wait = 166) {
   };
   return debounced;
 }
+
+export const handleDownload = (images: string[]) => {
+  images.forEach((image) => {
+    const downloadUrl = `${process.env.NEXT_PUBLIC_IMAGE_PROXY_URL}/images?url=${encodeURIComponent(image)}&download=true`;
+    window.open(downloadUrl, "_blank");
+  });
+};

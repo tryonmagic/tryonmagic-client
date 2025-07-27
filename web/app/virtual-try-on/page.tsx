@@ -54,7 +54,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+import { cn, handleDownload } from "@/lib/utils";
 import { FilterProvider } from "@/components/model-filters/filter-context";
 import { FilterBar } from "@/components/model-filters/filter-bar";
 import EnhancedImage from "@/components/ui/EnhanchedImage";
@@ -160,13 +160,6 @@ export default function VirtualTryOnPage() {
   const totalPages = aiModels?.totalPages || 0;
   const currentModels = aiModels?.results ?? [];
   console.log({ aiModels });
-
-  const handleDownload = (images: string[]) => {
-    images.forEach((image) => {
-      const downloadUrl = `${process.env.NEXT_PUBLIC_IMAGE_PROXY_URL}/images?url=${encodeURIComponent(image)}&download=true`;
-      window.open(downloadUrl, "_blank");
-    });
-  };
 
   const handleAIModelImageUploaded = (imageInfo: ImageInfo) => {
     setAiModelUploadedImageInfo(imageInfo);
