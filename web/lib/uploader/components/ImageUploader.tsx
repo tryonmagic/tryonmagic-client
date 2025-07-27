@@ -172,73 +172,75 @@ export default function ImageUploader(props: ImageUploaderProps) {
   };
 
   return (
-    <div className="p-6">
-      <div
-        className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-8 text-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
-        onClick={() => fileInputRef.current?.click()}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-      >
-        <input
-          type="file"
-          ref={fileInputRef}
-          className="hidden"
-          accept="image/*"
-          onChange={handleImageUpload}
-          disabled={isUploading} // Disable input when uploading
+    <div
+      className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-1 text-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer w-full h-full flex items-center justify-center"
+      onClick={() => fileInputRef.current?.click()}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept="image/*"
+        onChange={handleImageUpload}
+        disabled={isUploading} // Disable input when uploading
+        style={{ cursor: isUploading ? "not-allowed" : "pointer" }} // Change cursor to indicate disabled state
+      />
+      {previewImage ? (
+        <div
+          className="flex flex-col items-center justify-center w-full h-full"
           style={{ cursor: isUploading ? "not-allowed" : "pointer" }} // Change cursor to indicate disabled state
-        />
-        {previewImage ? (
-          <div
-            className="flex flex-col items-center justify-center space-y-3"
-            style={{ cursor: isUploading ? "not-allowed" : "pointer" }} // Change cursor to indicate disabled state
-          >
+        >
+          <div className="relative w-full h-full flex items-center justify-center">
             <Image
               src={previewImage}
               alt="Preview"
-              height={500}
-              width={500}
-              className="w-full h-auto rounded-md"
+              fill
+              className="object-contain rounded-md"
             />
-            {isUploading && (
-              <p className="text-sm font-medium text-slate-900 dark:text-white">
-                Uploading...
-              </p>
-            )}
-            {isUploading && (
-              <div className="relative w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className="absolute top-0 left-0 h-full bg-purple-600 transition-all duration-500 ease-in-out"
-                  style={{ width: `${uploadingProgress?.percentage || 0}%` }}
-                ></div>
-              </div>
-            )}
-            {!isUploading && (
-              <button
-                className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                Upload Another Picture
-              </button>
-            )}
           </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center space-y-3">
-            <div className="rounded-full bg-purple-100 dark:bg-purple-900/30 p-3">
-              <Upload className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+          {isUploading && (
+            <p className="text-sm font-medium text-slate-900 dark:text-white">
+              Uploading...
+            </p>
+          )}
+          {isUploading && (
+            <div className="relative w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className="absolute top-0 left-0 h-full bg-purple-600 transition-all duration-500 ease-in-out"
+                style={{ width: `${uploadingProgress?.percentage || 0}%` }}
+              ></div>
             </div>
-            <div>
-              <p className="text-sm font-medium text-slate-900 dark:text-white">
-                {props.placeholder ?? "Click to upload or drag and drop"}
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                PNG, JPG or WEBP (max. 10MB)
-              </p>
-            </div>
+          )}
+          {!isUploading && (
+            <button
+              className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+              onClick={(e) => {
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
+            >
+              Upload Another Picture
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center w-full h-full">
+          <div className="rounded-full bg-purple-100 dark:bg-purple-900/30 p-3">
+            <Upload className="h-6 w-6 text-purple-600 dark:text-purple-400" />
           </div>
-        )}
-      </div>
+          <div>
+            <p className="text-sm font-medium text-slate-900 dark:text-white">
+              {props.placeholder ?? "Click to upload or drag and drop"}
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              PNG, JPG or WEBP (max. 10MB)
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

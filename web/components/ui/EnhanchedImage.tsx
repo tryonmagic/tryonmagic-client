@@ -11,6 +11,8 @@ interface EnhancedImageProps extends ImageProps {
   className?: string;
   priority?: boolean;
   quality?: number;
+  hideFullscreenPreview?: boolean;
+  hideDownload?: boolean;
 }
 
 export default function EnhancedImage({
@@ -21,6 +23,8 @@ export default function EnhancedImage({
   className,
   priority = false,
   quality = 80,
+  hideFullscreenPreview = false,
+  hideDownload = false,
   ...props
 }: EnhancedImageProps) {
   const [showPreview, setShowPreview] = useState(false);
@@ -86,27 +90,31 @@ export default function EnhancedImage({
             isHovering ? "opacity-100" : "opacity-0 pointer-events-none",
           )}
         >
-          <button
-            onClick={() => setShowPreview(true)}
-            className="flex items-center justify-center bg-white text-black rounded-full hover:bg-gray-100 transition-colors"
-            style={{ width: `${buttonSize}px`, height: `${buttonSize}px` }}
-            aria-label="Preview image"
-          >
-            <Maximize size={iconSize} />
-          </button>
-          <button
-            onClick={handleDownload}
-            className="flex items-center justify-center bg-white text-black rounded-full hover:bg-gray-100 transition-colors"
-            style={{ width: `${buttonSize}px`, height: `${buttonSize}px` }}
-            aria-label="Download image"
-          >
-            <Download size={iconSize} />
-          </button>
+          {!hideFullscreenPreview && (
+            <button
+              onClick={() => setShowPreview(true)}
+              className="flex items-center justify-center bg-white text-black rounded-full hover:bg-gray-100 transition-colors"
+              style={{ width: `${buttonSize}px`, height: `${buttonSize}px` }}
+              aria-label="Preview image"
+            >
+              <Maximize size={iconSize} />
+            </button>
+          )}
+          {!hideDownload && (
+            <button
+              onClick={handleDownload}
+              className="flex items-center justify-center bg-white text-black rounded-full hover:bg-gray-100 transition-colors"
+              style={{ width: `${buttonSize}px`, height: `${buttonSize}px` }}
+              aria-label="Download image"
+            >
+              <Download size={iconSize} />
+            </button>
+          )}
         </div>
       </div>
 
       {/* Fullscreen preview modal */}
-      {showPreview && (
+      {showPreview && !hideFullscreenPreview && (
         <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
           <button
             onClick={() => setShowPreview(false)}

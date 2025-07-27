@@ -284,13 +284,16 @@ export interface ProductImageEditTaskResultData {
   outputImageUrl: string | string[];
 }
 
-export interface SuccessWithPaginationResponse<T = unknown> {
-  code: number;
-  status: string;
-  message: string;
+export interface PaginationResponseData<T = unknown> {
   results: T[];
   page: number;
   limit: number;
   totalPages: number;
   totalResults: number;
+}
+export interface SuccessWithPaginationResponse<T = unknown> {
+  code: number;
+  status: string;
+  message: string;
+  data: PaginationResponseData<T>;
 }
