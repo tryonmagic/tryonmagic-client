@@ -81,7 +81,6 @@ export default function MagicEraser() {
 
     const sessionToken = await app.idToken();
 
-
     const newTaskPayload: NewTask<EditImageTaskInput> = {
       type: TaskType.EDIT_IMAGE,
       inputData: {
@@ -90,16 +89,22 @@ export default function MagicEraser() {
         editType,
         editMode,
         editPrompt: textPrompt,
-        editRegion: editMode === EditMode.REGION ? boxes.map(box => ({
-          x: Math.round(box.xPct * uploadedImageInfo.width),
-          y: Math.round(box.yPct * uploadedImageInfo.height),
-          width: Math.round(box.wPct * uploadedImageInfo.width),
-          height: Math.round(box.hPct * uploadedImageInfo.height)
-        })) : undefined,
-        replacePrompt: editType === EditType.INPAINT_REPLACE ? {
-          replaceFrom: replaceFromPrompt.trim() || undefined,
-          replaceTo: replaceWithPrompt.trim(),
-        } : undefined,
+        editRegion:
+          editMode === EditMode.REGION
+            ? boxes.map((box) => ({
+                x: Math.round(box.xPct * uploadedImageInfo.width),
+                y: Math.round(box.yPct * uploadedImageInfo.height),
+                width: Math.round(box.wPct * uploadedImageInfo.width),
+                height: Math.round(box.hPct * uploadedImageInfo.height),
+              }))
+            : undefined,
+        replacePrompt:
+          editType === EditType.INPAINT_REPLACE
+            ? {
+                replaceFrom: replaceFromPrompt.trim() || undefined,
+                replaceTo: replaceWithPrompt.trim(),
+              }
+            : undefined,
       },
     };
 
@@ -113,7 +118,7 @@ export default function MagicEraser() {
       return;
     }
     const websocket = new WebSocketClient(task.userId);
-    websocket.on<TaskProgress>("task-progress", async (data) => {
+    websocket.on<TaskProgress>("task-progress-" + task.id, async (data) => {
       console.log("WebSocket data received:", data);
       setTaskProgress(data);
       if (data.status === TaskStatus.SUCCEEDED) {
@@ -379,7 +384,9 @@ export default function MagicEraser() {
                           id="operation-insert"
                           type="radio"
                           checked={editType === EditType.INPAINT_INSERTION}
-                          onChange={() => setEditType(EditType.INPAINT_INSERTION)}
+                          onChange={() =>
+                            setEditType(EditType.INPAINT_INSERTION)
+                          }
                           className="accent-purple-600"
                         />
                         <Brush className="h-3 w-3" />
@@ -523,256 +530,281 @@ export default function MagicEraser() {
                 <CardContent className="p-6 space-y-6">
                   <div>
                     <h3 className="text-lg font-semibold mb-4">
-                      {editType === EditType.INPAINT_REMOVE ? "Eraser Settings" : editType === EditType.INPAINT_REPLACE ? "Replace Settings" : "Insert Settings"}
+                      {editType === EditType.INPAINT_REMOVE
+                        ? "Eraser Settings"
+                        : editType === EditType.INPAINT_REPLACE
+                          ? "Replace Settings"
+                          : "Insert Settings"}
                     </h3>
                     <div className="space-y-4">
                       {/* Erase mode settings */}
-                      {editType === EditType.INPAINT_REMOVE && editMode === EditMode.REGION && (
-                        <div className="space-y-2">
-                          <Label>Select Area to Erase</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Draw a box over the object you want to remove.
-                          </p>
-                          {/* Add Box Button */}
-                          <div className="flex items-center gap-2">
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={handleAddBox}
-                              disabled={
-                                !box || box.wPct === 0 || box.hPct === 0
-                              }
-                            >
-                              Add Box
-                            </Button>
-                            {box && uploadedImageInfo && (
-                              <span className="text-xs text-muted-foreground">
-                                {(() => {
-                                  const img = uploadedImageInfo;
-                                  const x = Math.round(box.xPct * img.width);
-                                  const y = Math.round(box.yPct * img.height);
-                                  const w = Math.round(box.wPct * img.width);
-                                  const h = Math.round(box.hPct * img.height);
-                                  return (
-                                    <>
-                                      Preview: x={x}, y={y}, w={w}, h={h}
-                                    </>
-                                  );
-                                })()}
-                              </span>
+                      {editType === EditType.INPAINT_REMOVE &&
+                        editMode === EditMode.REGION && (
+                          <div className="space-y-2">
+                            <Label>Select Area to Erase</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Draw a box over the object you want to remove.
+                            </p>
+                            {/* Add Box Button */}
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={handleAddBox}
+                                disabled={
+                                  !box || box.wPct === 0 || box.hPct === 0
+                                }
+                              >
+                                Add Box
+                              </Button>
+                              {box && uploadedImageInfo && (
+                                <span className="text-xs text-muted-foreground">
+                                  {(() => {
+                                    const img = uploadedImageInfo;
+                                    const x = Math.round(box.xPct * img.width);
+                                    const y = Math.round(box.yPct * img.height);
+                                    const w = Math.round(box.wPct * img.width);
+                                    const h = Math.round(box.hPct * img.height);
+                                    return (
+                                      <>
+                                        Preview: x={x}, y={y}, w={w}, h={h}
+                                      </>
+                                    );
+                                  })()}
+                                </span>
+                              )}
+                            </div>
+                            {(!box || !imageRef.current) && (
+                              <div className="text-xs text-muted-foreground">
+                                Click and drag on the image to select an area.
+                              </div>
                             )}
                           </div>
-                          {(!box || !imageRef.current) && (
-                            <div className="text-xs text-muted-foreground">
-                              Click and drag on the image to select an area.
-                            </div>
-                          )}
-                        </div>
-                      )}
+                        )}
 
                       {/* Erase prompt mode settings */}
-                      {editType === EditType.INPAINT_REMOVE && editMode === EditMode.PROMPT && (
-                        <div className="space-y-2">
-                          <Label htmlFor="erase-prompt-textarea">
-                            Describe what to remove
-                          </Label>
-                          <textarea
-                            id="erase-prompt-textarea"
-                            className="w-full min-h-[80px] p-2 rounded-md border border-input bg-background"
-                            placeholder="E.g., 'boat,bike'"
-                            value={textPrompt}
-                            onChange={(e) => setTextPrompt(e.target.value)}
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Describe what you want to remove from the image. You
-                            can specify more than one prompt using comma.
-                          </p>
-                        </div>
-                      )}
+                      {editType === EditType.INPAINT_REMOVE &&
+                        editMode === EditMode.PROMPT && (
+                          <div className="space-y-2">
+                            <Label htmlFor="erase-prompt-textarea">
+                              Describe what to remove
+                            </Label>
+                            <textarea
+                              id="erase-prompt-textarea"
+                              className="w-full min-h-[80px] p-2 rounded-md border border-input bg-background"
+                              placeholder="E.g., 'boat,bike'"
+                              value={textPrompt}
+                              onChange={(e) => setTextPrompt(e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Describe what you want to remove from the image.
+                              You can specify more than one prompt using comma.
+                            </p>
+                          </div>
+                        )}
 
                       {/* Replace mode settings */}
-                      {editType === EditType.INPAINT_REPLACE && editMode === EditMode.REGION && (
-                        <div className="space-y-2">
-                          <Label>Select Area to Replace</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Draw a box over the object you want to replace.
-                          </p>
-                          {/* Add Box Button */}
-                          <div className="flex items-center gap-2">
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={handleAddBox}
-                              disabled={
-                                !box || box.wPct === 0 || box.hPct === 0
-                              }
-                            >
-                              Add Box
-                            </Button>
-                            {box && uploadedImageInfo && (
-                              <span className="text-xs text-muted-foreground">
-                                {(() => {
-                                  const img = uploadedImageInfo;
-                                  const x = Math.round(box.xPct * img.width);
-                                  const y = Math.round(box.yPct * img.height);
-                                  const w = Math.round(box.wPct * img.width);
-                                  const h = Math.round(box.hPct * img.height);
-                                  return (
-                                    <>
-                                      Preview: x={x}, y={y}, w={w}, h={h}
-                                    </>
-                                  );
-                                })()}
-                              </span>
-                            )}
-                          </div>
-                          {(!box || !imageRef.current) && (
-                            <div className="text-xs text-muted-foreground">
-                              Click and drag on the image to select an area.
-                            </div>
-                          )}
-
-                          {/* Replace with prompt for box mode */}
-                          <div className="space-y-2 mt-4">
-                            <Label htmlFor="replace-box-prompt">
-                              Replace with
-                            </Label>
-                            <textarea
-                              id="replace-box-prompt"
-                              className="w-full min-h-[60px] p-2 rounded-md border border-input bg-background"
-                              placeholder="E.g., 'a red car'"
-                              value={textPrompt}
-                              onChange={(e) => setTextPrompt(e.target.value)}
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Describe what you want to replace the selected area with.
+                      {editType === EditType.INPAINT_REPLACE &&
+                        editMode === EditMode.REGION && (
+                          <div className="space-y-2">
+                            <Label>Select Area to Replace</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Draw a box over the object you want to replace.
                             </p>
+                            {/* Add Box Button */}
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={handleAddBox}
+                                disabled={
+                                  !box || box.wPct === 0 || box.hPct === 0
+                                }
+                              >
+                                Add Box
+                              </Button>
+                              {box && uploadedImageInfo && (
+                                <span className="text-xs text-muted-foreground">
+                                  {(() => {
+                                    const img = uploadedImageInfo;
+                                    const x = Math.round(box.xPct * img.width);
+                                    const y = Math.round(box.yPct * img.height);
+                                    const w = Math.round(box.wPct * img.width);
+                                    const h = Math.round(box.hPct * img.height);
+                                    return (
+                                      <>
+                                        Preview: x={x}, y={y}, w={w}, h={h}
+                                      </>
+                                    );
+                                  })()}
+                                </span>
+                              )}
+                            </div>
+                            {(!box || !imageRef.current) && (
+                              <div className="text-xs text-muted-foreground">
+                                Click and drag on the image to select an area.
+                              </div>
+                            )}
+
+                            {/* Replace with prompt for box mode */}
+                            <div className="space-y-2 mt-4">
+                              <Label htmlFor="replace-box-prompt">
+                                Replace with
+                              </Label>
+                              <textarea
+                                id="replace-box-prompt"
+                                className="w-full min-h-[60px] p-2 rounded-md border border-input bg-background"
+                                placeholder="E.g., 'a red car'"
+                                value={textPrompt}
+                                onChange={(e) => setTextPrompt(e.target.value)}
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Describe what you want to replace the selected
+                                area with.
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
                       {/* Replace prompt mode settings */}
-                      {editType === EditType.INPAINT_REPLACE && editMode === EditMode.PROMPT && (
-                        <div className="space-y-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="replace-from-prompt">
-                              Replace this
-                            </Label>
-                            <input
-                              id="replace-from-prompt"
-                              type="text"
-                              className="w-full p-2 rounded-md border border-input bg-background"
-                              placeholder="E.g., 'blue car'"
-                              value={replaceFromPrompt}
-                              onChange={(e) => setReplaceFromPrompt(e.target.value)}
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Describe the object you want to replace.
-                            </p>
-                          </div>
+                      {editType === EditType.INPAINT_REPLACE &&
+                        editMode === EditMode.PROMPT && (
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="replace-from-prompt">
+                                Replace this
+                              </Label>
+                              <input
+                                id="replace-from-prompt"
+                                type="text"
+                                className="w-full p-2 rounded-md border border-input bg-background"
+                                placeholder="E.g., 'blue car'"
+                                value={replaceFromPrompt}
+                                onChange={(e) =>
+                                  setReplaceFromPrompt(e.target.value)
+                                }
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Describe the object you want to replace.
+                              </p>
+                            </div>
 
-                          <div className="space-y-2">
-                            <Label htmlFor="replace-with-prompt">
-                              With this
-                            </Label>
-                            <input
-                              id="replace-with-prompt"
-                              type="text"
-                              className="w-full p-2 rounded-md border border-input bg-background"
-                              placeholder="E.g., 'red car'"
-                              value={replaceWithPrompt}
-                              onChange={(e) => setReplaceWithPrompt(e.target.value)}
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Describe what you want to replace it with.
-                            </p>
+                            <div className="space-y-2">
+                              <Label htmlFor="replace-with-prompt">
+                                With this
+                              </Label>
+                              <input
+                                id="replace-with-prompt"
+                                type="text"
+                                className="w-full p-2 rounded-md border border-input bg-background"
+                                placeholder="E.g., 'red car'"
+                                value={replaceWithPrompt}
+                                onChange={(e) =>
+                                  setReplaceWithPrompt(e.target.value)
+                                }
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Describe what you want to replace it with.
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
                       {/* Insert mode settings */}
-                      {editType === EditType.INPAINT_INSERTION && editMode === EditMode.REGION && (
-                        <div className="space-y-2">
-                          <Label>Select Area to Insert</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Draw a box over the area you want to insert content into.
-                          </p>
-                          {/* Add Box Button */}
-                          <div className="flex items-center gap-2">
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={handleAddBox}
-                              disabled={
-                                !box || box.wPct === 0 || box.hPct === 0
-                              }
-                            >
-                              Add Box
-                            </Button>
-                            {box && uploadedImageInfo && (
-                              <span className="text-xs text-muted-foreground">
-                                {(() => {
-                                  const img = uploadedImageInfo;
-                                  const x = Math.round(box.xPct * img.width);
-                                  const y = Math.round(box.yPct * img.height);
-                                  const w = Math.round(box.wPct * img.width);
-                                  const h = Math.round(box.hPct * img.height);
-                                  return (
-                                    <>
-                                      Preview: x={x}, y={y}, w={w}, h={h}
-                                    </>
-                                  );
-                                })()}
-                              </span>
-                            )}
-                          </div>
-                          {(!box || !imageRef.current) && (
-                            <div className="text-xs text-muted-foreground">
-                              Click and drag on the image to select an area.
-                            </div>
-                          )}
-
-                          {/* Insert prompt for box mode */}
-                          <div className="space-y-2 mt-4">
-                            <Label htmlFor="insert-prompt">
-                              Insert prompt
-                            </Label>
-                            <textarea
-                              id="insert-prompt"
-                              className="w-full min-h-[60px] p-2 rounded-md border border-input bg-background"
-                              placeholder="E.g., 'a red car'"
-                              value={textPrompt}
-                              onChange={(e) => setTextPrompt(e.target.value)}
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Describe what you want to insert into the selected area.
+                      {editType === EditType.INPAINT_INSERTION &&
+                        editMode === EditMode.REGION && (
+                          <div className="space-y-2">
+                            <Label>Select Area to Insert</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Draw a box over the area you want to insert
+                              content into.
                             </p>
+                            {/* Add Box Button */}
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={handleAddBox}
+                                disabled={
+                                  !box || box.wPct === 0 || box.hPct === 0
+                                }
+                              >
+                                Add Box
+                              </Button>
+                              {box && uploadedImageInfo && (
+                                <span className="text-xs text-muted-foreground">
+                                  {(() => {
+                                    const img = uploadedImageInfo;
+                                    const x = Math.round(box.xPct * img.width);
+                                    const y = Math.round(box.yPct * img.height);
+                                    const w = Math.round(box.wPct * img.width);
+                                    const h = Math.round(box.hPct * img.height);
+                                    return (
+                                      <>
+                                        Preview: x={x}, y={y}, w={w}, h={h}
+                                      </>
+                                    );
+                                  })()}
+                                </span>
+                              )}
+                            </div>
+                            {(!box || !imageRef.current) && (
+                              <div className="text-xs text-muted-foreground">
+                                Click and drag on the image to select an area.
+                              </div>
+                            )}
+
+                            {/* Insert prompt for box mode */}
+                            <div className="space-y-2 mt-4">
+                              <Label htmlFor="insert-prompt">
+                                Insert prompt
+                              </Label>
+                              <textarea
+                                id="insert-prompt"
+                                className="w-full min-h-[60px] p-2 rounded-md border border-input bg-background"
+                                placeholder="E.g., 'a red car'"
+                                value={textPrompt}
+                                onChange={(e) => setTextPrompt(e.target.value)}
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Describe what you want to insert into the
+                                selected area.
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
                       {/* Insert mode note for prompt mode */}
-                      {editType === EditType.INPAINT_INSERTION && editMode === EditMode.PROMPT && (
-                        <div className="space-y-2">
-                          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                            <div className="flex items-center gap-2 mb-2">
-                              <MessageSquare className="h-4 w-4 text-yellow-600" />
-                              <h4 className="font-medium text-yellow-800">Region Mode Required</h4>
+                      {editType === EditType.INPAINT_INSERTION &&
+                        editMode === EditMode.PROMPT && (
+                          <div className="space-y-2">
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                              <div className="flex items-center gap-2 mb-2">
+                                <MessageSquare className="h-4 w-4 text-yellow-600" />
+                                <h4 className="font-medium text-yellow-800">
+                                  Region Mode Required
+                                </h4>
+                              </div>
+                              <p className="text-sm text-yellow-700">
+                                Insert operation requires "Draw Box" mode to
+                                specify where to add content. Please switch to
+                                "Draw Box" mode to use the insert feature.
+                              </p>
                             </div>
-                            <p className="text-sm text-yellow-700">
-                              Insert operation requires "Draw Box" mode to specify where to add content.
-                              Please switch to "Draw Box" mode to use the insert feature.
-                            </p>
                           </div>
-                        </div>
-                      )}
+                        )}
                     </div>
                   </div>
                   {/* List of boxes with remove button */}
                   {editMode === EditMode.REGION && boxes.length > 0 && (
                     <div>
                       <h4 className="font-semibold mb-2 text-sm">
-                        Selected {editType === EditType.INPAINT_REMOVE ? "Areas to Erase" : editType === EditType.INPAINT_REPLACE ? "Areas to Replace" : "Areas to Insert"}
+                        Selected{" "}
+                        {editType === EditType.INPAINT_REMOVE
+                          ? "Areas to Erase"
+                          : editType === EditType.INPAINT_REPLACE
+                            ? "Areas to Replace"
+                            : "Areas to Insert"}
                       </h4>
                       <ul className="space-y-2">
                         {boxes.map((b, idx) => {
@@ -817,16 +849,24 @@ export default function MagicEraser() {
                       onClick={handleErase}
                       disabled={
                         isProcessing ||
-                        (editType === EditType.INPAINT_REMOVE && editMode === EditMode.REGION
+                        (editType === EditType.INPAINT_REMOVE &&
+                        editMode === EditMode.REGION
                           ? boxes.length === 0
-                          : editType === EditType.INPAINT_REMOVE && editMode === EditMode.PROMPT
+                          : editType === EditType.INPAINT_REMOVE &&
+                              editMode === EditMode.PROMPT
                             ? textPrompt.trim().length === 0
-                            : editType === EditType.INPAINT_REPLACE && editMode === EditMode.REGION
-                              ? boxes.length === 0 || textPrompt.trim().length === 0
-                              : editType === EditType.INPAINT_REPLACE && editMode === EditMode.PROMPT
-                                ? replaceFromPrompt.trim().length === 0 || replaceWithPrompt.trim().length === 0
-                                : editType === EditType.INPAINT_INSERTION && editMode === EditMode.REGION
-                                  ? boxes.length === 0 || textPrompt.trim().length === 0
+                            : editType === EditType.INPAINT_REPLACE &&
+                                editMode === EditMode.REGION
+                              ? boxes.length === 0 ||
+                                textPrompt.trim().length === 0
+                              : editType === EditType.INPAINT_REPLACE &&
+                                  editMode === EditMode.PROMPT
+                                ? replaceFromPrompt.trim().length === 0 ||
+                                  replaceWithPrompt.trim().length === 0
+                                : editType === EditType.INPAINT_INSERTION &&
+                                    editMode === EditMode.REGION
+                                  ? boxes.length === 0 ||
+                                    textPrompt.trim().length === 0
                                   : false)
                       }
                     >
@@ -836,15 +876,18 @@ export default function MagicEraser() {
                         <>
                           {editType === EditType.INPAINT_REMOVE ? (
                             <>
-                              <Eraser className="mr-2 h-4 w-4" /> Apply Magic Eraser
+                              <Eraser className="mr-2 h-4 w-4" /> Apply Magic
+                              Eraser
                             </>
                           ) : editType === EditType.INPAINT_REPLACE ? (
                             <>
-                              <ArrowRightLeft className="mr-2 h-4 w-4" /> Apply Magic Replace
+                              <ArrowRightLeft className="mr-2 h-4 w-4" /> Apply
+                              Magic Replace
                             </>
                           ) : (
                             <>
-                              <Brush className="mr-2 h-4 w-4" /> Apply Magic Insert
+                              <Brush className="mr-2 h-4 w-4" /> Apply Magic
+                              Insert
                             </>
                           )}
                         </>
@@ -861,26 +904,29 @@ export default function MagicEraser() {
               <h3 className="text-lg font-semibold mb-4">How to Use</h3>
               <ol className="space-y-2 ml-6 list-decimal">
                 <li>
-                  Choose between "Erase" to remove objects, "Replace" to substitute them, or "Insert" to add new content
+                  Choose between "Erase" to remove objects, "Replace" to
+                  substitute them, or "Insert" to add new content
                 </li>
                 <li>
-                  Select your editing mode: "Draw Box" to select specific areas or "Prompt" for text-based editing
+                  Select your editing mode: "Draw Box" to select specific areas
+                  or "Prompt" for text-based editing
                 </li>
                 <li>
                   For erasing: Mark areas to remove or describe what to erase
                 </li>
                 <li>
-                  For replacing: Select areas and describe what to replace them with, or specify "replace X with Y"
+                  For replacing: Select areas and describe what to replace them
+                  with, or specify "replace X with Y"
                 </li>
                 <li>
-                  For inserting: Draw a box where you want to add content and describe what to insert
+                  For inserting: Draw a box where you want to add content and
+                  describe what to insert
                 </li>
                 <li>
-                  Click "Apply Magic Eraser", "Apply Magic Replace", or "Apply Magic Insert" to process your image
+                  Click "Apply Magic Eraser", "Apply Magic Replace", or "Apply
+                  Magic Insert" to process your image
                 </li>
-                <li>
-                  Fine-tune the result if needed with additional editing
-                </li>
+                <li>Fine-tune the result if needed with additional editing</li>
               </ol>
             </CardContent>
           </Card>
@@ -950,7 +996,8 @@ export default function MagicEraser() {
                   </div>
                   <h4 className="font-medium mb-2">Mark Areas</h4>
                   <p className="text-sm text-muted-foreground">
-                    Use selection tools to mark objects to remove, replace, or areas to insert content
+                    Use selection tools to mark objects to remove, replace, or
+                    areas to insert content
                   </p>
                 </div>
                 <div className="flex flex-col items-center text-center">
@@ -959,7 +1006,8 @@ export default function MagicEraser() {
                   </div>
                   <h4 className="font-medium mb-2">Describe Changes</h4>
                   <p className="text-sm text-muted-foreground">
-                    Describe what to remove, replace, or insert using natural language prompts
+                    Describe what to remove, replace, or insert using natural
+                    language prompts
                   </p>
                 </div>
                 <div className="flex flex-col items-center text-center">
@@ -968,7 +1016,8 @@ export default function MagicEraser() {
                   </div>
                   <h4 className="font-medium mb-2">AI Processing</h4>
                   <p className="text-sm text-muted-foreground">
-                    Our AI analyzes the content and generates, removes, or replaces objects as requested
+                    Our AI analyzes the content and generates, removes, or
+                    replaces objects as requested
                   </p>
                 </div>
                 <div className="flex flex-col items-center text-center">
@@ -977,7 +1026,8 @@ export default function MagicEraser() {
                   </div>
                   <h4 className="font-medium mb-2">Seamless Results</h4>
                   <p className="text-sm text-muted-foreground">
-                    Get natural-looking results that blend perfectly with the original image
+                    Get natural-looking results that blend perfectly with the
+                    original image
                   </p>
                 </div>
               </div>
@@ -1024,7 +1074,8 @@ export default function MagicEraser() {
                 <div className="bg-muted p-4 rounded-lg">
                   <h4 className="font-medium mb-2">Creative Editing</h4>
                   <p className="text-sm text-muted-foreground">
-                    Transform scenes by replacing backgrounds, objects, or elements
+                    Transform scenes by replacing backgrounds, objects, or
+                    elements
                   </p>
                 </div>
                 <div className="bg-muted p-4 rounded-lg">
@@ -1042,25 +1093,29 @@ export default function MagicEraser() {
                 <div className="bg-muted p-4 rounded-lg">
                   <h4 className="font-medium mb-2">Adding Missing Elements</h4>
                   <p className="text-sm text-muted-foreground">
-                    Insert objects, people, or decorations that weren't in the original
+                    Insert objects, people, or decorations that weren't in the
+                    original
                   </p>
                 </div>
                 <div className="bg-muted p-4 rounded-lg">
                   <h4 className="font-medium mb-2">Scene Enhancement</h4>
                   <p className="text-sm text-muted-foreground">
-                    Add atmospheric elements like clouds, birds, or lighting effects
+                    Add atmospheric elements like clouds, birds, or lighting
+                    effects
                   </p>
                 </div>
                 <div className="bg-muted p-4 rounded-lg">
                   <h4 className="font-medium mb-2">Marketing Materials</h4>
                   <p className="text-sm text-muted-foreground">
-                    Insert products, logos, or promotional elements into existing scenes
+                    Insert products, logos, or promotional elements into
+                    existing scenes
                   </p>
                 </div>
                 <div className="bg-muted p-4 rounded-lg">
                   <h4 className="font-medium mb-2">Storytelling</h4>
                   <p className="text-sm text-muted-foreground">
-                    Add characters, objects, or details to enhance your visual narrative
+                    Add characters, objects, or details to enhance your visual
+                    narrative
                   </p>
                 </div>
               </div>

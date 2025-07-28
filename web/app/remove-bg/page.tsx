@@ -53,7 +53,6 @@ import { newTask as removeBackgroundTask } from "@/lib/api/tasks";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { WebSocketClient } from "@/socket";
 import EnhancedImage from "@/components/ui/EnhanchedImage";
-import toast from "react-hot-toast";
 import { AxiosError } from "axios";
 
 // Predefined background colors
@@ -258,23 +257,20 @@ export default function RemoveBGPage() {
       if (!task) {
         const errorMessage = "Something went wrong, please try again";
         setRemoveBgError(errorMessage);
-        toast.error(errorMessage);
         setTaskProgress(null);
         return;
       }
 
       const websocket = new WebSocketClient(task.userId);
-      websocket.on<TaskProgress>("task-progress", (data) => {
+      websocket.on<TaskProgress>("task-progress-" + task.id, (data) => {
         console.log("WebSocket data received:", data);
         setTaskProgress(data);
         if (data.status === TaskStatus.SUCCEEDED) {
           setActiveTab("replace");
           setRemovedBgImage(data.resultData?.outputImageUrl || null);
-          toast.success("Background removed successfully!");
         } else if (data.status === TaskStatus.FAILED) {
           const errorMessage = "Failed to remove background";
           setRemoveBgError(errorMessage);
-          toast.error(errorMessage);
           setTaskProgress(null);
         }
       });
@@ -286,8 +282,6 @@ export default function RemoveBGPage() {
           : "Failed to remove background. Please try again.";
       setRemoveBgError(errorMessage);
       setTaskProgress(null);
-      toast.error(errorMessage);
-      console.error("Error removing background:", error);
     }
   };
 
@@ -327,7 +321,6 @@ export default function RemoveBGPage() {
       if (!task) {
         const errorMessage = "Something went wrong, please try again";
         setReplaceBgError(errorMessage);
-        toast.error(errorMessage);
         setTaskProgress(null);
         return;
       }
@@ -336,17 +329,15 @@ export default function RemoveBGPage() {
         webSocket = new WebSocketClient(task.userId);
         setSocket(webSocket);
       }
-      webSocket.on<TaskProgress>("task-progress", (data) => {
+      webSocket.on<TaskProgress>("task-progress-" + task.id, (data) => {
         console.log("WebSocket data received:", data);
         setTaskProgress(data);
         if (data.status === TaskStatus.SUCCEEDED) {
           setActiveTab("result");
           setFinalImage(data.resultData?.outputImageUrl || null);
-          toast.success("Background replaced successfully!");
         } else if (data.status === TaskStatus.FAILED) {
           const errorMessage = "Failed to replace background";
           setReplaceBgError(errorMessage);
-          toast.error(errorMessage);
           setTaskProgress(null);
         }
       });
@@ -357,8 +348,6 @@ export default function RemoveBGPage() {
           : "Failed to replace background. Please try again.";
       setReplaceBgError(errorMessage);
       setTaskProgress(null);
-      toast.error(errorMessage);
-      console.error("Error replacing background:", error);
     }
   };
 

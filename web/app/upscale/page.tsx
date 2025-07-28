@@ -207,7 +207,7 @@ export default function UpscalePage() {
       return;
     }
     const websocket = new WebSocketClient(task.userId);
-    websocket.on<TaskProgress>("task-progress", async (data) => {
+    websocket.on<TaskProgress>("task-progress-" + task.id, async (data) => {
       console.log("WebSocket data received:", data);
       setTaskProgress(data);
       if (data.status === TaskStatus.SUCCEEDED) {

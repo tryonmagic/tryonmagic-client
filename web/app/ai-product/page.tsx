@@ -607,7 +607,7 @@ export default function AIProductPage() {
       // Listen for WebSocket updates
       const websocket = new WebSocketClient(task.userId);
       websocket.on<TaskProgress<ProductImageEditTaskResultData>>(
-        "task-progress",
+        "task-progress-" + task.id,
         (data) => {
           console.log("WebSocket data received:", data);
           setTaskProgress(data);
@@ -643,7 +643,6 @@ export default function AIProductPage() {
           ? error.response?.data.message
           : "An unexpected error occurred. Please try again.";
       setError(errorMessage);
-      console.error("Generation error:", error);
     }
   };
 

@@ -428,7 +428,7 @@ export default function AIFashionGenerator() {
       }
 
       const websocket = new WebSocketClient(task.userId);
-      websocket.on<TaskProgress>("task-progress", (data) => {
+      websocket.on<TaskProgress>("task-progress-" + task.id, (data) => {
         console.log("WebSocket data received:", data);
         setTaskProgress(data);
         if (data.status === TaskStatus.SUCCEEDED) {

@@ -242,7 +242,7 @@ export default function VirtualTryOnPage() {
       }
       const websocket = new WebSocketClient(task.userId);
       websocket.on<TaskProgress<VtonTaskResultData>>(
-        "task-progress",
+        "task-progress-" + task.id,
         (data) => {
           console.log("WebSocket data received:", data);
           setTaskProgress(data);
