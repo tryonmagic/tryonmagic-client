@@ -141,6 +141,8 @@ interface ImageUploadDialogProps {
   hideCancelButton?: boolean;
   hideUploadButton?: boolean;
   hideActions?: boolean;
+  maxColumns?: number;
+  maxRows?: number;
 }
 
 export default function ImageUploadDialog({
@@ -150,6 +152,8 @@ export default function ImageUploadDialog({
   hideCancelButton,
   hideUploadButton,
   hideActions,
+  maxColumns,
+  maxRows,
 }: ImageUploadDialogProps) {
   // Function to handle image insertion and close dialog
   const handleInsertImages = (images: ImageType[]) => {
@@ -180,6 +184,8 @@ export default function ImageUploadDialog({
               hideCancelButton={hideCancelButton}
               hideUploadButton={hideUploadButton}
               hideActions={hideActions}
+              maxColumns={maxColumns}
+              maxRows={maxRows}
             />
           </DialogPanel>
         </div>
@@ -197,6 +203,8 @@ export function ImageGallery({
   hideActions,
   onSelected,
   hideUploadButton,
+  maxColumns,
+  maxRows,
 }: {
   onInsert?: (images: ImageType[]) => void;
   onClose?: () => void;
@@ -205,6 +213,8 @@ export function ImageGallery({
   hideActions?: boolean;
   onSelected?: (selectedImages: ImageType[]) => void;
   hideUploadButton?: boolean;
+  maxColumns?: number;
+  maxRows?: number;
 }) {
   const [selectedImages, setSelectedImages] = useState<ImageType[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -238,7 +248,7 @@ export function ImageGallery({
       "files",
       {
         page: currentPage,
-        pageSize: PAGE_SIZE,
+        pageSize: maxRows ? maxRows * (maxColumns ?? 1) : PAGE_SIZE,
         types: filters.fileType,
         search: searchQuery,
         sortOption,
@@ -398,7 +408,7 @@ export function ImageGallery({
       setUploadingCount((prev) => prev + files.length);
       handleOnFileUpload(fileInfos);
     },
-    [images],
+    [handleOnFileUpload],
   );
 
   // Handle drag and drop
@@ -468,7 +478,7 @@ export function ImageGallery({
         }
       });
     },
-    [selectedImages, imageSelectionLimit, allImages],
+    [imageSelectionLimit, selectedImages, onSelected, allImages],
   );
 
   // Handle image deletion
@@ -714,7 +724,13 @@ export function ImageGallery({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <div
+              className={cn(
+                maxColumns
+                  ? `grid grid-cols-${maxColumns} gap-4`
+                  : "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4",
+              )}
+            >
               <AnimatePresence>
                 {allImages.map((img) => (
                   <motion.div

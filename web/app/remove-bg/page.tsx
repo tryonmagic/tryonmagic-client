@@ -20,6 +20,8 @@ import {
   Check,
   X,
   RefreshCw,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,7 +39,9 @@ import {
 } from "@/components/ui/tooltip";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
-import ImageUploadDialog from "@/lib/uploader/components/image-upload-manager";
+import ImageUploadDialog, {
+  ImageGallery,
+} from "@/lib/uploader/components/image-upload-manager";
 import {
   BackgroundSourceType,
   ImageSourceType,
@@ -54,6 +58,7 @@ import { useAppBridge } from "@shopify/app-bridge-react";
 import { WebSocketClient } from "@/socket";
 import EnhancedImage from "@/components/ui/EnhanchedImage";
 import { AxiosError } from "axios";
+import ImageUploader from "@/lib/uploader/components/ImageUploader";
 
 // Predefined background colors
 const backgroundColors = [
@@ -67,46 +72,16 @@ const backgroundColors = [
   { name: "Purple", value: "#800080" },
   { name: "Pink", value: "#FFC0CB" },
   { name: "Gray", value: "#808080" },
-];
-
-// Predefined background images
-const backgroundImages = [
-  {
-    name: "Gradient 1",
-    thumbnail:
-      "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=100&width=100",
-    url: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=800&width=800",
-  },
-  {
-    name: "Gradient 2",
-    thumbnail:
-      "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=100&width=100",
-    url: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=800&width=800",
-  },
-  {
-    name: "Studio",
-    thumbnail:
-      "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=100&width=100",
-    url: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=800&width=800",
-  },
-  {
-    name: "Nature",
-    thumbnail:
-      "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=100&width=100",
-    url: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=800&width=800",
-  },
-  {
-    name: "Urban",
-    thumbnail:
-      "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=100&width=100",
-    url: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=800&width=800",
-  },
-  {
-    name: "Abstract",
-    thumbnail:
-      "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=100&width=100",
-    url: "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=800&width=800",
-  },
+  { name: "Orange", value: "#FFA500" },
+  { name: "Cyan", value: "#00FFFF" },
+  { name: "Magenta", value: "#FF00FF" },
+  { name: "Brown", value: "#A52A2A" },
+  { name: "Navy", value: "#000080" },
+  { name: "Teal", value: "#008080" },
+  { name: "Lime", value: "#00FF00" },
+  { name: "Maroon", value: "#800000" },
+  { name: "Olive", value: "#808000" },
+  { name: "Silver", value: "#C0C0C0" },
 ];
 
 // Predefined background prompts
@@ -171,6 +146,83 @@ function ExampleCard({ title, description, before, after }: ExampleCardProps) {
   );
 }
 
+interface CustomColorPickerProps {
+  selectedColor: string;
+  onColorSelect: (color: string) => void;
+}
+
+function CustomColorPicker({
+  selectedColor,
+  onColorSelect,
+}: CustomColorPickerProps) {
+  const [customColor, setCustomColor] = useState(selectedColor || "#FFFFFF");
+  const [isValidColor, setIsValidColor] = useState(true);
+
+  // Update local state when selectedColor prop changes
+  useEffect(() => {
+    if (selectedColor) {
+      setCustomColor(selectedColor);
+    }
+  }, [selectedColor]);
+
+  const validateAndSetColor = (color: string) => {
+    setCustomColor(color);
+
+    // Validate hex color format
+    const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+    const isValid = hexRegex.test(color);
+    setIsValidColor(isValid);
+
+    if (isValid) {
+      onColorSelect(color);
+    }
+  };
+
+  const handleColorPickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const color = e.target.value;
+    setCustomColor(color);
+    setIsValidColor(true);
+    onColorSelect(color);
+  };
+
+  return (
+    <div className="space-y-3">
+      <Label className="text-sm font-medium">Custom Color</Label>
+      <div className="flex space-x-3">
+        {/* Color Picker */}
+        <div className="relative">
+          <input
+            type="color"
+            value={customColor}
+            onChange={handleColorPickerChange}
+            className="w-12 h-10 rounded-lg border-2 border-slate-300 cursor-pointer overflow-hidden"
+            title="Pick a color"
+          />
+        </div>
+
+        {/* Hex Input */}
+        <div className="flex-1">
+          <Input
+            type="text"
+            placeholder="#FFFFFF"
+            value={customColor}
+            onChange={(e) => validateAndSetColor(e.target.value)}
+            className={cn(
+              "font-mono text-sm",
+              !isValidColor && "border-red-500 focus:border-red-500",
+            )}
+          />
+          {!isValidColor && (
+            <p className="text-xs text-red-500 mt-1">
+              Please enter a valid hex color (e.g., #FFFFFF)
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function RemoveBGPage() {
   const [activeTab, setActiveTab] = useState("upload");
   const [uploadedImage, setUploadedImage] = useState<{
@@ -195,23 +247,20 @@ export default function RemoveBGPage() {
   const [detailPreservation, setDetailPreservation] = useState(true);
   const [hairDetection, setHairDetection] = useState(true);
   const customImageInputRef = useRef<HTMLInputElement>(null);
-  const [socket, setSocket] = useState<WebSocketClient | null>(null);
+  const [showImageGallery, setShowImageGallery] = useState(false);
 
   // Error states
   const [removeBgError, setRemoveBgError] = useState<string | null>(null);
   const [replaceBgError, setReplaceBgError] = useState<string | null>(null);
+  const [uploadImageTab, setUploadImageTab] = useState("new");
+  const [customImageUrlError, setCustomImageUrlError] = useState<string | null>(
+    null,
+  );
 
   const [openImageUploadDialog, setOpenImageUploadDialog] = useState(false);
   const app = useAppBridge();
 
-  // Cleanup WebSocket connection on unmount
-  useEffect(() => {
-    return () => {
-      if (socket) {
-        socket.disconnect();
-      }
-    };
-  }, [socket]);
+  console.log({ replaceBgSelectedImage });
 
   const handleCustomImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -220,8 +269,61 @@ export default function RemoveBGPage() {
       reader.onload = (event) => {
         setReplaceBgSelectedImage(event.target?.result as string);
         setCustomImageUrl("");
+        setCustomImageUrlError(null);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const validateImageUrl = (url: string): boolean => {
+    if (!url.trim()) return true; // Empty URL is valid (no error)
+
+    try {
+      const urlObj = new URL(url);
+      // Check if it's a valid HTTP/HTTPS URL
+      if (!["http:", "https:"].includes(urlObj.protocol)) {
+        return false;
+      }
+
+      // Check if it has a valid image extension
+      const imageExtensions = [
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".gif",
+        ".webp",
+        ".bmp",
+        ".svg",
+      ];
+      const pathname = urlObj.pathname.toLowerCase();
+      const hasValidExtension = imageExtensions.some((ext) =>
+        pathname.endsWith(ext),
+      );
+
+      return hasValidExtension;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleCustomImageUrlChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const url = e.target.value;
+    setCustomImageUrl(url);
+    setReplaceBgSelectedImage(null);
+
+    if (url.trim()) {
+      const isValid = validateImageUrl(url);
+      if (!isValid) {
+        setCustomImageUrlError(
+          "Please enter a valid image URL (e.g., https://example.com/image.jpg)",
+        );
+      } else {
+        setCustomImageUrlError(null);
+      }
+    } else {
+      setCustomImageUrlError(null);
     }
   };
 
@@ -243,7 +345,7 @@ export default function RemoveBGPage() {
         inputData: {
           sourceImage: uploadedImage.originalUrl,
           imageSourceType: ImageSourceType.URL,
-          edgeThreshold: edgeRefinement,
+          edgeThreshold: 50, // Default value (edge refinement not user-configurable)
           detailPreservation,
           enhancedHairDetection: hairDetection,
         },
@@ -266,7 +368,6 @@ export default function RemoveBGPage() {
         console.log("WebSocket data received:", data);
         setTaskProgress(data);
         if (data.status === TaskStatus.SUCCEEDED) {
-          setActiveTab("replace");
           setRemovedBgImage(data.resultData?.outputImageUrl || null);
         } else if (data.status === TaskStatus.FAILED) {
           const errorMessage = "Failed to remove background";
@@ -274,7 +375,6 @@ export default function RemoveBGPage() {
           setTaskProgress(null);
         }
       });
-      setSocket(websocket);
     } catch (error) {
       const errorMessage =
         error instanceof AxiosError
@@ -292,7 +392,8 @@ export default function RemoveBGPage() {
   });
 
   const handleReplaceBackground = async () => {
-    if (!removedBgImage) return;
+    const sourceImageUrl = removedBgImage || uploadedImage?.originalUrl;
+    if (!sourceImageUrl) return;
 
     try {
       // Clear previous errors
@@ -306,10 +407,11 @@ export default function RemoveBGPage() {
       const newTask: NewTask<ReplaceBackgroundTaskInput> = {
         type: TaskType.REPLACE_BACKGROUND,
         inputData: {
-          sourceImageUrl: removedBgImage,
+          sourceImageUrl,
           backgroundImageSourceType: ImageSourceType.URL,
           backgroundSourceType: backgroundType,
           backgroundSourceValue: getBackgroundSourceValue()[backgroundType]!,
+          isBackgroundRemoved: !!removedBgImage,
         },
       };
 
@@ -324,12 +426,8 @@ export default function RemoveBGPage() {
         setTaskProgress(null);
         return;
       }
-      let webSocket = socket;
-      if (!webSocket) {
-        webSocket = new WebSocketClient(task.userId);
-        setSocket(webSocket);
-      }
-      webSocket.on<TaskProgress>("task-progress-" + task.id, (data) => {
+      const websocket = new WebSocketClient(task.userId);
+      websocket.on<TaskProgress>("task-progress-" + task.id, (data) => {
         console.log("WebSocket data received:", data);
         setTaskProgress(data);
         if (data.status === TaskStatus.SUCCEEDED) {
@@ -363,7 +461,17 @@ export default function RemoveBGPage() {
     setBackgroundPrompt("");
     setRemoveBgError(null);
     setReplaceBgError(null);
+    setCustomImageUrlError(null);
     setTaskProgress(null);
+  };
+
+  const getImageUrl = (url: string) => {
+    // If it's already a data URL or external URL, return as is
+    if (url.startsWith("data:") || url.startsWith("http")) {
+      return url;
+    }
+    // Otherwise, proxy through image proxy
+    return `${process.env.NEXT_PUBLIC_IMAGE_PROXY_URL}/images?url=${encodeURIComponent(url)}`;
   };
 
   const getBackgroundPreviewStyle = () => {
@@ -376,7 +484,10 @@ export default function RemoveBGPage() {
       backgroundType === BackgroundSourceType.IMAGE &&
       (replaceBgSelectedImage || customImageUrl)
     ) {
-      const imageUrl = replaceBgSelectedImage || customImageUrl;
+      const imageUrl = replaceBgSelectedImage
+        ? `${process.env.NEXT_PUBLIC_IMAGE_PROXY_URL}/images?url=${encodeURIComponent(replaceBgSelectedImage)}`
+        : customImageUrl;
+      console.log(imageUrl);
       return {
         backgroundImage: `url(${imageUrl})`,
         backgroundSize: "cover",
@@ -394,12 +505,12 @@ export default function RemoveBGPage() {
       )
     : false;
 
-  const hasErrors = removeBgError || replaceBgError;
+  const hasErrors = !!(removeBgError || replaceBgError || customImageUrlError);
 
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4 md:p-8">
+    <div className="min-h-[calc(100vh-3.5rem)] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-2 md:p-4">
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center mb-8">
+        <div className="flex items-center mb-4">
           <Button variant="ghost" size="icon" asChild className="mr-2">
             <Link href="/">
               <ArrowLeft className="h-5 w-5" />
@@ -418,7 +529,7 @@ export default function RemoveBGPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-4 mb-8">
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-4 mb-4">
             <TabsTrigger value="upload" disabled={isTaskProcessing}>
               Upload
             </TabsTrigger>
@@ -430,7 +541,7 @@ export default function RemoveBGPage() {
             </TabsTrigger>
             <TabsTrigger
               value="replace"
-              disabled={!removedBgImage || (isTaskProcessing && !hasErrors)}
+              disabled={!uploadedImage || (isTaskProcessing && !hasErrors)}
             >
               Replace
             </TabsTrigger>
@@ -451,6 +562,93 @@ export default function RemoveBGPage() {
                     Select Or Upload Your Image
                   </h2>
                   <div className="space-y-4">
+                    {/* Mode Toggle */}
+                    <div className="flex items-center justify-center">
+                      <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                        <div className="flex">
+                          <button
+                            onClick={() => setUploadImageTab("new")}
+                            className={cn(
+                              "px-4 py-2 rounded-md text-sm font-medium transition-all",
+                              uploadImageTab === "new"
+                                ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
+                                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100",
+                            )}
+                          >
+                            Upload New
+                          </button>
+                          <button
+                            onClick={() => setUploadImageTab("gallery")}
+                            className={cn(
+                              "px-4 py-2 rounded-md text-sm font-medium transition-all",
+                              uploadImageTab === "gallery"
+                                ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
+                                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100",
+                            )}
+                          >
+                            Choose from Gallery
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Upload Mode */}
+                    {uploadImageTab === "new" && (
+                      <div className="h-56">
+                        <ImageUploader
+                          onUploaded={(imageInfo) => {
+                            setUploadedImage({
+                              previewUrl: imageInfo.previewImageUrl,
+                              originalUrl: imageInfo.uploadLocation,
+                            });
+                            setActiveTab("remove");
+                          }}
+                          hideImagePreviewAfterUpload
+                        />
+                      </div>
+                    )}
+
+                    {/* Gallery Mode */}
+                    {uploadImageTab === "gallery" && (
+                      <div className="space-y-4">
+                        <div className="text-center">
+                          <h3 className="text-lg font-medium mb-2">
+                            Select from Gallery
+                          </h3>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                            Choose from your previously uploaded images
+                          </p>
+                        </div>
+
+                        <div className=" p-1 text-center">
+                          <Button
+                            onClick={() => {
+                              setOpenImageUploadDialog(true);
+                            }}
+                            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                          >
+                            <ImageIcon className="mr-2 h-4 w-4" />
+                            Open Image Gallery
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {openImageUploadDialog && (
+                    <ImageUploadDialog
+                      imageSelectionLimit={1}
+                      onClose={() => setOpenImageUploadDialog(false)}
+                      onImagesSelected={(images) => {
+                        setUploadedImage({
+                          previewUrl: images[0].url,
+                          originalUrl: images[0].originalUrl,
+                        });
+                        setActiveTab("remove");
+                      }}
+                      hideUploadButton
+                    />
+                  )}
+                  {/* <div className="space-y-4">
                     {openImageUploadDialog && (
                       <ImageUploadDialog
                         imageSelectionLimit={1}
@@ -508,6 +706,31 @@ export default function RemoveBGPage() {
                         </div>
                       </div>
                     </div>
+                  </div> */}
+                  <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-lg mt-4">
+                    <div className="flex items-start space-x-3">
+                      <Info className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+                      <div>
+                        <h3 className="font-medium text-amber-800 dark:text-amber-300 text-sm">
+                          Tips for best results
+                        </h3>
+                        <ul className="text-xs text-amber-700 dark:text-amber-400 mt-1 space-y-1 list-disc pl-4">
+                          <li>Use high-quality images with good lighting</li>
+                          <li>
+                            Ensure the subject has clear edges against the
+                            background
+                          </li>
+                          <li>
+                            For hair and fur, use images with contrasting
+                            backgrounds
+                          </li>
+                          <li>
+                            Avoid images with motion blur or very complex
+                            backgrounds
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -545,105 +768,107 @@ export default function RemoveBGPage() {
               >
                 <Card className="overflow-hidden">
                   <CardContent className="p-6">
-                    <h2 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">
-                      Adjust Settings
-                    </h2>
                     <div className="space-y-6">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="edge-refinement">
-                            Edge Refinement
-                          </Label>
-                          <span className="text-sm text-slate-500">
-                            {edgeRefinement}%
-                          </span>
+                      <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-lg">
+                        <div className="flex items-start space-x-3">
+                          <Info className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+                          <div>
+                            <h3 className="font-medium text-amber-800 dark:text-amber-300 text-sm">
+                              Tips for best results
+                            </h3>
+                            <ul className="text-xs text-amber-700 dark:text-amber-400 mt-1 space-y-1 list-disc pl-4">
+                              <li>
+                                Use high-quality images with good lighting
+                              </li>
+                              <li>
+                                Ensure clear contrast between subject and
+                                background
+                              </li>
+                              <li>
+                                For hair and fur details, choose images with
+                                simple backgrounds
+                              </li>
+                              <li>
+                                Avoid images with motion blur or complex
+                                patterns
+                              </li>
+                            </ul>
+                          </div>
                         </div>
-                        <Slider
-                          id="edge-refinement"
-                          min={0}
-                          max={100}
-                          step={1}
-                          value={[edgeRefinement]}
-                          onValueChange={(value) => setEdgeRefinement(value[0])}
-                          className="py-2"
-                        />
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          Higher values create smoother edges, lower values
-                          preserve more detail
-                        </p>
                       </div>
 
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <Label
-                            htmlFor="detail-preservation"
-                            className="text-sm font-medium cursor-pointer"
+                      <div className="space-y-4">
+                        <div className="flex gap-4">
+                          {!removedBgImage && (
+                            <Button
+                              onClick={handleRemoveBackground}
+                              className="flex-1 min-w-0 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                              size="lg"
+                              disabled={isTaskProcessing}
+                            >
+                              {isTaskProcessing ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  <span className="truncate">
+                                    {taskProgress &&
+                                      TaskStatusMessageMapping[
+                                        taskProgress.status
+                                      ]}
+                                  </span>
+                                </>
+                              ) : removeBgError ? (
+                                <>
+                                  <RefreshCw className="mr-2 h-4 w-4" />
+                                  <span className="truncate">Retry Remove</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Eraser className="mr-2 h-4 w-4" />
+                                  <span className="truncate">
+                                    Remove Background
+                                  </span>
+                                </>
+                              )}
+                            </Button>
+                          )}
+
+                          <Button
+                            onClick={() => setActiveTab("replace")}
+                            className="flex-1 min-w-0 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                            size="lg"
                           >
-                            Detail Preservation
-                          </Label>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            Preserve fine details like hair and transparent
-                            areas
-                          </p>
+                            <Palette className="mr-2 h-4 w-4" />
+                            <span className="truncate">Go to Replace</span>
+                          </Button>
                         </div>
-                        <Switch
-                          id="detail-preservation"
-                          checked={detailPreservation}
-                          onCheckedChange={setDetailPreservation}
-                          className="data-[state=checked]:bg-purple-600"
-                        />
-                      </div>
 
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <Label
-                            htmlFor="hair-detection"
-                            className="text-sm font-medium cursor-pointer"
-                          >
-                            Enhanced Hair Detection
-                          </Label>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            Specialized processing for hair and fur
-                          </p>
-                        </div>
-                        <Switch
-                          id="hair-detection"
-                          checked={hairDetection}
-                          onCheckedChange={setHairDetection}
-                          className="data-[state=checked]:bg-purple-600"
-                        />
-                      </div>
-
-                      <Button
-                        onClick={handleRemoveBackground}
-                        className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-                        size="lg"
-                        disabled={isTaskProcessing}
-                      >
-                        {isTaskProcessing ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            {taskProgress &&
-                              TaskStatusMessageMapping[taskProgress.status]}
-                          </>
-                        ) : removeBgError ? (
-                          <>
-                            <RefreshCw className="mr-2 h-4 w-4" />
-                            Retry Remove Background
-                          </>
-                        ) : (
-                          <>
-                            <Eraser className="mr-2 h-4 w-4" />
-                            Remove Background
-                          </>
+                        {removeBgError && (
+                          <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
+                            <p className="text-sm text-red-700 dark:text-red-300">
+                              {removeBgError}
+                            </p>
+                          </div>
                         )}
-                      </Button>
+                      </div>
+                      {removedBgImage && (
+                        <div className="space-y-4">
+                          <div className="p-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
+                            <div className="flex items-center space-x-2">
+                              <Check className="h-5 w-5 text-green-600 dark:text-green-400" />
+                              <span className="text-sm font-medium text-green-800 dark:text-green-300">
+                                Background removed successfully!
+                              </span>
+                            </div>
+                          </div>
 
-                      {removeBgError && (
-                        <div className="mt-3 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
-                          <p className="text-sm text-red-700 dark:text-red-300">
-                            {removeBgError}
-                          </p>
+                          <Button
+                            onClick={() => setActiveTab("replace")}
+                            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                            size="lg"
+                          >
+                            <Palette className="mr-2 h-4 w-4" />
+                            Go to Replace Background
+                          </Button>
                         </div>
                       )}
                     </div>
@@ -651,39 +876,96 @@ export default function RemoveBGPage() {
                 </Card>
 
                 <Card>
-                  <CardContent className="p-6">
+                  <CardContent className="p-6 pt-2">
                     <h2 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">
-                      Your Image
+                      {removedBgImage
+                        ? "Background Removal Result"
+                        : "Your Image"}
                     </h2>
-                    <div className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                      <Image
-                        src={uploadedImage.originalUrl || "/placeholder.svg"}
-                        alt="Uploaded image"
-                        className="w-full h-auto object-contain"
-                        width={500}
-                        height={500}
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center opacity-0 hover:opacity-100">
-                        <Button
-                          variant="secondary"
-                          size="icon"
-                          onClick={handleReset}
-                        >
-                          <Trash2 className="h-5 w-5" />
-                        </Button>
-                      </div>
-                    </div>
 
-                    <div className="mt-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg">
-                      <h3 className="font-medium text-sm mb-2">
-                        What happens next?
-                      </h3>
-                      <p className="text-xs text-slate-600 dark:text-slate-400">
-                        Our AI will analyze your image and remove the
-                        background. You'll then be able to replace it with a
-                        color, image, or AI-generated background of your choice.
-                      </p>
-                    </div>
+                    {!removedBgImage ? (
+                      <>
+                        <div className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 ml-8 mr-8">
+                          <Image
+                            src={
+                              uploadedImage.originalUrl || "/placeholder.svg"
+                            }
+                            alt="Uploaded image"
+                            className="w-full h-auto object-contain"
+                            width={300}
+                            height={200}
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center opacity-0 hover:opacity-100">
+                            <Button
+                              variant="secondary"
+                              size="icon"
+                              onClick={handleReset}
+                            >
+                              <Trash2 className="h-5 w-5" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg">
+                          <h3 className="font-medium text-sm mb-2">
+                            What happens next?
+                          </h3>
+                          <p className="text-xs text-slate-600 dark:text-slate-400">
+                            You can either remove the background first to see
+                            the extracted subject, or go directly to replace the
+                            background with a color, image, or AI-generated
+                            scene of your choice.
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm text-center mb-2 font-medium text-slate-500 dark:text-slate-400">
+                              Original
+                            </p>
+                            <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                              <Image
+                                src={
+                                  uploadedImage.originalUrl ||
+                                  "/placeholder.svg"
+                                }
+                                alt="Original image"
+                                className="w-full h-auto object-contain"
+                                width={500}
+                                height={500}
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-sm text-center mb-2 font-medium text-slate-500 dark:text-slate-400">
+                              Background Removed
+                            </p>
+                            <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDIwIDIwIj48cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiNmMGYwZjAiLz48cmVjdCB4PSIxMCIgeT0iMTAiIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCIgZmlsbD0iI2YwZjBmMCIvPjwvc3ZnPg==')]">
+                              <EnhancedImage
+                                src={removedBgImage}
+                                alt="Background removed"
+                                width={500}
+                                height={500}
+                                className="w-full h-auto object-contain"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg">
+                          <h3 className="font-medium text-sm mb-2">
+                            Ready for the next step
+                          </h3>
+                          <p className="text-xs text-slate-600 dark:text-slate-400">
+                            Your background has been successfully removed. Now
+                            you can replace it with a color, image, or
+                            AI-generated background.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>
@@ -692,7 +974,7 @@ export default function RemoveBGPage() {
 
           {/* Replace Background Tab */}
           <TabsContent value="replace" className="space-y-4">
-            {removedBgImage && (
+            {uploadedImage && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -766,62 +1048,58 @@ export default function RemoveBGPage() {
                         <div className="space-y-4">
                           <div className="grid grid-cols-5 gap-2">
                             {backgroundColors.map((color) => (
-                              <div
-                                key={color.value}
-                                className={cn(
-                                  "h-10 rounded-md cursor-pointer border-2 transition-all",
-                                  replaceBgSelectedColor === color.value
-                                    ? "border-purple-600 scale-110"
-                                    : "border-transparent hover:border-slate-300",
-                                )}
-                                style={{
-                                  backgroundColor:
-                                    color.value === "transparent"
-                                      ? "transparent"
-                                      : color.value,
-                                  backgroundImage:
-                                    color.value === "transparent"
-                                      ? "linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)"
-                                      : undefined,
-                                  backgroundSize:
-                                    color.value === "transparent"
-                                      ? "10px 10px"
-                                      : undefined,
-                                  backgroundPosition:
-                                    color.value === "transparent"
-                                      ? "0 0, 0 5px, 5px -5px, -5px 0"
-                                      : undefined,
-                                }}
-                                onClick={() => {
-                                  setReplaceBgSelectedColor(color.value);
-                                  setCustomColor("");
-                                }}
-                                title={color.name}
-                              />
+                              <TooltipProvider key={color.value}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div
+                                      className={cn(
+                                        "h-10 rounded-md cursor-pointer border-2 transition-all",
+                                        replaceBgSelectedColor === color.value
+                                          ? "border-purple-600 scale-110"
+                                          : "border-transparent hover:border-slate-300",
+                                      )}
+                                      style={{
+                                        backgroundColor:
+                                          color.value === "transparent"
+                                            ? "transparent"
+                                            : color.value,
+                                        backgroundImage:
+                                          color.value === "transparent"
+                                            ? "linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)"
+                                            : undefined,
+                                        backgroundSize:
+                                          color.value === "transparent"
+                                            ? "10px 10px"
+                                            : undefined,
+                                        backgroundPosition:
+                                          color.value === "transparent"
+                                            ? "0 0, 0 5px, 5px -5px, -5px 0"
+                                            : undefined,
+                                      }}
+                                      onClick={() => {
+                                        setReplaceBgSelectedColor(color.value);
+                                        setCustomColor("");
+                                      }}
+                                    />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{color.name}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             ))}
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="custom-color">Custom Color</Label>
-                            <div className="flex space-x-2">
-                              <div
-                                className="h-10 w-10 rounded-md border"
-                                style={{
-                                  backgroundColor: customColor || "#FFFFFF",
-                                }}
-                              />
-                              <Input
-                                id="custom-color"
-                                type="text"
-                                placeholder="#RRGGBB"
-                                value={customColor}
-                                onChange={(e) => {
-                                  setCustomColor(e.target.value);
-                                  setReplaceBgSelectedColor("");
-                                }}
-                                className="flex-1"
-                              />
-                            </div>
+                            <CustomColorPicker
+                              selectedColor={
+                                customColor || replaceBgSelectedColor
+                              }
+                              onColorSelect={(color) => {
+                                setReplaceBgSelectedColor(color);
+                                setCustomColor(color);
+                              }}
+                            />
                           </div>
                         </div>
                       )}
@@ -829,8 +1107,7 @@ export default function RemoveBGPage() {
                       {/* Image Background Options */}
                       {backgroundType === BackgroundSourceType.IMAGE && (
                         <div className="space-y-4">
-                          <div className="grid grid-cols-3 gap-2">
-                            {backgroundImages.map((image) => (
+                          {/* {backgroundImages.map((image) => (
                               <div
                                 key={image.name}
                                 className={cn(
@@ -853,7 +1130,37 @@ export default function RemoveBGPage() {
                                   height={500}
                                 />
                               </div>
-                            ))}
+                            ))} */}
+                          <div className="relative">
+                            <Button
+                              onClick={() =>
+                                setShowImageGallery(!showImageGallery)
+                              }
+                              variant="outline"
+                              className="flex items-center space-x-2 w-full"
+                            >
+                              <span>Image Gallery</span>
+                              {showImageGallery ? (
+                                <ChevronUp />
+                              ) : (
+                                <ChevronDown />
+                              )}
+                            </Button>
+                            {showImageGallery && (
+                              <ImageGallery
+                                hideUploadButton
+                                hideActions
+                                hideCancelButton
+                                maxColumns={3}
+                                maxRows={2}
+                                imageSelectionLimit={1}
+                                onSelected={(images) => {
+                                  console.log(images);
+                                  setReplaceBgSelectedImage(images[0].url);
+                                  setCustomImageUrl("");
+                                }}
+                              />
+                            )}
                           </div>
 
                           <div className="space-y-2">
@@ -865,35 +1172,26 @@ export default function RemoveBGPage() {
                               type="text"
                               placeholder="https://example.com/image.jpg"
                               value={customImageUrl}
-                              onChange={(e) => {
-                                setCustomImageUrl(e.target.value);
-                                setReplaceBgSelectedImage(null);
-                              }}
+                              onChange={handleCustomImageUrlChange}
                             />
+                            {customImageUrlError && (
+                              <p className="text-xs text-red-500 mt-1">
+                                {customImageUrlError}
+                              </p>
+                            )}
                           </div>
 
                           <div className="space-y-2">
                             <Label>Upload Custom Image</Label>
-                            <div
-                              className="border border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-4 text-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
-                              onClick={() =>
-                                customImageInputRef.current?.click()
-                              }
-                            >
-                              <input
-                                type="file"
-                                ref={customImageInputRef}
-                                className="hidden"
-                                accept="image/*"
-                                onChange={handleCustomImageUpload}
-                              />
-                              <div className="flex items-center justify-center space-x-2">
-                                <Upload className="h-4 w-4 text-slate-500" />
-                                <span className="text-sm text-slate-500">
-                                  Upload background image
-                                </span>
-                              </div>
-                            </div>
+                            <ImageUploader
+                              onUploaded={(imageInfo) => {
+                                setReplaceBgSelectedImage(
+                                  imageInfo.uploadLocation,
+                                );
+                                setCustomImageUrl("");
+                              }}
+                              hideImagePreviewAfterUpload
+                            />
                           </div>
                         </div>
                       )}
@@ -958,42 +1256,46 @@ export default function RemoveBGPage() {
                         </div>
                       )}
 
-                      <Button
-                        onClick={handleReplaceBackground}
-                        className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-                        size="lg"
-                        disabled={
-                          isTaskProcessing ||
-                          (backgroundType === BackgroundSourceType.PROMPT &&
-                            !backgroundPrompt)
-                        }
-                      >
-                        {isTaskProcessing ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            {taskProgress &&
-                              TaskStatusMessageMapping[taskProgress.status]}
-                          </>
-                        ) : replaceBgError ? (
-                          <>
-                            <RefreshCw className="mr-2 h-4 w-4" />
-                            Retry Replace Background
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="mr-2 h-4 w-4" />
-                            Replace Background
-                          </>
-                        )}
-                      </Button>
+                      <div className="space-y-4">
+                        <Button
+                          onClick={handleReplaceBackground}
+                          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                          size="lg"
+                          disabled={
+                            isTaskProcessing ||
+                            (backgroundType === BackgroundSourceType.PROMPT &&
+                              !backgroundPrompt) ||
+                            (backgroundType === BackgroundSourceType.IMAGE &&
+                              !!customImageUrlError)
+                          }
+                        >
+                          {isTaskProcessing ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              {taskProgress &&
+                                TaskStatusMessageMapping[taskProgress.status]}
+                            </>
+                          ) : replaceBgError ? (
+                            <>
+                              <RefreshCw className="mr-2 h-4 w-4" />
+                              Retry Replace Background
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="mr-2 h-4 w-4" />
+                              Replace Background
+                            </>
+                          )}
+                        </Button>
 
-                      {replaceBgError && (
-                        <div className="mt-3 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
-                          <p className="text-sm text-red-700 dark:text-red-300">
-                            {replaceBgError}
-                          </p>
-                        </div>
-                      )}
+                        {replaceBgError && (
+                          <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
+                            <p className="text-sm text-red-700 dark:text-red-300">
+                              {replaceBgError}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -1022,42 +1324,180 @@ export default function RemoveBGPage() {
                             />
                           </div>
                         </div>
-                        <div>
-                          <p className="text-sm text-center mb-2 font-medium text-slate-500 dark:text-slate-400">
-                            Background Removed
-                          </p>
-                          <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDIwIDIwIj48cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiNmMGYwZjAiLz48cmVjdCB4PSIxMCIgeT0iMTAiIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCIgZmlsbD0iI2YwZjBmMCIvPjwvc3ZnPg==')]">
-                            <EnhancedImage
-                              src={removedBgImage || "/placeholder.svg"}
-                              alt="Background removed"
-                              width={500}
-                              height={500}
-                              className="w-full h-auto object-contain"
-                            />
+                        {removedBgImage ? (
+                          <div>
+                            <p className="text-sm text-center mb-2 font-medium text-slate-500 dark:text-slate-400">
+                              Background Removed
+                            </p>
+                            <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDIwIDIwIj48cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiNmMGYwZjAiLz48cmVjdCB4PSIxMCIgeT0iMTAiIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCIgZmlsbD0iI2YwZjBmMCIvPjwvc3ZnPg==')]">
+                              <EnhancedImage
+                                src={removedBgImage || "/placeholder.svg"}
+                                alt="Background removed"
+                                width={500}
+                                height={500}
+                                className="w-full h-auto object-contain"
+                              />
+                            </div>
                           </div>
-                        </div>
+                        ) : (
+                          <div>
+                            <p className="text-sm text-center mb-2 font-medium text-slate-500 dark:text-slate-400">
+                              Background Preview
+                            </p>
+                            <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 h-[250px] relative">
+                              {backgroundType ===
+                                BackgroundSourceType.COLOR && (
+                                <div
+                                  className="w-full h-full"
+                                  style={{
+                                    backgroundColor:
+                                      customColor || replaceBgSelectedColor,
+                                    backgroundImage:
+                                      (customColor ||
+                                        replaceBgSelectedColor) ===
+                                      "transparent"
+                                        ? "linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)"
+                                        : undefined,
+                                    backgroundSize:
+                                      (customColor ||
+                                        replaceBgSelectedColor) ===
+                                      "transparent"
+                                        ? "10px 10px"
+                                        : undefined,
+                                    backgroundPosition:
+                                      (customColor ||
+                                        replaceBgSelectedColor) ===
+                                      "transparent"
+                                        ? "0 0, 0 5px, 5px -5px, -5px 0"
+                                        : undefined,
+                                  }}
+                                />
+                              )}
+                              {backgroundType === BackgroundSourceType.IMAGE &&
+                                (replaceBgSelectedImage || customImageUrl) && (
+                                  <Image
+                                    src={
+                                      replaceBgSelectedImage
+                                        ? getImageUrl(replaceBgSelectedImage)
+                                        : customImageUrl || "/placeholder.svg"
+                                    }
+                                    alt="Background preview"
+                                    fill
+                                    className="object-cover"
+                                    onError={(e) => {
+                                      console.error("Image failed to load:", e);
+                                    }}
+                                    onLoad={() => {
+                                      console.log("Image loaded successfully");
+                                    }}
+                                  />
+                                )}
+                              {backgroundType === BackgroundSourceType.IMAGE &&
+                                !replaceBgSelectedImage &&
+                                !customImageUrl && (
+                                  <div className="flex items-center justify-center h-full">
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                                      Select an image or enter a URL
+                                    </p>
+                                  </div>
+                                )}
+                              {backgroundType === BackgroundSourceType.PROMPT &&
+                                !finalImage && (
+                                  <div className="flex items-center justify-center h-full">
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 pl-4">
+                                      {backgroundPrompt
+                                        ? "AI will generate this background after processing"
+                                        : "Enter a prompt to generate a background"}
+                                    </p>
+                                  </div>
+                                )}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
-                      <div>
-                        <p className="text-sm text-center mb-2 font-medium text-slate-500 dark:text-slate-400">
-                          Background Preview
-                        </p>
-                        <div
-                          className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 h-48"
-                          style={getBackgroundPreviewStyle()}
-                        >
-                          {backgroundType === BackgroundSourceType.PROMPT &&
-                            !finalImage && (
-                              <div className="flex items-center justify-center h-full">
-                                <p className="text-sm text-slate-500 dark:text-slate-400">
-                                  {backgroundPrompt
-                                    ? "AI will generate this background after processing"
-                                    : "Enter a prompt to generate a background"}
-                                </p>
-                              </div>
+                      {removedBgImage && (
+                        <div>
+                          <p className="text-sm text-center mb-2 font-medium text-slate-500 dark:text-slate-400">
+                            Background Preview
+                          </p>
+                          <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 h-[500px] relative">
+                            {(() => {
+                              console.log("Background preview debug:", {
+                                backgroundType,
+                                replaceBgSelectedImage,
+                                customImageUrl,
+                                hasImage: !!(
+                                  replaceBgSelectedImage || customImageUrl
+                                ),
+                              });
+                              return null;
+                            })()}
+                            {backgroundType === BackgroundSourceType.COLOR && (
+                              <div
+                                className="w-full h-full"
+                                style={{
+                                  backgroundColor:
+                                    customColor || replaceBgSelectedColor,
+                                  backgroundImage:
+                                    (customColor || replaceBgSelectedColor) ===
+                                    "transparent"
+                                      ? "linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)"
+                                      : undefined,
+                                  backgroundSize:
+                                    (customColor || replaceBgSelectedColor) ===
+                                    "transparent"
+                                      ? "10px 10px"
+                                      : undefined,
+                                  backgroundPosition:
+                                    (customColor || replaceBgSelectedColor) ===
+                                    "transparent"
+                                      ? "0 0, 0 5px, 5px -5px, -5px 0"
+                                      : undefined,
+                                }}
+                              />
                             )}
+                            {backgroundType === BackgroundSourceType.IMAGE &&
+                              (replaceBgSelectedImage || customImageUrl) && (
+                                <Image
+                                  src={
+                                    replaceBgSelectedImage
+                                      ? getImageUrl(replaceBgSelectedImage)
+                                      : customImageUrl || "/placeholder.svg"
+                                  }
+                                  alt="Background preview"
+                                  fill
+                                  className="object-cover"
+                                  onError={(e) => {
+                                    console.error("Image failed to load:", e);
+                                  }}
+                                  onLoad={() => {
+                                    console.log("Image loaded successfully");
+                                  }}
+                                />
+                              )}
+                            {backgroundType === BackgroundSourceType.IMAGE &&
+                              !replaceBgSelectedImage &&
+                              !customImageUrl && (
+                                <div className="flex items-center justify-center h-full">
+                                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                                    Select an image or enter a URL
+                                  </p>
+                                </div>
+                              )}
+                            {backgroundType === BackgroundSourceType.PROMPT &&
+                              !finalImage && (
+                                <div className="flex items-center justify-center h-full">
+                                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                                    {backgroundPrompt
+                                      ? "AI will generate this background after processing"
+                                      : "Enter a prompt to generate a background"}
+                                  </p>
+                                </div>
+                              )}
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -1119,24 +1559,6 @@ export default function RemoveBGPage() {
                               width={500}
                               height={500}
                             />
-                            <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center opacity-0 hover:opacity-100">
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="secondary"
-                                      size="icon"
-                                      className="mr-2"
-                                    >
-                                      <Download className="h-5 w-5" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Download image</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
                           </div>
                         </div>
                       </div>
@@ -1173,7 +1595,7 @@ export default function RemoveBGPage() {
                               </div>
                             </div>
                           )}
-                          {backgroundType === BackgroundSourceType.IMAGE && (
+                          {backgroundType === BackgroundSourceType.PROMPT && (
                             <div className="flex justify-between col-span-2">
                               <span className="text-slate-500 dark:text-slate-400">
                                 Prompt:
@@ -1183,14 +1605,6 @@ export default function RemoveBGPage() {
                               </span>
                             </div>
                           )}
-                          <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">
-                              Edge Refinement:
-                            </span>
-                            <span className="font-medium">
-                              {edgeRefinement}%
-                            </span>
-                          </div>
                           <div className="flex justify-between">
                             <span className="text-slate-500 dark:text-slate-400">
                               Detail Preservation:

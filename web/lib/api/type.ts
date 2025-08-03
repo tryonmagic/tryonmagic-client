@@ -28,6 +28,7 @@ export interface ReplaceBackgroundTaskInput {
   backgroundSourceType: BackgroundSourceType;
   backgroundImageSourceType?: ImageSourceType;
   backgroundSourceValue: string;
+  isBackgroundRemoved: boolean;
 }
 
 export enum VTONModelMode {
