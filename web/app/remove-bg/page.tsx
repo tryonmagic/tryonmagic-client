@@ -38,7 +38,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { cn } from "@/lib/utils";
+import { CDN_URL, cn } from "@/lib/utils";
 import ImageUploadDialog, {
   ImageGallery,
 } from "@/lib/uploader/components/image-upload-manager";
@@ -471,7 +471,7 @@ export default function RemoveBGPage() {
       return url;
     }
     // Otherwise, proxy through image proxy
-    return `${process.env.NEXT_PUBLIC_IMAGE_PROXY_URL}/images?url=${encodeURIComponent(url)}`;
+    return `${CDN_URL}?url=${encodeURIComponent(url)}`;
   };
 
   const getBackgroundPreviewStyle = () => {
@@ -485,7 +485,7 @@ export default function RemoveBGPage() {
       (replaceBgSelectedImage || customImageUrl)
     ) {
       const imageUrl = replaceBgSelectedImage
-        ? `${process.env.NEXT_PUBLIC_IMAGE_PROXY_URL}/images?url=${encodeURIComponent(replaceBgSelectedImage)}`
+        ? `${CDN_URL}?url=${encodeURIComponent(replaceBgSelectedImage)}`
         : customImageUrl;
       console.log(imageUrl);
       return {

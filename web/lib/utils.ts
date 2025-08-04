@@ -27,7 +27,11 @@ export default function debounce(func: (...args: any[]) => void, wait = 166) {
 
 export const handleDownload = (images: string[]) => {
   images.forEach((image) => {
-    const downloadUrl = `${process.env.NEXT_PUBLIC_IMAGE_PROXY_URL}/images?url=${encodeURIComponent(image)}&download=true`;
+    const downloadUrl = `${CDN_URL}?url=${encodeURIComponent(image)}&download=true`;
     window.open(downloadUrl, "_blank");
   });
 };
+
+export const CDN_URL =
+  process.env.NEXT_PUBLIC_IMAGE_PROXY_URL ||
+  "https://cdn.tryonmagic.com/images";

@@ -1,4 +1,7 @@
 "use client";
+
+import { CDN_URL } from "./utils";
+
 const imageLoader = ({
   src,
   width,
@@ -8,7 +11,7 @@ const imageLoader = ({
   width: number;
   quality?: number;
 }) => {
-  return `${process.env.NEXT_PUBLIC_IMAGE_PROXY_URL}/images?url=${encodeURIComponent(
+  return `${CDN_URL}?url=${encodeURIComponent(
     src,
   )}&w=${width}&q=${quality || 75}`;
 };

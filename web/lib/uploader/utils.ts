@@ -1,11 +1,10 @@
+import { CDN_URL } from "../utils";
 import { rgbaToThumbHash } from "./thumbhash";
 
 export const getImageDimensions = async (loc: File | string) => {
   const objectURL =
     typeof loc === "string"
-      ? `${process.env.NEXT_PUBLIC_IMAGE_PROXY_URL}/images?url=${encodeURIComponent(
-          loc,
-        )}`
+      ? `${CDN_URL}?url=${encodeURIComponent(loc)}`
       : URL.createObjectURL(loc);
 
   try {

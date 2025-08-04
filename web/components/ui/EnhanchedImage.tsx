@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Image, { ImageProps } from "next/image";
 import { X, Download, Maximize } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { CDN_URL, cn } from "@/lib/utils";
 
 interface EnhancedImageProps extends ImageProps {
   src: string;
@@ -56,7 +56,7 @@ export default function EnhancedImage({
   }, []);
 
   const handleDownload = () => {
-    const downloadUrl = `${process.env.NEXT_PUBLIC_IMAGE_PROXY_URL}/images?url=${encodeURIComponent(src)}&download=true`;
+    const downloadUrl = `${CDN_URL}?url=${encodeURIComponent(src)}&download=true`;
     window.open(downloadUrl, "_blank");
   };
 
