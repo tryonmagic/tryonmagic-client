@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import NextImage from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -19,6 +19,9 @@ import {
   X,
   Maximize2,
   Loader,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -40,6 +43,7 @@ import {
   NewTask,
   TaskProgress,
   TaskStatus,
+  TaskStatusMessageMapping,
   TaskType,
   UpscaleTaskInput,
 } from "@/lib/api/type";
@@ -50,6 +54,8 @@ import ImageUploader, {
 } from "@/lib/uploader/components/ImageUploader";
 import Image from "next/image";
 import { getImageDimensions } from "@/lib/uploader/utils";
+import { AxiosError } from "axios";
+import EnhancedImage from "@/components/ui/EnhanchedImage";
 
 interface ExampleCardProps {
   title: string;
@@ -131,6 +137,15 @@ export default function UpscalePage() {
   const app = useAppBridge();
   const [taskProgress, setTaskProgress] = useState<TaskProgress | null>(null);
 
+  // Error states
+  const [upscaleError, setUpscaleError] = useState<string | null>(null);
+
+  // Fullscreen preview states
+  const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
+  const [fullscreenView, setFullscreenView] = useState<
+    "original" | "enhanced" | "comparison"
+  >("comparison");
+
   const onImageUploaded = (imageInfo: ImageInfo) => {
     setUploadedImageInfo(imageInfo);
 
@@ -182,55 +197,81 @@ export default function UpscalePage() {
   const handleUpscale = async () => {
     if (!uploadedImageInfo) return;
 
-    setIsProcessing(true);
-    const sessionToken = await app.idToken();
+    try {
+      // Clear previous errors
+      setUpscaleError(null);
+      setTaskProgress({
+        status: TaskStatus.PENDING,
+        progress: 0,
+      });
+      setIsProcessing(true);
 
-    const newTask: NewTask<UpscaleTaskInput> = {
-      type:
-        upscaleFactor === ("RELIGHT" as TaskType)
-          ? TaskType.ENHANCE
-          : TaskType.UPSCALE,
-      inputData: {
-        sourceImageUrl: uploadedImageInfo.uploadLocation,
-        // scale: upscaleFactor,
-        imageSourceType: ImageSourceType.URL,
-      },
-    };
+      const sessionToken = await app.idToken();
 
-    const response = await upscaleImageTask<UpscaleTaskInput>(
-      sessionToken,
-      newTask,
-    );
-    const task = response.data.data;
-    if (!task) {
-      console.error("No task data returned");
-      return;
-    }
-    const websocket = new WebSocketClient(task.userId);
-    websocket.on<TaskProgress>("task-progress-" + task.id, async (data) => {
-      console.log("WebSocket data received:", data);
-      setTaskProgress(data);
-      if (data.status === TaskStatus.SUCCEEDED) {
+      const newTask: NewTask<UpscaleTaskInput> = {
+        type:
+          upscaleFactor === ("RELIGHT" as TaskType)
+            ? TaskType.ENHANCE
+            : TaskType.UPSCALE,
+        inputData: {
+          sourceImageUrl: uploadedImageInfo.uploadLocation,
+          // scale: upscaleFactor,
+          imageSourceType: ImageSourceType.URL,
+        },
+      };
+
+      const response = await upscaleImageTask<UpscaleTaskInput>(
+        sessionToken,
+        newTask,
+      );
+      const task = response.data.data;
+      if (!task) {
+        const errorMessage = "Something went wrong, please try again";
+        setUpscaleError(errorMessage);
+        setTaskProgress(null);
         setIsProcessing(false);
-        setActiveTab("result");
-        if (data.resultData?.outputImageUrl) {
-          setUpscaledImage({
-            url: data.resultData.outputImageUrl,
-          });
-          const dimension = await getImageDimensions(
-            data.resultData.outputImageUrl,
-          );
-          console.log("Image dimensions:", dimension);
-          setUpscaledImage({
-            url: data.resultData.outputImageUrl,
-            width: dimension.width,
-            height: dimension.height,
-          });
-          setTargetHeight(String(dimension.height));
-          setTargetWidth(String(dimension.width));
-        }
+        return;
       }
-    });
+
+      const websocket = new WebSocketClient(task.userId);
+      websocket.on<TaskProgress>("task-progress-" + task.id, async (data) => {
+        console.log("WebSocket data received:", data);
+        setTaskProgress(data);
+        if (data.status === TaskStatus.SUCCEEDED) {
+          setIsProcessing(false);
+          setActiveTab("result");
+          if (data.resultData?.outputImageUrl) {
+            setUpscaledImage({
+              url: data.resultData.outputImageUrl,
+            });
+            const dimension = await getImageDimensions(
+              data.resultData.outputImageUrl,
+            );
+            console.log("Image dimensions:", dimension);
+            setUpscaledImage({
+              url: data.resultData.outputImageUrl,
+              width: dimension.width,
+              height: dimension.height,
+            });
+            setTargetHeight(String(dimension.height));
+            setTargetWidth(String(dimension.width));
+          }
+        } else if (data.status === TaskStatus.FAILED) {
+          const errorMessage = "Failed to upscale image";
+          setUpscaleError(errorMessage);
+          setTaskProgress(null);
+          setIsProcessing(false);
+        }
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof AxiosError
+          ? error.response?.data.message
+          : "Failed to upscale image. Please try again.";
+      setUpscaleError(errorMessage);
+      setTaskProgress(null);
+      setIsProcessing(false);
+    }
   };
 
   const handleReset = () => {
@@ -247,6 +288,36 @@ export default function UpscalePage() {
     setTargetHeight("");
     setMaintainAspectRatio(true);
     setCustomDimensions(false);
+    setUpscaleError(null);
+    setTaskProgress(null);
+    setIsFullscreenOpen(false);
+    setFullscreenView("comparison");
+  };
+
+  const handleDownload = async () => {
+    if (!upscaledImage?.url) return;
+
+    try {
+      // Fetch the image as a blob
+      const response = await fetch(upscaledImage.url);
+      const blob = await response.blob();
+
+      // Create a download URL
+      const downloadUrl = URL.createObjectURL(blob);
+
+      // Create a temporary link element and trigger download
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = `upscaled-image-${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+
+      // Clean up
+      document.body.removeChild(link);
+      URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error("Error downloading image:", error);
+    }
   };
 
   const calculateUpscalePercentage = () => {
@@ -259,6 +330,65 @@ export default function UpscalePage() {
 
     return `${percentage}%`;
   };
+
+  const isTaskProcessing = taskProgress
+    ? [TaskStatus.PROCESSING, TaskStatus.PENDING, TaskStatus.QUEUED].includes(
+        taskProgress?.status,
+      )
+    : false;
+
+  const hasErrors = !!upscaleError;
+
+  const openFullscreen = (
+    view: "original" | "enhanced" | "comparison" = "comparison",
+  ) => {
+    setFullscreenView(view);
+    setIsFullscreenOpen(true);
+  };
+
+  const toggleFullscreenView = () => {
+    if (fullscreenView === "comparison") {
+      setFullscreenView("original");
+    } else if (fullscreenView === "original") {
+      setFullscreenView("enhanced");
+    } else {
+      setFullscreenView("comparison");
+    }
+  };
+
+  // Keyboard event handler for fullscreen modal
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (isFullscreenOpen) {
+        switch (event.key) {
+          case "Escape":
+            setIsFullscreenOpen(false);
+            break;
+          case "ArrowLeft":
+            if (fullscreenView === "enhanced") {
+              setFullscreenView("original");
+            } else if (fullscreenView === "original") {
+              setFullscreenView("comparison");
+            }
+            break;
+          case "ArrowRight":
+            if (fullscreenView === "original") {
+              setFullscreenView("enhanced");
+            } else if (fullscreenView === "enhanced") {
+              setFullscreenView("comparison");
+            }
+            break;
+          case "c":
+          case "C":
+            setFullscreenView("comparison");
+            break;
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, [isFullscreenOpen, fullscreenView]);
 
   return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4 md:p-8">
@@ -282,18 +412,18 @@ export default function UpscalePage() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 mb-8">
-            <TabsTrigger value="upload" disabled={isProcessing}>
+            <TabsTrigger value="upload" disabled={isTaskProcessing}>
               Upload
             </TabsTrigger>
             <TabsTrigger
               value="enhance"
-              disabled={!uploadedImageInfo || isProcessing}
+              disabled={!uploadedImageInfo || (isTaskProcessing && !hasErrors)}
             >
               Enhance
             </TabsTrigger>
             <TabsTrigger
               value="result"
-              disabled={!upscaledImage && !isProcessing}
+              disabled={!upscaledImage && !isTaskProcessing}
             >
               Result
             </TabsTrigger>
@@ -570,20 +700,40 @@ export default function UpscalePage() {
                         onClick={handleUpscale}
                         className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
                         size="lg"
-                        disabled={isProcessing}
+                        disabled={isTaskProcessing}
                       >
-                        {isProcessing ? (
+                        {isTaskProcessing ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Processing...
+                            <span className="truncate">
+                              {taskProgress &&
+                                TaskStatusMessageMapping[taskProgress.status]}
+                            </span>
+                          </>
+                        ) : upscaleError ? (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            <span className="truncate">
+                              Retry {toCamelCase(upscaleFactor)}
+                            </span>
                           </>
                         ) : (
                           <>
                             <Wand2 className="mr-2 h-4 w-4" />
-                            {toCamelCase(upscaleFactor)} Image
+                            <span className="truncate">
+                              {toCamelCase(upscaleFactor)} Image
+                            </span>
                           </>
                         )}
                       </Button>
+
+                      {upscaleError && (
+                        <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
+                          <p className="text-sm text-red-700 dark:text-red-300">
+                            {upscaleError}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -683,15 +833,18 @@ export default function UpscalePage() {
             >
               <Card className="w-full max-w-4xl mx-auto overflow-hidden">
                 <CardContent className="p-6">
-                  {isProcessing ? (
+                  {isTaskProcessing ? (
                     <div className="flex flex-col items-center justify-center min-h-[500px]">
                       <Loader2 className="h-16 w-16 text-purple-600 animate-spin mb-4" />
                       <p className="text-lg text-center text-slate-600 dark:text-slate-400">
-                        Upscaling your image...
+                        {toCamelCase(upscaleFactor) === "Upscale"
+                          ? "Upscaling"
+                          : "Enhancing"}{" "}
+                        your image...
                       </p>
                       <p className="text-sm text-center text-slate-500 dark:text-slate-500 mt-2 max-w-md">
-                        Enhancing resolution to {targetWidth} × {targetHeight}px
-                        with AI-powered upscaling
+                        {taskProgress &&
+                          TaskStatusMessageMapping[taskProgress.status]}
                       </p>
                     </div>
                   ) : upscaledImage ? (
@@ -701,7 +854,10 @@ export default function UpscalePage() {
                           <p className="text-sm text-center font-medium text-slate-500 dark:text-slate-400">
                             Original
                           </p>
-                          <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 relative group">
+                          <div
+                            className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 relative group cursor-pointer"
+                            onClick={() => openFullscreen("original")}
+                          >
                             {uploadedImageInfo && (
                               <Image
                                 src={
@@ -715,28 +871,39 @@ export default function UpscalePage() {
                               />
                             )}
                             <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button variant="secondary" size="sm">
-                                      {originalDimensions.width} ×{" "}
-                                      {originalDimensions.height}px
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Original dimensions</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                              <div className="flex space-x-2">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button variant="secondary" size="sm">
+                                        <Maximize2 className="h-4 w-4 mr-1" />
+                                        View Full
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>View in fullscreen</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                                <Button variant="secondary" size="sm">
+                                  {originalDimensions.width} ×{" "}
+                                  {originalDimensions.height}px
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         </div>
                         <div className="space-y-2">
                           <p className="text-sm text-center font-medium text-slate-500 dark:text-slate-400">
-                            Upscaled
+                            {upscaleFactor === ("RELIGHT" as TaskType)
+                              ? "Relight"
+                              : "Upscaled"}
                           </p>
-                          <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 relative group">
-                            <Image
+                          <div
+                            className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 relative group cursor-pointer"
+                            onClick={() => openFullscreen("enhanced")}
+                          >
+                            <EnhancedImage
                               src={upscaledImage.url}
                               alt="Upscaled image"
                               width={upscaledImage.width || 500}
@@ -749,145 +916,65 @@ export default function UpscalePage() {
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <Button variant="secondary" size="sm">
-                                        {upscaledImage.width ? (
-                                          `${upscaledImage.width} × ${upscaledImage.height}px`
-                                        ) : (
-                                          <Loader className="h-3 w-3 animate-spin" />
-                                        )}
+                                        <Maximize2 className="h-4 w-4 mr-1" />
+                                        View Full
                                       </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      <p>New dimensions</p>
+                                      <p>View in fullscreen</p>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
-
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button variant="secondary" size="icon">
-                                        <Download className="h-4 w-4" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Download upscaled image</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
+                                {upscaledImage.width && (
+                                  <Button variant="secondary" size="sm">
+                                    {upscaledImage.width} ×{" "}
+                                    {upscaledImage.height}px
+                                  </Button>
+                                )}
                               </div>
                             </div>
                           </div>
                         </div>
                       </div>
 
-                      <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg">
-                        <h3 className="font-medium text-sm mb-2">
-                          Upscaling Details
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-1 gap-x-4 gap-y-2 text-xs">
-                          <div className="col flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">
-                              Upscaled By:
-                            </span>
-                            <span className="font-medium">
-                              {calculateUpscalePercentage()}
-                            </span>
+                      {upscaleFactor !== ("RELIGHT" as TaskType) && (
+                        <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg">
+                          <h3 className="font-medium text-sm mb-2">
+                            Upscaling Details
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-1 gap-x-4 gap-y-2 text-xs">
+                            <div className="col flex justify-between">
+                              <span className="text-slate-500 dark:text-slate-400">
+                                Upscaled By:
+                              </span>
+                              <span className="font-medium">
+                                {calculateUpscalePercentage()}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-500 dark:text-slate-400">
+                                Original Size:
+                              </span>
+                              <span className="font-medium">
+                                {originalDimensions.width} ×{" "}
+                                {originalDimensions.height}px
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-500 dark:text-slate-400">
+                                New Size:
+                              </span>
+                              <span className="font-medium">
+                                {upscaledImage.width ? (
+                                  `${upscaledImage.width} × ${upscaledImage.height}px`
+                                ) : (
+                                  <Loader className="h-3 w-3 animate-spin" />
+                                )}
+                              </span>
+                            </div>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">
-                              Original Size:
-                            </span>
-                            <span className="font-medium">
-                              {originalDimensions.width} ×{" "}
-                              {originalDimensions.height}px
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">
-                              New Size:
-                            </span>
-                            <span className="font-medium">
-                              {upscaledImage.width ? (
-                                `${upscaledImage.width} × ${upscaledImage.height}px`
-                              ) : (
-                                <Loader className="h-3 w-3 animate-spin" />
-                              )}
-                            </span>
-                          </div>
-                          {/* add upscale enhancement % */}
-
-                          {/* <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">
-                              Upscale Factor:
-                            </span>
-                            <span className="font-medium">
-                              {customDimensions
-                                ? calculateUpscalePercentage()
-                                : upscaleFactor}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">
-                              Sharpness:
-                            </span>
-                            <span className="font-medium">{sharpness}%</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">
-                              Quality Enhancement:
-                            </span>
-                            <span className="font-medium flex items-center">
-                              {enhanceQuality ? (
-                                <>
-                                  <Check className="h-3 w-3 text-green-500 mr-1" />
-                                  Yes
-                                </>
-                              ) : (
-                                <>
-                                  <X className="h-3 w-3 text-red-500 mr-1" />
-                                  No
-                                </>
-                              )}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">
-                              Noise Reduction:
-                            </span>
-                            <span className="font-medium flex items-center">
-                              {reduceNoise ? (
-                                <>
-                                  <Check className="h-3 w-3 text-green-500 mr-1" />
-                                  Yes
-                                </>
-                              ) : (
-                                <>
-                                  <X className="h-3 w-3 text-red-500 mr-1" />
-                                  No
-                                </>
-                              )}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">
-                              Detail Preservation:
-                            </span>
-                            <span className="font-medium flex items-center">
-                              {preserveDetails ? (
-                                <>
-                                  <Check className="h-3 w-3 text-green-500 mr-1" />
-                                  Yes
-                                </>
-                              ) : (
-                                <>
-                                  <X className="h-3 w-3 text-red-500 mr-1" />
-                                  No
-                                </>
-                              )}
-                            </span>
-                          </div> */}
                         </div>
-                      </div>
+                      )}
 
                       <div className="flex space-x-4">
                         <Button
@@ -904,10 +991,6 @@ export default function UpscalePage() {
                         >
                           <Upload className="mr-2 h-4 w-4" />
                           New Image
-                        </Button>
-                        <Button className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white">
-                          <Download className="mr-2 h-4 w-4" />
-                          Download
                         </Button>
                       </div>
                     </div>
@@ -930,6 +1013,151 @@ export default function UpscalePage() {
             </motion.div>
           </TabsContent>
         </Tabs>
+
+        {/* Fullscreen Preview Modal */}
+        {isFullscreenOpen && uploadedImageInfo && upscaledImage && (
+          <div className="fixed inset-0 z-50 bg-black bg-opacity-95 flex items-center justify-center p-4">
+            <div className="relative w-full h-full max-w-7xl max-h-full flex flex-col">
+              {/* Header with controls */}
+              <div className="flex items-center justify-between mb-4 bg-black bg-opacity-50 rounded-lg p-4">
+                <div className="flex items-center space-x-4">
+                  <h3 className="text-white text-lg font-semibold">
+                    {fullscreenView === "comparison"
+                      ? "Image Comparison"
+                      : fullscreenView === "original"
+                        ? "Original Image"
+                        : upscaleFactor === ("RELIGHT" as TaskType)
+                          ? "Enhanced Image"
+                          : "Upscaled Image"}
+                  </h3>
+                  {fullscreenView !== "comparison" && (
+                    <div className="text-white text-sm bg-white bg-opacity-20 px-3 py-1 rounded-full">
+                      {fullscreenView === "original"
+                        ? `${originalDimensions.width} × ${originalDimensions.height}px`
+                        : upscaledImage.width
+                          ? `${upscaledImage.width} × ${upscaledImage.height}px`
+                          : "Loading..."}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setFullscreenView("comparison")}
+                    className={cn(
+                      "bg-white bg-opacity-20 hover:bg-opacity-30 text-white",
+                      fullscreenView === "comparison" &&
+                        "bg-white bg-opacity-40",
+                    )}
+                  >
+                    Side by Side
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={toggleFullscreenView}
+                    className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white"
+                  >
+                    {fullscreenView === "comparison"
+                      ? "Original Only"
+                      : fullscreenView === "original"
+                        ? `${upscaleFactor === ("RELIGHT" as TaskType) ? "Enhanced" : "Upscaled"} Only`
+                        : "Side by Side"}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setIsFullscreenOpen(false)}
+                    className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Image container */}
+              <div className="flex-1 flex items-center justify-center overflow-hidden">
+                {fullscreenView === "comparison" ? (
+                  /* Side by side comparison */
+                  <div className="grid grid-cols-2 gap-4 w-full h-full max-w-full max-h-full">
+                    <div className="flex flex-col items-center space-y-2">
+                      <div className="text-white text-sm font-medium bg-white bg-opacity-20 px-3 py-1 rounded-full">
+                        Original ({originalDimensions.width} ×{" "}
+                        {originalDimensions.height}px)
+                      </div>
+                      <div className="flex-1 flex items-center justify-center max-w-full max-h-full">
+                        <Image
+                          src={
+                            uploadedImageInfo.previewImageUrl ||
+                            "/placeholder.svg"
+                          }
+                          width={uploadedImageInfo.width}
+                          height={uploadedImageInfo.height}
+                          alt="Original image fullscreen"
+                          className="max-w-full max-h-full object-contain cursor-pointer"
+                          onClick={() => setFullscreenView("original")}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-center space-y-2">
+                      <div className="text-white text-sm font-medium bg-white bg-opacity-20 px-3 py-1 rounded-full">
+                        {upscaleFactor === ("RELIGHT" as TaskType)
+                          ? "Enhanced"
+                          : "Upscaled"}
+                        {upscaledImage.width &&
+                          ` (${upscaledImage.width} × ${upscaledImage.height}px)`}
+                      </div>
+                      <div className="flex-1 flex items-center justify-center max-w-full max-h-full">
+                        <EnhancedImage
+                          src={upscaledImage.url}
+                          alt="Enhanced image fullscreen"
+                          width={upscaledImage.width || 500}
+                          height={upscaledImage.height || 700}
+                          className="max-w-full max-h-full object-contain cursor-pointer"
+                          onClick={() => setFullscreenView("enhanced")}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* Single image view */
+                  <div className="relative max-w-full max-h-full">
+                    {fullscreenView === "original" ? (
+                      <Image
+                        src={
+                          uploadedImageInfo.previewImageUrl ||
+                          "/placeholder.svg"
+                        }
+                        width={uploadedImageInfo.width}
+                        height={uploadedImageInfo.height}
+                        alt="Original image fullscreen"
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    ) : (
+                      <EnhancedImage
+                        src={upscaledImage.url}
+                        alt="Enhanced image fullscreen"
+                        width={upscaledImage.width || 500}
+                        height={upscaledImage.height || 700}
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Navigation hint */}
+              <div className="text-center mt-4">
+                <p className="text-white text-sm opacity-70">
+                  {fullscreenView === "comparison"
+                    ? "Click on images to view individually • Press C for comparison • ESC to close"
+                    : "Use arrow keys to navigate • Press C for side-by-side • ESC to close"}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* How It Works Section */}
         <section className="mt-16 mb-8">

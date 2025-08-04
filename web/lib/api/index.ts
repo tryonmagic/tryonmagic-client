@@ -2,7 +2,7 @@ import axios from "axios";
 
 export const clientAPI = (sessionToken: string) => {
   return axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL,
+    baseURL: process.env.NEXT_PUBLIC_API_URL || "https://api.tryonmagic.com/v1",
     headers: {
       "Content-Type": "application/json",
       "x-shopify-session-token": `Bearer ${sessionToken}`,
