@@ -23,6 +23,7 @@ import {
   Move,
   Check,
   X,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -55,6 +56,8 @@ import {
 } from "@/lib/api/type";
 import { newTask } from "@/lib/api/tasks";
 import { WebSocketClient } from "@/socket";
+import { AxiosError } from "axios";
+import EnhancedImage from "@/components/ui/EnhanchedImage";
 
 interface ExampleCardProps {
   title: string;
@@ -159,6 +162,7 @@ export default function ExpandImagePage() {
   );
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [originalDimensions, setOriginalDimensions] = useState({
     width: 0,
     height: 0,
@@ -243,45 +247,72 @@ export default function ExpandImagePage() {
   const handleExpandImage = async () => {
     if (!uploadedImageInfo) return;
 
+    setActiveTab("result");
     setIsProcessing(true);
-    const sessionToken = await app.idToken();
-
-    const taskPayload: NewTask<EnhanceImageTaskInput> = {
-      type: TaskType.EXPAND_IMAGE,
-      inputData: {
-        sourceImageUrl: uploadedImageInfo.uploadLocation,
-        imageSourceType: ImageSourceType.URL,
-        targetWidth: targetDimensions.width,
-        targetHeight: targetDimensions.height,
-        horizontalAlignment: imageAlignment.horizontal,
-        verticalAlignment: imageAlignment.vertical,
-        expandPrompt: contentPrompt,
-      },
-    };
-
-    const response = await newTask<EnhanceImageTaskInput>(
-      sessionToken,
-      taskPayload,
-    );
-    const task = response.data.data;
-    if (!task) {
-      console.error("No task data returned");
-      return;
-    }
-    const websocket = new WebSocketClient(task.userId);
-    websocket.on<TaskProgress>("task-progress-" + task.id, async (data) => {
-      console.log("WebSocket data received:", data);
-      setTaskProgress(data);
-      if (data.status === TaskStatus.SUCCEEDED) {
-        setIsProcessing(false);
-        setActiveTab("result");
-        if (data.resultData?.outputImageUrl) {
-          setExpandedImage(data.resultData.outputImageUrl);
-          setIsProcessing(false);
-          setActiveTab("result");
-        }
-      }
+    setError(null); // Clear previous errors
+    setTaskProgress({
+      status: TaskStatus.PENDING,
+      progress: 0,
     });
+
+    try {
+      const sessionToken = await app.idToken();
+
+      const taskPayload: NewTask<EnhanceImageTaskInput> = {
+        type: TaskType.EXPAND_IMAGE,
+        inputData: {
+          sourceImageUrl: uploadedImageInfo.uploadLocation,
+          imageSourceType: ImageSourceType.URL,
+          targetWidth: targetDimensions.width,
+          targetHeight: targetDimensions.height,
+          horizontalAlignment: imageAlignment.horizontal,
+          verticalAlignment: imageAlignment.vertical,
+          expandPrompt: contentPrompt,
+        },
+      };
+
+      const response = await newTask<EnhanceImageTaskInput>(
+        sessionToken,
+        taskPayload,
+      );
+      const task = response.data.data;
+      if (!task) {
+        console.error("No task data returned");
+        setIsProcessing(false);
+        setError("An unexpected error occurred. Please try again.");
+        return;
+      }
+      const websocket = new WebSocketClient(task.userId);
+      websocket.on<TaskProgress>("task-progress-" + task.id, async (data) => {
+        console.log("WebSocket data received:", data);
+        setTaskProgress(data);
+        if (data.status === TaskStatus.SUCCEEDED) {
+          setIsProcessing(false);
+          setError(null); // Clear any previous errors
+          if (data.resultData?.outputImageUrl) {
+            setExpandedImage(data.resultData.outputImageUrl);
+            setIsProcessing(false);
+            setActiveTab("result");
+          } else {
+            setError("No expanded image was generated. Please try again.");
+          }
+        }
+        if (data.status === TaskStatus.FAILED) {
+          setIsProcessing(false);
+          setError(
+            "Image expansion failed. Please try again with different settings.",
+          );
+          console.error("Task failed:", data);
+        }
+      });
+    } catch (error) {
+      setIsProcessing(false);
+      const errorMessage =
+        error instanceof AxiosError
+          ? error.response?.data.message
+          : "An unexpected error occurred. Please try again.";
+      setError(errorMessage);
+    }
   };
 
   const handleReset = () => {
@@ -301,6 +332,14 @@ export default function ExpandImagePage() {
     setMatchLighting(true);
     setOriginalDimensions({ width: 0, height: 0 });
     setTargetDimensions({ width: 0, height: 0 });
+    setError(null); // Clear error on reset
+  };
+
+  const handleRetry = () => {
+    setError(null); // Clear error
+    setExpandedImage(null);
+    setTaskProgress(null);
+    setActiveTab("expand"); // Go back to expand tab to adjust settings
   };
 
   const calculateExpansionPercentage = () => {
@@ -438,7 +477,10 @@ export default function ExpandImagePage() {
                     Upload Your Image
                   </h2>
                   <div className="space-y-4">
-                    <ImageUploader onUploaded={onImageUploaded} />
+                    <ImageUploader
+                      onUploaded={onImageUploaded}
+                      hideImagePreviewAfterUpload
+                    />
 
                     <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-lg">
                       <div className="flex items-start space-x-3">
@@ -795,15 +837,11 @@ export default function ExpandImagePage() {
                         </Label>
                         <Textarea
                           id="content-prompt"
-                          placeholder="Describe what content should be generated in the expanded areas..."
+                          placeholder="Describe what you want to appear in the expanded areas. Leave blank for seamless expansion."
                           value={contentPrompt}
                           onChange={(e) => setContentPrompt(e.target.value)}
                           className="min-h-[100px] resize-none"
                         />
-                        {/* <p className="text-xs text-slate-500 dark:text-slate-400">
-                          Be specific about style, colors, and elements to match
-                          the original image
-                        </p> */}
                       </div>
                       <Button
                         onClick={handleExpandImage}
@@ -884,17 +922,20 @@ export default function ExpandImagePage() {
                         <h3 className="font-medium text-sm mb-2">
                           Expansion Information
                         </h3>
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                        <div className="grid grid-cols-1 gap-x-4 gap-y-2 text-xs">
                           <div className="flex justify-between">
                             <span className="text-slate-500 dark:text-slate-400">
                               Direction:
                             </span>
                             <span className="font-medium capitalize">
-                              {/* {
-                                expansionDirections.find(
-                                  (d) => d.id === expansionDirection,
-                                )?.label
-                              } */}
+                              Horizontal Alignment:{" "}
+                              <span className="lowercase">
+                                {imageAlignment.horizontal}
+                              </span>
+                              , Vertical Alignment:{" "}
+                              <span className="lowercase">
+                                {imageAlignment.vertical}
+                              </span>
                             </span>
                           </div>
                           <div className="flex justify-between">
@@ -903,36 +944,6 @@ export default function ExpandImagePage() {
                             </span>
                             <span className="font-medium">
                               {calculateExpansionPercentage()}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">
-                              Fill Style:
-                            </span>
-                            <span className="font-medium">
-                              {
-                                contentFillStyles.find(
-                                  (s) => s.id === fillStyle,
-                                )?.label
-                              }
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">
-                              Quality Enhancement:
-                            </span>
-                            <span className="font-medium flex items-center">
-                              {enhanceQuality ? (
-                                <>
-                                  <Check className="h-3 w-3 text-green-500 mr-1" />
-                                  Enabled
-                                </>
-                              ) : (
-                                <>
-                                  <X className="h-3 w-3 text-red-500 mr-1" />
-                                  Disabled
-                                </>
-                              )}
                             </span>
                           </div>
                         </div>
@@ -968,6 +979,39 @@ export default function ExpandImagePage() {
                           ?.label.toLowerCase()}
                       </p>
                     </div>
+                  ) : error ? (
+                    <Card className="w-full max-w-2xl mx-auto">
+                      <CardContent className="p-8 text-center">
+                        <div className="flex flex-col items-center space-y-4">
+                          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                            <RefreshCw className="h-8 w-8 text-red-500" />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                              Expansion Failed
+                            </h3>
+                            <p className="text-red-500 text-sm mb-6">{error}</p>
+                          </div>
+                          <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
+                            <Button
+                              onClick={handleRetry}
+                              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                            >
+                              <RefreshCw className="mr-2 h-4 w-4" />
+                              Try Again
+                            </Button>
+                            <Button
+                              onClick={handleReset}
+                              variant="outline"
+                              className="flex-1"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Start Over
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   ) : expandedImage ? (
                     <div className="space-y-6">
                       <div className="grid grid-cols-2 gap-6">
@@ -986,65 +1030,20 @@ export default function ExpandImagePage() {
                               width={uploadedImageInfo?.width}
                               className="w-full h-auto object-contain"
                             />
-                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button variant="secondary" size="sm">
-                                      {originalDimensions.width} ×{" "}
-                                      {originalDimensions.height}px
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Original dimensions</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
                           </div>
                         </div>
                         <div className="space-y-2">
                           <p className="text-sm text-center font-medium text-slate-500 dark:text-slate-400">
                             Expanded
                           </p>
-                          <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 relative group">
-                            <Image
+                          <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                            <EnhancedImage
                               src={expandedImage || "/placeholder.svg"}
                               alt="Expanded image"
                               height={targetDimensions.height}
                               width={targetDimensions.width}
                               className="w-full h-auto object-contain"
                             />
-                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                              <div className="flex space-x-2">
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button variant="secondary" size="sm">
-                                        {targetDimensions.width} ×{" "}
-                                        {targetDimensions.height}px
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>New dimensions</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button variant="secondary" size="icon">
-                                        <Download className="h-4 w-4" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Download expanded image</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              </div>
-                            </div>
                           </div>
                         </div>
                       </div>
@@ -1053,7 +1052,7 @@ export default function ExpandImagePage() {
                         <h3 className="font-medium text-sm mb-2">
                           Expansion Details
                         </h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-xs">
+                        <div className="grid grid-cols-2 md:grid-cols-2 gap-x-4 gap-y-2 text-xs">
                           <div className="flex justify-between">
                             <span className="text-slate-500 dark:text-slate-400">
                               Original Size:
@@ -1085,11 +1084,14 @@ export default function ExpandImagePage() {
                               Direction:
                             </span>
                             <span className="font-medium capitalize">
-                              {/* {
-                                expansionDirections.find(
-                                  (d) => d.id === expansionDirection,
-                                )?.label
-                              } */}
+                              Horizontal Alignment:{" "}
+                              <span className="lowercase">
+                                {imageAlignment.horizontal}
+                              </span>
+                              , Vertical Alignment:{" "}
+                              <span className="lowercase">
+                                {imageAlignment.vertical}
+                              </span>
                             </span>
                           </div>
                           <div className="flex justify-between">
@@ -1102,60 +1104,6 @@ export default function ExpandImagePage() {
                                   (s) => s.id === fillStyle,
                                 )?.label
                               }
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">
-                              Quality Enhancement:
-                            </span>
-                            <span className="font-medium flex items-center">
-                              {enhanceQuality ? (
-                                <>
-                                  <Check className="h-3 w-3 text-green-500 mr-1" />
-                                  Yes
-                                </>
-                              ) : (
-                                <>
-                                  <X className="h-3 w-3 text-red-500 mr-1" />
-                                  No
-                                </>
-                              )}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">
-                              Subject Preservation:
-                            </span>
-                            <span className="font-medium flex items-center">
-                              {preserveSubjects ? (
-                                <>
-                                  <Check className="h-3 w-3 text-green-500 mr-1" />
-                                  Yes
-                                </>
-                              ) : (
-                                <>
-                                  <X className="h-3 w-3 text-red-500 mr-1" />
-                                  No
-                                </>
-                              )}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">
-                              Lighting Match:
-                            </span>
-                            <span className="font-medium flex items-center">
-                              {matchLighting ? (
-                                <>
-                                  <Check className="h-3 w-3 text-green-500 mr-1" />
-                                  Yes
-                                </>
-                              ) : (
-                                <>
-                                  <X className="h-3 w-3 text-red-500 mr-1" />
-                                  No
-                                </>
-                              )}
                             </span>
                           </div>
                         </div>
@@ -1176,10 +1124,6 @@ export default function ExpandImagePage() {
                         >
                           <Upload className="mr-2 h-4 w-4" />
                           New Image
-                        </Button>
-                        <Button className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white">
-                          <Download className="mr-2 h-4 w-4" />
-                          Download
                         </Button>
                       </div>
                     </div>
