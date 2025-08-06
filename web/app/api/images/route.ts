@@ -16,10 +16,14 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     verifyRequest(req, true);
     const searchParams = req.nextUrl.searchParams;
-    const urlWithBucket = searchParams
-      .get("url")
-      ?.replace("s3://", "")
-      .split("/");
+    const imageUrl = searchParams.get("url");
+    if (!imageUrl) {
+      throw new Error("Invalid URL");
+    }
+    if (imageUrl.startsWith("http")) {
+      return NextResponse.redirect(imageUrl);
+    }
+    const urlWithBucket = imageUrl?.replace("s3://", "").split("/");
     if (!urlWithBucket) {
       throw new Error("Invalid URL");
     }

@@ -1239,38 +1239,6 @@ export default function VirtualTryOnPage() {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-slate-500 dark:text-slate-400">
-                            Cover Feet:
-                          </span>
-                          <span className="font-medium">
-                            {coverFeet ? "Yes" : "No"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-500 dark:text-slate-400">
-                            Adjust Hands:
-                          </span>
-                          <span className="font-medium">
-                            {adjustHands ? "Yes" : "No"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-500 dark:text-slate-400">
-                            Restore Background:
-                          </span>
-                          <span className="font-medium">
-                            {restoreBackground ? "Yes" : "No"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-500 dark:text-slate-400">
-                            Restore Clothes:
-                          </span>
-                          <span className="font-medium">
-                            {restoreClothes ? "Yes" : "No"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-500 dark:text-slate-400">
                             Seed:
                           </span>
                           <span className="font-medium">{seed}</span>
@@ -1351,15 +1319,17 @@ export default function VirtualTryOnPage() {
                     <CardContent className="p-4">
                       <div className="space-y-4">
                         {/* Main result view */}
-                        <div className="relative aspect-[3/4] rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 max-w-xs mx-auto">
+                        <div
+                          className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 max-w-xs mx-auto flex items-center justify-center"
+                          style={{ aspectRatio: "3 / 4" }}
+                        >
                           {selectedResult && (
-                            <Image
+                            <EnhancedImage
                               src={getResultSrc() || "/placeholder.svg"}
                               alt="Virtual try-on result"
-                              height={250}
-                              width={200}
-                              className="object-contain"
-                              style={{ transform: `scale(${zoom})` }}
+                              width={500}
+                              height={500}
+                              className="w-full h-full object-contain"
                             />
                           )}
                         </div>
