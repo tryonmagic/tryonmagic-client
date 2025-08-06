@@ -264,7 +264,10 @@ export default function MagicEraser() {
         </TabsList>
 
         <TabsContent value="upload" className="space-y-8">
-          <ImageUploader onUploaded={onImageUploaded} />
+          <ImageUploader
+            style={{ height: "200px" }}
+            onUploaded={onImageUploaded}
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
             <Card>

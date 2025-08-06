@@ -19,6 +19,7 @@ interface ImageUploaderProps {
   placeholder?: string;
   hideImagePreviewAfterUpload?: boolean;
   onUploaded: (imageInfo: ImageInfo) => void;
+  style?: React.CSSProperties;
 }
 
 export default function ImageUploader(props: ImageUploaderProps) {
@@ -178,6 +179,7 @@ export default function ImageUploader(props: ImageUploaderProps) {
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      style={props.style}
     >
       <input
         type="file"
