@@ -12,7 +12,9 @@ const nextConfig = {
   images: {
     domains: [
       "ig89yd5z8iykrgxva.lite.vusercontent.net",
-      ...(process.env.NEXT_PUBLIC_S3_DOMAIN ? [process.env.NEXT_PUBLIC_S3_DOMAIN] : []),
+      ...(process.env.NEXT_PUBLIC_S3_DOMAIN
+        ? [process.env.NEXT_PUBLIC_S3_DOMAIN]
+        : []),
     ],
     dangerouslyAllowSVG: true,
     loader: "custom",

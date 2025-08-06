@@ -25,17 +25,27 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     }
     const Bucket = urlWithBucket.shift();
     const Key = urlWithBucket.join("/");
+    // Set signed URL to expire in 12 hours (43200 seconds)
+    // Also, set cache headers to allow client caching for 12 hours
     const command = new GetObjectCommand({
       Bucket,
       Key,
+      ResponseContentDisposition: `attachment; filename="${Key}"`,
+      ResponseContentType: "image/*",
+      ResponseCacheControl: "public, max-age=43200, immutable",
     });
 
-    const url = await getSignedUrl(s3, command);
+    const url = await getSignedUrl(s3, command, {
+      expiresIn: 60 * 60 * 12,
+    });
 
-    return NextResponse.json({ url });
+    return NextResponse.redirect(url);
   } catch (error) {
     console.error("Error fetching image from S3:", error);
-    return NextResponse.json({ message: "Error fetching image from S3" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Error fetching image from S3" },
+      { status: 500 },
+    );
   }
 }
 export async function POST(req: NextRequest, res: NextResponse) {

@@ -56,7 +56,7 @@ export default function EnhancedImage({
   }, []);
 
   const handleDownload = () => {
-    const downloadUrl = `${CDN_URL}?url=${encodeURIComponent(src)}&download=true`;
+    const downloadUrl = `${CDN_URL}?url=${encodeURIComponent(src)}`;
     window.open(downloadUrl, "_blank");
   };
 

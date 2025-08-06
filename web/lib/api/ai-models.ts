@@ -5,13 +5,11 @@ import {
   Garment,
   GenericAPIResponse,
   SuccessWithPaginationResponse,
+  Task,
 } from "./type";
 
 export const generateAIModel = (token: string, aiModel: CreateAIModel) => {
-  return clientAPI(token).post<GenericAPIResponse<AIModel>>(
-    "ai-models",
-    aiModel,
-  );
+  return clientAPI(token).post<GenericAPIResponse<Task>>("ai-models", aiModel);
 };
 
 export const getAIModels = async (

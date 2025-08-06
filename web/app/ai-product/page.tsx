@@ -1025,9 +1025,11 @@ export default function AIProductPage() {
                   <CardContent>
                     <div className="space-y-4">
                       <div className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                        <img
+                        <Image
                           src={uploadedImage || ""}
                           alt="Product preview"
+                          width={400}
+                          height={500}
                           className="w-full h-auto object-contain"
                         />
                       </div>
@@ -1146,9 +1148,11 @@ export default function AIProductPage() {
                             Original
                           </p>
                           <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                            <img
+                            <Image
                               src={uploadedImage || ""}
                               alt="Original"
+                              height={500}
+                              width={400}
                               className="w-full h-auto object-contain"
                             />
                           </div>

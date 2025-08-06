@@ -13,6 +13,7 @@ import {
   CheckCircle,
   MessageSquare,
   ArrowRightLeft,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,6 +35,7 @@ import ImageUploader, {
 } from "@/lib/uploader/components/ImageUploader";
 import { WebSocketClient } from "@/socket";
 import { newTask } from "@/lib/api/tasks";
+import { AxiosError } from "axios";
 
 export default function MagicEraser() {
   const [uploadedImageInfo, setUploadedImageInfo] = useState<ImageInfo | null>(
@@ -42,6 +44,7 @@ export default function MagicEraser() {
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("upload");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [textPrompt, setTextPrompt] = useState("");
   const [editMode, setEditMode] = useState<EditMode>(EditMode.PROMPT);
   const [hoverBoxIdx, setHoverBoxIdx] = useState<number | null>(null);
@@ -77,58 +80,85 @@ export default function MagicEraser() {
 
   const handleErase = async () => {
     if (!uploadedImageInfo) return;
+
+    setActiveTab("result");
     setIsProcessing(true);
-
-    const sessionToken = await app.idToken();
-
-    const newTaskPayload: NewTask<EditImageTaskInput> = {
-      type: TaskType.EDIT_IMAGE,
-      inputData: {
-        sourceImageUrl: uploadedImageInfo.uploadLocation,
-        imageSourceType: ImageSourceType.URL,
-        editType,
-        editMode,
-        editPrompt: textPrompt,
-        editRegion:
-          editMode === EditMode.REGION
-            ? boxes.map((box) => ({
-                x: Math.round(box.xPct * uploadedImageInfo.width),
-                y: Math.round(box.yPct * uploadedImageInfo.height),
-                width: Math.round(box.wPct * uploadedImageInfo.width),
-                height: Math.round(box.hPct * uploadedImageInfo.height),
-              }))
-            : undefined,
-        replacePrompt:
-          editType === EditType.INPAINT_REPLACE
-            ? {
-                replaceFrom: replaceFromPrompt.trim() || undefined,
-                replaceTo: replaceWithPrompt.trim(),
-              }
-            : undefined,
-      },
-    };
-
-    const response = await newTask<EditImageTaskInput>(
-      sessionToken,
-      newTaskPayload,
-    );
-    const task = response.data.data;
-    if (!task) {
-      console.error("No task data returned");
-      return;
-    }
-    const websocket = new WebSocketClient(task.userId);
-    websocket.on<TaskProgress>("task-progress-" + task.id, async (data) => {
-      console.log("WebSocket data received:", data);
-      setTaskProgress(data);
-      if (data.status === TaskStatus.SUCCEEDED) {
-        setIsProcessing(false);
-        setActiveTab("result");
-        if (data.resultData?.outputImageUrl) {
-          setResultImage(data.resultData.outputImageUrl);
-        }
-      }
+    setError(null); // Clear previous errors
+    setTaskProgress({
+      status: TaskStatus.PENDING,
+      progress: 0,
     });
+
+    try {
+      const sessionToken = await app.idToken();
+
+      const newTaskPayload: NewTask<EditImageTaskInput> = {
+        type: TaskType.EDIT_IMAGE,
+        inputData: {
+          sourceImageUrl: uploadedImageInfo.uploadLocation,
+          imageSourceType: ImageSourceType.URL,
+          editType,
+          editMode,
+          editPrompt: textPrompt,
+          editRegion:
+            editMode === EditMode.REGION
+              ? boxes.map((box) => ({
+                  x: Math.round(box.xPct * uploadedImageInfo.width),
+                  y: Math.round(box.yPct * uploadedImageInfo.height),
+                  width: Math.round(box.wPct * uploadedImageInfo.width),
+                  height: Math.round(box.hPct * uploadedImageInfo.height),
+                }))
+              : undefined,
+          replacePrompt:
+            editType === EditType.INPAINT_REPLACE
+              ? {
+                  replaceFrom: replaceFromPrompt.trim() || undefined,
+                  replaceTo: replaceWithPrompt.trim(),
+                }
+              : undefined,
+        },
+      };
+
+      const response = await newTask<EditImageTaskInput>(
+        sessionToken,
+        newTaskPayload,
+      );
+      const task = response.data.data;
+      if (!task) {
+        console.error("No task data returned");
+        setIsProcessing(false);
+        setError("An unexpected error occurred. Please try again.");
+        return;
+      }
+      const websocket = new WebSocketClient(task.userId);
+      websocket.on<TaskProgress>("task-progress-" + task.id, async (data) => {
+        console.log("WebSocket data received:", data);
+        setTaskProgress(data);
+        if (data.status === TaskStatus.SUCCEEDED) {
+          setIsProcessing(false);
+          setError(null); // Clear any previous errors
+          if (data.resultData?.outputImageUrl) {
+            setResultImage(data.resultData.outputImageUrl);
+          } else {
+            setError("No result image was generated. Please try again.");
+          }
+        }
+        if (data.status === TaskStatus.FAILED) {
+          setIsProcessing(false);
+          setError(
+            "Image editing failed. Please try again with different settings.",
+          );
+          console.error("Task failed:", data);
+        }
+      });
+    } catch (error) {
+      setIsProcessing(false);
+      const errorMessage =
+        error instanceof AxiosError
+          ? error.response?.data.message
+          : "An unexpected error occurred. Please try again.";
+      setError(errorMessage);
+    }
   };
 
   const resetImage = () => {
@@ -141,6 +171,14 @@ export default function MagicEraser() {
     setTextPrompt("");
     setBoxes([]);
     setBox(null);
+    setError(null); // Clear error on reset
+  };
+
+  const handleRetry = () => {
+    setError(null); // Clear error
+    setResultImage(null);
+    setTaskProgress(null);
+    setActiveTab("edit"); // Go back to edit tab to adjust settings
   };
 
   // Helper to get mouse position as percentage of image
@@ -933,194 +971,154 @@ export default function MagicEraser() {
         </TabsContent>
 
         <TabsContent value="result" className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Card>
-              <CardContent className="p-0">
-                {uploadedImageInfo && (
-                  <div className="relative w-full aspect-video bg-checkerboard">
-                    <Image
-                      src={
-                        uploadedImageInfo.previewImageUrl || "/placeholder.svg"
-                      }
-                      alt="Original image"
-                      width={600}
-                      height={400}
-                      className="w-full h-full object-contain"
-                    />
-                    <div className="absolute top-2 left-2 bg-background/80 text-foreground px-2 py-1 rounded text-sm">
-                      Original
-                    </div>
+          {isProcessing ? (
+            <div className="flex flex-col items-center justify-center min-h-[400px]">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mb-4"></div>
+              <p className="text-lg text-center text-muted-foreground">
+                Processing your image...
+              </p>
+              <p className="text-sm text-center text-muted-foreground mt-2">
+                This may take a few moments
+              </p>
+            </div>
+          ) : error ? (
+            <Card className="w-full max-w-2xl mx-auto">
+              <CardContent className="p-8 text-center">
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                    <RefreshCw className="h-8 w-8 text-red-500" />
                   </div>
-                )}
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                      Processing Failed
+                    </h3>
+                    <p className="text-red-500 text-sm mb-6">{error}</p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
+                    <Button
+                      onClick={handleRetry}
+                      className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Try Again
+                    </Button>
+                    <Button
+                      onClick={resetImage}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Start Over
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="p-0">
-                {resultImage && (
-                  <div className="relative w-full aspect-video bg-checkerboard">
-                    <Image
-                      src={resultImage || "/placeholder.svg"}
-                      alt="Result image"
-                      width={600}
-                      height={400}
-                      className="w-full h-full object-contain"
-                    />
-                    <div className="absolute top-2 left-2 bg-background/80 text-foreground px-2 py-1 rounded text-sm">
-                      Result
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <Card>
+                  <CardContent className="p-0">
+                    {uploadedImageInfo && (
+                      <div className="relative w-full aspect-video bg-checkerboard">
+                        <Image
+                          src={
+                            uploadedImageInfo.previewImageUrl ||
+                            "/placeholder.svg"
+                          }
+                          alt="Original image"
+                          width={600}
+                          height={400}
+                          className="w-full h-full object-contain"
+                        />
+                        <div className="absolute top-2 left-2 bg-background/80 text-foreground px-2 py-1 rounded text-sm">
+                          Original
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-0">
+                    {resultImage && (
+                      <div className="relative w-full aspect-video bg-checkerboard">
+                        <Image
+                          src={resultImage || "/placeholder.svg"}
+                          alt="Result image"
+                          width={600}
+                          height={400}
+                          className="w-full h-full object-contain"
+                        />
+                        <div className="absolute top-2 left-2 bg-background/80 text-foreground px-2 py-1 rounded text-sm">
+                          Result
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="flex flex-wrap justify-center gap-4">
+                <Button variant="outline" onClick={() => setActiveTab("edit")}>
+                  <Eraser className="mr-2 h-4 w-4" /> Continue Editing
+                </Button>
+                <Button variant="default">
+                  <Download className="mr-2 h-4 w-4" /> Download Result
+                </Button>
+                <Button variant="outline" onClick={resetImage}>
+                  <Upload className="mr-2 h-4 w-4" /> Upload New Image
+                </Button>
+              </div>
+
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-semibold mb-4">How It Works</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div className="flex flex-col items-center text-center">
+                      <div className="bg-primary/10 p-4 rounded-full mb-4">
+                        <Eraser className="h-8 w-8 text-primary" />
+                      </div>
+                      <h4 className="font-medium mb-2">Mark Areas</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Use selection tools to mark objects to remove, replace,
+                        or areas to insert content
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-center text-center">
+                      <div className="bg-primary/10 p-4 rounded-full mb-4">
+                        <MessageSquare className="h-8 w-8 text-primary" />
+                      </div>
+                      <h4 className="font-medium mb-2">Describe Changes</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Describe what to remove, replace, or insert using
+                        natural language prompts
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-center text-center">
+                      <div className="bg-primary/10 p-4 rounded-full mb-4">
+                        <Wand2 className="h-8 w-8 text-primary" />
+                      </div>
+                      <h4 className="font-medium mb-2">AI Processing</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Our AI analyzes the content and generates, removes, or
+                        replaces objects as requested
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-center text-center">
+                      <div className="bg-primary/10 p-4 rounded-full mb-4">
+                        <CheckCircle className="h-8 w-8 text-primary" />
+                      </div>
+                      <h4 className="font-medium mb-2">Seamless Results</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Get natural-looking results that blend perfectly with
+                        the original image
+                      </p>
                     </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-4">
-            <Button variant="outline" onClick={() => setActiveTab("edit")}>
-              <Eraser className="mr-2 h-4 w-4" /> Continue Editing
-            </Button>
-            <Button variant="default">
-              <Download className="mr-2 h-4 w-4" /> Download Result
-            </Button>
-            <Button variant="outline" onClick={resetImage}>
-              <Upload className="mr-2 h-4 w-4" /> Upload New Image
-            </Button>
-          </div>
-
-          <Card>
-            <CardContent className="p-6">
-              <h3 className="text-xl font-semibold mb-4">How It Works</h3>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="flex flex-col items-center text-center">
-                  <div className="bg-primary/10 p-4 rounded-full mb-4">
-                    <Eraser className="h-8 w-8 text-primary" />
-                  </div>
-                  <h4 className="font-medium mb-2">Mark Areas</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Use selection tools to mark objects to remove, replace, or
-                    areas to insert content
-                  </p>
-                </div>
-                <div className="flex flex-col items-center text-center">
-                  <div className="bg-primary/10 p-4 rounded-full mb-4">
-                    <MessageSquare className="h-8 w-8 text-primary" />
-                  </div>
-                  <h4 className="font-medium mb-2">Describe Changes</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Describe what to remove, replace, or insert using natural
-                    language prompts
-                  </p>
-                </div>
-                <div className="flex flex-col items-center text-center">
-                  <div className="bg-primary/10 p-4 rounded-full mb-4">
-                    <Wand2 className="h-8 w-8 text-primary" />
-                  </div>
-                  <h4 className="font-medium mb-2">AI Processing</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Our AI analyzes the content and generates, removes, or
-                    replaces objects as requested
-                  </p>
-                </div>
-                <div className="flex flex-col items-center text-center">
-                  <div className="bg-primary/10 p-4 rounded-full mb-4">
-                    <CheckCircle className="h-8 w-8 text-primary" />
-                  </div>
-                  <h4 className="font-medium mb-2">Seamless Results</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Get natural-looking results that blend perfectly with the
-                    original image
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <h3 className="text-xl font-semibold mb-4">Perfect For</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-muted p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">Removing Photobombers</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Get rid of strangers who wandered into your perfect shot
-                  </p>
-                </div>
-                <div className="bg-muted p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">Cleaning Up Photos</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Remove trash, power lines, or other distracting elements
-                  </p>
-                </div>
-                <div className="bg-muted p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">
-                    Removing Text & Watermarks
-                  </h4>
-                  <p className="text-sm text-muted-foreground">
-                    Clean up images by removing text overlays or watermarks
-                  </p>
-                </div>
-                <div className="bg-muted p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">Product Photography</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Create clean, professional product images by removing
-                    imperfections
-                  </p>
-                </div>
-                <div className="bg-muted p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">Object Replacement</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Replace objects with different items, colors, or styles
-                  </p>
-                </div>
-                <div className="bg-muted p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">Creative Editing</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Transform scenes by replacing backgrounds, objects, or
-                    elements
-                  </p>
-                </div>
-                <div className="bg-muted p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">Fashion & Style</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Change clothing colors, accessories, or styling elements
-                  </p>
-                </div>
-                <div className="bg-muted p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">Concept Visualization</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Visualize different design options by replacing elements
-                  </p>
-                </div>
-                <div className="bg-muted p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">Adding Missing Elements</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Insert objects, people, or decorations that weren't in the
-                    original
-                  </p>
-                </div>
-                <div className="bg-muted p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">Scene Enhancement</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Add atmospheric elements like clouds, birds, or lighting
-                    effects
-                  </p>
-                </div>
-                <div className="bg-muted p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">Marketing Materials</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Insert products, logos, or promotional elements into
-                    existing scenes
-                  </p>
-                </div>
-                <div className="bg-muted p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">Storytelling</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Add characters, objects, or details to enhance your visual
-                    narrative
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </TabsContent>
       </Tabs>
     </div>

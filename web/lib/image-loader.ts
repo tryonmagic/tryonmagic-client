@@ -11,9 +11,7 @@ const imageLoader = ({
   width: number;
   quality?: number;
 }) => {
-  return `${CDN_URL}?url=${encodeURIComponent(
-    src,
-  )}&w=${width}&q=${quality || 75}`;
+  return `${CDN_URL}?url=${encodeURIComponent(src)}`;
 };
 
 module.exports = imageLoader;
