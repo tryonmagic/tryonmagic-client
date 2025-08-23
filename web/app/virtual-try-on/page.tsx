@@ -524,7 +524,22 @@ export default function VirtualTryOnPage() {
                     <CardTitle className="flex items-center gap-2">
                       Preview
                     </CardTitle>
-                    <CardDescription>Your selected model</CardDescription>
+                    <CardDescription>
+                      Your selected model
+                      {selectedModel && (
+                        <p
+                          className="text-green-500"
+                          style={{
+                            fontSize: "12px",
+                            lineHeight: "12px",
+                          }}
+                        >
+                          You can upload your own model image to try on. Please
+                          click on the "Reset Selection" button to clear the
+                          current model.
+                        </p>
+                      )}
+                    </CardDescription>
                     <div className="absolute top-6 right-2">
                       <Button
                         variant="outline"
