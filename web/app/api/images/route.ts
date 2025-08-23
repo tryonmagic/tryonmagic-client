@@ -14,7 +14,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
-    verifyRequest(req, true);
+    // verifyRequest(req, true);
     const searchParams = req.nextUrl.searchParams;
     const imageUrl = searchParams.get("url");
     if (!imageUrl) {

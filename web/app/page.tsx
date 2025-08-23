@@ -158,7 +158,7 @@ export default function Dashboard() {
 
   if (isUserLoading) {
     return (
-      <Page>
+      <Page fullWidth>
         <Layout>
           <Layout.Section>
             <Card>
@@ -389,12 +389,367 @@ export default function Dashboard() {
                 </div>
               </div>
             </Card>
-            <Card>
-              <div className="flex flex-col gap-2">
-                <div></div>
-                <Text variant="bodySm" as="h4">
-                  View all orders
+            <Card padding="0">
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "stretch",
+                  background: "linear-gradient(90deg, #fff 60%, #eaf4ff 100%)",
+                  padding: "1.5rem",
+                  minHeight: "220px",
+                  gap: "2rem",
+                }}
+              >
+                {/* Left Side: Text and Button */}
+                <div
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text variant="headingMd" as="h3" fontWeight="bold">
+                    One-click background removal
+                  </Text>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "0.5rem",
+                      marginBottom: "1.5rem",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                      }}
+                    >
+                      <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
+                        ✦
+                      </span>
+                      <Text variant="bodyMd" as="span">
+                        Fine details like hair and transparent objects
+                      </Text>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                      }}
+                    >
+                      <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
+                        ✦
+                      </span>
+                      <Text variant="bodyMd" as="span">
+                        Perfect edge detection
+                      </Text>
+                    </div>
+                  </div>
+                  <Button>Try Custom AI Model</Button>
+                </div>
+                {/* Right Side: Images Grid */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, 56px)",
+                    gridTemplateRows: "repeat(2, 56px)",
+                    gap: "12px",
+                    alignItems: "center",
+                    justifyItems: "center",
+                    background:
+                      "linear-gradient(120deg, #eaf4ff 60%, #fff0 100%)",
+                    borderRadius: "12px",
+                    padding: "12px",
+                  }}
+                >
+                  {[1, 2, 3, 4, 5, 6].map((item) => (
+                    <Image
+                      key={item}
+                      source="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRaiApYmBJJ72ZqYFdzKrdfCsXtnjAin1nD8A&s"
+                      alt="Model 1"
+                      style={{
+                        borderRadius: "8px",
+                        width: "56px",
+                        height: "56px",
+                        objectFit: "cover",
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </Card>
+          </InlineStack>
+        </Layout.Section>
+
+        {/* New Section: 4 Tool Cards Row */}
+        <Layout.Section>
+          <InlineStack gap="400">
+            {/* Enhance Image Resolution Card */}
+            <Card padding="400">
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1rem",
+                }}
+              >
+                <Text variant="headingMd" as="h3" fontWeight="bold">
+                  Enhance Image resolution
                 </Text>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.5rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                    }}
+                  >
+                    <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
+                      ✦
+                    </span>
+                    <Text variant="bodyMd" as="span">
+                      Increase resolution up to 4x
+                    </Text>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                    }}
+                  >
+                    <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
+                      ✦
+                    </span>
+                    <Text variant="bodyMd" as="span">
+                      Enhance details and clarity
+                    </Text>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                    }}
+                  >
+                    <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
+                      ✦
+                    </span>
+                    <Text variant="bodyMd" as="span">
+                      Fix pixelation and blur
+                    </Text>
+                  </div>
+                </div>
+                <Button>REMOVE BACKGROUND</Button>
+              </div>
+            </Card>
+
+            {/* Expand Your Images Card */}
+            <Card padding="400">
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1rem",
+                }}
+              >
+                <Text variant="headingMd" as="h3" fontWeight="bold">
+                  Expand your images
+                </Text>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.5rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                    }}
+                  >
+                    <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
+                      ✦
+                    </span>
+                    <Text variant="bodyMd" as="span">
+                      Backgrounds in any direction
+                    </Text>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                    }}
+                  >
+                    <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
+                      ✦
+                    </span>
+                    <Text variant="bodyMd" as="span">
+                      Convert portrait to landscape
+                    </Text>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                    }}
+                  >
+                    <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
+                      ✦
+                    </span>
+                    <Text variant="bodyMd" as="span">
+                      Create panoramic views & More
+                    </Text>
+                  </div>
+                </div>
+                <Button>EXTEND IMAGE SEAMLESSLY</Button>
+              </div>
+            </Card>
+
+            {/* Try AI Product Photography Card */}
+            <Card padding="400">
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1rem",
+                }}
+              >
+                <Text variant="headingMd" as="h3" fontWeight="bold">
+                  Try AI product photography
+                </Text>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.5rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                    }}
+                  >
+                    <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
+                      ✦
+                    </span>
+                    <Text variant="bodyMd" as="span">
+                      Products in custom environments
+                    </Text>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                    }}
+                  >
+                    <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
+                      ✦
+                    </span>
+                    <Text variant="bodyMd" as="span">
+                      Lifestyle product photography
+                    </Text>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                    }}
+                  >
+                    <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
+                      ✦
+                    </span>
+                    <Text variant="bodyMd" as="span">
+                      Ideal for e-commerce and marketing
+                    </Text>
+                  </div>
+                </div>
+                <Button>MAKE PRODUCT PHOTO</Button>
+              </div>
+            </Card>
+
+            {/* Try Clothes on AI Models Card */}
+            <Card padding="400">
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1rem",
+                }}
+              >
+                <Text variant="headingMd" as="h3" fontWeight="bold">
+                  Try clothes on AI models
+                </Text>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.5rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                    }}
+                  >
+                    <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
+                      ✦
+                    </span>
+                    <Text variant="bodyMd" as="span">
+                      Customizable diverse
+                    </Text>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                    }}
+                  >
+                    <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
+                      ✦
+                    </span>
+                    <Text variant="bodyMd" as="span">
+                      Ethnicity, gender, age
+                    </Text>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                    }}
+                  >
+                    <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
+                      ✦
+                    </span>
+                    <Text variant="bodyMd" as="span">
+                      From various settings
+                    </Text>
+                  </div>
+                </div>
+                <Button>USE VIRTUAL TRY-ON</Button>
               </div>
             </Card>
           </InlineStack>

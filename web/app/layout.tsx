@@ -38,9 +38,9 @@ export default function RootLayout({
       </head>
       <body>
         <Providers>
-          <NavMenu />
+          {/* <NavMenu /> */}
           {children}
-          {/* <AppBridgeNavMenu>
+          <AppBridgeNavMenu>
             <a href="/" rel="home">
               ProdigyAI
             </a>
@@ -52,7 +52,7 @@ export default function RootLayout({
             <a href="/expand-image">Expand Image</a>
             <a href="/magic-eraser">Magic Eraser</a>
             <a href="/purchase">Purchase (200 Points)</a>
-          </AppBridgeNavMenu> */}
+          </AppBridgeNavMenu>
         </Providers>
       </body>
     </html>

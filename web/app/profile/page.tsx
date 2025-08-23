@@ -24,6 +24,7 @@ import {
   ShieldCheck,
   Key,
   Trash2,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -63,109 +64,99 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAppBridge } from "@shopify/app-bridge-react";
-import { getUsageHistory } from "./queries";
+import { getTasks, getUsageHistory } from "./queries";
+import { useAuthenticatedQuery } from "@/lib/hooks/useAuthenticatedQuery";
+import { getStatusText } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { TaskType } from "@/lib/api/type";
+import Pagination from "@/components/ui/pagination";
+import CircularProgress from "@/components/ui/CircularProgress";
+import Loading from "../loading";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
-// Mock data for the profile
-const userData = {
-  name: "Alex Johnson",
-  email: "alex.johnson@example.com",
-  avatar: "/placeholder.svg",
-  joinDate: "January 2023",
-  plan: "Standard",
-  pointsAvailable: 145,
-  pointsTotal: 200,
-  pointsExpiry: "June 15, 2023",
+const getStatusBadgeVariant = (status: string) => {
+  switch (status) {
+    case "SUCCEEDED":
+      return "default"; // Green
+    case "PROCESSING":
+    case "QUEUED":
+      return "secondary"; // Blue/Gray
+    case "PENDING":
+      return "outline"; // White with border
+    case "FAILED":
+      return "destructive"; // Red
+    default:
+      return "outline";
+  }
 };
 
-// Mock data for usage history
-const usageHistory = [
-  {
-    id: "usage-1",
-    date: "2023-05-10T14:30:00",
-    tool: "AI Fashion Model",
-    icon: Sparkles,
-    pointsUsed: 10,
-    status: "completed",
-    result: "/placeholder.svg?height=100&width=100",
-  },
-  {
-    id: "usage-2",
-    date: "2023-05-09T10:15:00",
-    tool: "Remove Background",
-    icon: Eraser,
-    pointsUsed: 5,
-    status: "completed",
-    result: "/placeholder.svg?height=100&width=100",
-  },
-  {
-    id: "usage-3",
-    date: "2023-05-08T16:45:00",
-    tool: "Upscale Image",
-    icon: Wand2,
-    pointsUsed: 8,
-    status: "completed",
-    result: "/placeholder.svg?height=100&width=100",
-  },
-  {
-    id: "usage-4",
-    date: "2023-05-07T09:20:00",
-    tool: "AI Product",
-    icon: ImagePlus,
-    pointsUsed: 10,
-    status: "completed",
-    result: "/placeholder.svg?height=100&width=100",
-  },
-  {
-    id: "usage-5",
-    date: "2023-05-06T11:10:00",
-    tool: "Expand Image",
-    icon: Maximize,
-    pointsUsed: 8,
-    status: "completed",
-    result: "/placeholder.svg?height=100&width=100",
-  },
-  {
-    id: "usage-6",
-    date: "2023-05-05T15:30:00",
-    tool: "Magic Eraser",
-    icon: Eraser,
-    pointsUsed: 10,
-    status: "completed",
-    result: "/placeholder.svg?height=100&width=100",
-  },
-];
+// Get tool-specific icon
+type ToolType = TaskType | string;
 
-// Mock data for usage statistics
-const usageStats = {
-  totalUsage: 51,
-  byTool: [
-    { tool: "AI Fashion Model", count: 15, percentage: 29 },
-    { tool: "Remove Background", count: 12, percentage: 24 },
-    { tool: "Upscale Image", count: 8, percentage: 16 },
-    { tool: "AI Product", count: 6, percentage: 12 },
-    { tool: "Expand Image", count: 5, percentage: 10 },
-    { tool: "Magic Eraser", count: 5, percentage: 10 },
-  ],
-  recentActivity: [
-    { date: "Today", count: 3 },
-    { date: "Yesterday", count: 5 },
-    { date: "May 8", count: 2 },
-    { date: "May 7", count: 4 },
-    { date: "May 6", count: 1 },
-    { date: "May 5", count: 3 },
-    { date: "May 4", count: 2 },
-  ],
+const getToolIcon = (type: ToolType) => {
+  // Support both enum and string values
+  switch (type) {
+    case TaskType.REMOVE_BACKGROUND:
+    case "REMOVE_BACKGROUND":
+    case "Remove Background":
+      return Eraser;
+    case TaskType.GENERATE_AI_MODEL:
+    case "GENERATE_AI_MODEL":
+    case "Generate AI Model":
+      return ImagePlus;
+    case TaskType.VTON:
+    case "VTON":
+    case "V-Toning":
+      return User;
+    case TaskType.UPSCALE:
+    case "UPSCALE":
+    case "Upscale":
+      return Wand2;
+    case TaskType.ENHANCE:
+    case "ENHANCE":
+    case "Enhance":
+      return Wand2;
+    case TaskType.EXPAND_IMAGE:
+    case "EXPAND_IMAGE":
+    case "Expand Image":
+      return Maximize;
+    case TaskType.EDIT_IMAGE:
+    case "EDIT_IMAGE":
+    case "Edit Image":
+      return Sparkles;
+    case TaskType.PRODUCT_IMAGE_EDITING:
+    case "PRODUCT_IMAGE_EDITING":
+    case "Product Image Editing":
+      return Sparkles;
+    case TaskType.REPLACE_BACKGROUND:
+    case "REPLACE_BACKGROUND":
+    case "Replace Background":
+      return Eraser;
+    case TaskType.GENERATE_IMAGE:
+    case "GENERATE_IMAGE":
+    case "Generate Image":
+      return ImagePlus;
+    default:
+      return Sparkles;
+  }
 };
 
-// Tool icons mapping
-const toolIcons: Record<string, React.ElementType> = {
-  "AI Fashion Model": Sparkles,
-  "Remove Background": Eraser,
-  "Upscale Image": Wand2,
-  "AI Product": ImagePlus,
-  "Expand Image": Maximize,
-  "Magic Eraser": Eraser,
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case "SUCCEEDED":
+      return "bg-green-500 text-white";
+    case "PROCESSING":
+    case "QUEUED":
+      return "bg-blue-500 text-white";
+    case "PENDING":
+      return "bg-amber-500 text-white";
+    case "FAILED":
+      return "bg-red-500 text-white";
+  }
+  return "bg-slate-500 text-white";
 };
+
+const tasksPerPage = 10;
 
 export default function ProfilePage() {
   const searchParams = useSearchParams();
@@ -174,16 +165,29 @@ export default function ProfilePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterTool, setFilterTool] = useState("all");
   const [dateRange, setDateRange] = useState("all-time");
-  const shopifyApp = useAppBridge();
-  console.log(shopifyApp);
-  useEffect(() => {
-    const fetchUsageHistory = async () => {
-      const token = await shopifyApp.idToken();
-      const usageHistory = await getUsageHistory(token);
-      console.log(usageHistory);
-    };
-    fetchUsageHistory();
-  }, [shopifyApp]);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const {
+    isLoading,
+    data: usageSummary,
+    isFetching,
+  } = useAuthenticatedQuery({
+    queryKey: ["usage-history"],
+    queryFn: getUsageHistory,
+    placeholderData: (value) => value,
+    staleTime: 1000 * 5,
+  });
+
+  const {
+    data: tasks,
+    isFetching: isFetchingTasks,
+    isLoading: isLoadingTasks,
+  } = useAuthenticatedQuery({
+    queryKey: ["users/me/tasks", { page: currentPage, pageSize: tasksPerPage }],
+    queryFn: getTasks,
+    staleTime: 1000 * 5,
+    enabled: activeTab === "usage",
+  });
 
   // Set the active tab based on URL parameter
   useEffect(() => {
@@ -191,30 +195,6 @@ export default function ProfilePage() {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
-
-  // Filter usage history based on search, tool, and date range
-  const filteredHistory = usageHistory.filter((item) => {
-    const matchesSearch =
-      searchQuery === "" ||
-      item.tool.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesTool = filterTool === "all" || item.tool === filterTool;
-
-    // Simple date filtering logic - could be expanded for more complex filtering
-    const itemDate = new Date(item.date);
-    const now = new Date();
-    let matchesDate = true;
-
-    if (dateRange === "last-week") {
-      const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      matchesDate = itemDate >= lastWeek;
-    } else if (dateRange === "last-month") {
-      const lastMonth = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      matchesDate = itemDate >= lastMonth;
-    }
-
-    return matchesSearch && matchesTool && matchesDate;
-  });
 
   // Format date for display
   const formatDate = (dateString: string) => {
@@ -228,6 +208,10 @@ export default function ProfilePage() {
       hour12: true,
     }).format(date);
   };
+
+  if (!usageSummary) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4 md:p-8">
@@ -246,10 +230,10 @@ export default function ProfilePage() {
           onValueChange={setActiveTab}
           className="space-y-8"
         >
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-3">
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="usage">Usage History</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
+            {/* <TabsTrigger value="settings">Settings</TabsTrigger> */}
           </TabsList>
 
           {/* Overview Tab */}
@@ -260,7 +244,9 @@ export default function ProfilePage() {
                 <CardTitle>Your Points</CardTitle>
                 <CardDescription>
                   Current plan:{" "}
-                  <span className="font-medium">{userData.plan}</span>
+                  <span className="font-medium">
+                    {usageSummary.currentSubscription.plan}
+                  </span>
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -271,18 +257,26 @@ export default function ProfilePage() {
                         Available Points
                       </span>
                       <span className="text-sm font-medium">
-                        {userData.pointsAvailable} / {userData.pointsTotal}
+                        {usageSummary.currentSubscription.pointsBalance} /{" "}
+                        {usageSummary.currentSubscription.pointsTotal}
                       </span>
                     </div>
                     <Progress
                       value={
-                        (userData.pointsAvailable / userData.pointsTotal) * 100
+                        (usageSummary.currentSubscription.pointsBalance /
+                          usageSummary.currentSubscription.pointsTotal) *
+                        100
                       }
                       className="h-2"
                     />
                     <div className="flex items-center mt-2 text-xs text-slate-500 dark:text-slate-500">
                       <Clock className="h-3 w-3 mr-1" />
-                      <span>Points expire on {userData.pointsExpiry}</span>
+                      <span>
+                        Points expire on{" "}
+                        {new Date(
+                          usageSummary.currentSubscription.nextResetDate,
+                        ).toLocaleDateString()}
+                      </span>
                     </div>
                   </div>
 
@@ -316,17 +310,17 @@ export default function ProfilePage() {
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium">Usage by Tool</h3>
                     <div className="space-y-3">
-                      {usageStats.byTool.map((item) => {
-                        const Icon = toolIcons[item.tool] || Sparkles;
+                      {usageSummary.usageByTool.map((item) => {
+                        const Icon = getToolIcon(item.toolName);
                         return (
-                          <div key={item.tool} className="space-y-1">
+                          <div key={item.toolName} className="space-y-1">
                             <div className="flex items-center justify-between text-sm">
                               <div className="flex items-center">
                                 <Icon className="h-4 w-4 mr-2 text-purple-600 dark:text-purple-400" />
-                                <span>{item.tool}</span>
+                                <span>{item.toolName}</span>
                               </div>
                               <span className="font-medium">
-                                {item.count} uses
+                                {item.usageCount} uses
                               </span>
                             </div>
                             <Progress
@@ -343,17 +337,21 @@ export default function ProfilePage() {
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium">Recent Activity</h3>
                     <div className="space-y-2">
-                      {usageStats.recentActivity.map((item, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between text-sm p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800"
-                        >
-                          <span>{item.date}</span>
-                          <Badge variant="outline">
-                            {item.count} operations
-                          </Badge>
-                        </div>
-                      ))}
+                      {usageSummary.dailyActivity
+                        .slice(0, 8)
+                        .map((item, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between text-sm p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800"
+                          >
+                            <span>
+                              {new Date(item.date).toLocaleDateString()}
+                            </span>
+                            <Badge variant="outline">
+                              {item.operations} operations
+                            </Badge>
+                          </div>
+                        ))}
                     </div>
                   </div>
 
@@ -367,7 +365,7 @@ export default function ProfilePage() {
                             Total Operations
                           </p>
                           <p className="text-3xl font-bold">
-                            {usageStats.totalUsage}
+                            {usageSummary.totalOperations}
                           </p>
                         </CardContent>
                       </Card>
@@ -377,7 +375,8 @@ export default function ProfilePage() {
                             Points Used
                           </p>
                           <p className="text-3xl font-bold">
-                            {userData.pointsTotal - userData.pointsAvailable}
+                            {usageSummary.currentSubscription.pointsTotal -
+                              usageSummary.currentSubscription.pointsBalance}
                           </p>
                         </CardContent>
                       </Card>
@@ -388,13 +387,13 @@ export default function ProfilePage() {
                           </p>
                           <div className="flex items-center justify-center mt-1">
                             {(() => {
-                              const mostUsed = usageStats.byTool[0];
-                              const Icon = toolIcons[mostUsed.tool] || Sparkles;
+                              const mostUsed = usageSummary.mostUsedTool;
+                              const Icon = getToolIcon(mostUsed.toolName);
                               return (
                                 <>
                                   <Icon className="h-5 w-5 mr-2 text-purple-600 dark:text-purple-400" />
                                   <p className="text-lg font-bold">
-                                    {mostUsed.tool}
+                                    {mostUsed.toolName}
                                   </p>
                                 </>
                               );
@@ -427,32 +426,141 @@ export default function ProfilePage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {usageHistory.slice(0, 3).map((item) => {
-                    const Icon = item.icon;
+                <div className="grid grid-cols-13 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                  {usageSummary.recentOperations.map((item) => {
+                    const Icon = Sparkles;
+                    const resultImageUrl = Array.isArray(
+                      item.resultData?.outputImageUrl,
+                    )
+                      ? item.resultData?.outputImageUrl[0]
+                      : item.resultData?.outputImageUrl || null;
+
+                    const ToolIcon = getToolIcon(item.type);
+
                     return (
                       <Card key={item.id} className="overflow-hidden border">
                         <div className="aspect-square relative">
-                          <Image
-                            src={item.result || "/placeholder.svg"}
-                            alt={item.tool}
-                            fill
-                            className="object-cover"
-                          />
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
-                            <div className="flex items-center text-white">
-                              <Icon className="h-4 w-4 mr-2" />
-                              <span className="text-sm font-medium">
-                                {item.tool}
-                              </span>
+                          {resultImageUrl ? (
+                            <Image
+                              src={resultImageUrl}
+                              alt={item.type}
+                              fill
+                              className="object-cover"
+                            />
+                          ) : (
+                            // Creative fallback based on status
+                            <div
+                              className={cn(
+                                "w-full h-full flex flex-col items-center justify-center relative",
+                                item.status === "PROCESSING" ||
+                                  item.status === "QUEUED"
+                                  ? "bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950/30 dark:to-indigo-950/50"
+                                  : item.status === "PENDING"
+                                    ? "bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-950/30 dark:to-orange-950/50"
+                                    : item.status === "FAILED"
+                                      ? "bg-gradient-to-br from-red-50 to-rose-100 dark:from-red-950/30 dark:to-rose-950/50"
+                                      : "bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900",
+                              )}
+                            >
+                              {/* Animated processing indicator */}
+                              {(item.status === "PROCESSING" ||
+                                item.status === "QUEUED") && (
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
+                              )}
+
+                              {/* Main icon */}
+                              <div
+                                className={cn(
+                                  "p-4 rounded-full mb-3",
+                                  item.status === "PROCESSING" ||
+                                    item.status === "QUEUED"
+                                    ? "bg-blue-100 dark:bg-blue-900/50"
+                                    : item.status === "PENDING"
+                                      ? "bg-amber-100 dark:bg-amber-900/50"
+                                      : item.status === "FAILED"
+                                        ? "bg-red-100 dark:bg-red-900/50"
+                                        : "bg-slate-100 dark:bg-slate-800",
+                                )}
+                              >
+                                <ToolIcon
+                                  className={cn(
+                                    "h-8 w-8",
+                                    item.status === "PROCESSING" ||
+                                      item.status === "QUEUED"
+                                      ? "text-blue-600 dark:text-blue-400 animate-pulse"
+                                      : item.status === "PENDING"
+                                        ? "text-amber-600 dark:text-amber-400"
+                                        : item.status === "FAILED"
+                                          ? "text-red-600 dark:text-red-400"
+                                          : "text-slate-600 dark:text-slate-400",
+                                  )}
+                                />
+                              </div>
+
+                              {/* Status text */}
+                              <p
+                                className={cn(
+                                  "text-xs font-medium text-center px-2",
+                                  item.status === "PROCESSING" ||
+                                    item.status === "QUEUED"
+                                    ? "text-blue-700 dark:text-blue-300"
+                                    : item.status === "PENDING"
+                                      ? "text-amber-700 dark:text-amber-300"
+                                      : item.status === "FAILED"
+                                        ? "text-red-700 dark:text-red-300"
+                                        : "text-slate-600 dark:text-slate-400",
+                                )}
+                              >
+                                {item.status === "PROCESSING" &&
+                                  "Creating your result..."}
+                                {item.status === "QUEUED" &&
+                                  "In queue for processing"}
+                                {item.status === "PENDING" &&
+                                  "Waiting to start"}
+                                {item.status === "FAILED" &&
+                                  "Processing failed"}
+                                {item.status === "SUCCEEDED" && "Ready to view"}
+                              </p>
+
+                              {/* Processing dots animation */}
+                              {(item.status === "PROCESSING" ||
+                                item.status === "QUEUED") && (
+                                <div className="flex space-x-1 mt-2">
+                                  <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                                  <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                                  <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce"></div>
+                                </div>
+                              )}
                             </div>
+                          )}
+
+                          {/* Status badge - always show */}
+                          <div className="absolute top-2 right-2">
+                            <Badge
+                              variant={getStatusBadgeVariant(item.status)}
+                              className="text-xs"
+                            >
+                              {getStatusText(item.status)}
+                            </Badge>
                           </div>
+
+                          {/* Tool name overlay - only show when there's an image */}
+                          {resultImageUrl && (
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+                              <div className="flex items-center text-white">
+                                <ToolIcon className="h-4 w-4 mr-2" />
+                                <span className="text-sm font-medium">
+                                  {item.type}
+                                </span>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <CardContent className="p-3">
-                          <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400">
-                            <span>{formatDate(item.date)}</span>
+                        <CardContent className="p-0">
+                          <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 px-1 py-2">
+                            <span>{formatDate(item.createdAt)}</span>
                             <Badge variant="outline" className="text-xs">
-                              {item.pointsUsed} points
+                              {item.transactionHistory?.debitAmount} points
                             </Badge>
                           </div>
                         </CardContent>
@@ -536,40 +644,58 @@ export default function ProfilePage() {
                         <TableHead>Date & Time</TableHead>
                         <TableHead>Tool</TableHead>
                         <TableHead>Points Used</TableHead>
+                        <TableHead>Status</TableHead>
                         <TableHead>Result</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredHistory.length > 0 ? (
-                        filteredHistory.map((item) => {
-                          const Icon = item.icon;
+                      {tasks && tasks.results.length > 0 ? (
+                        tasks.results.map((item) => {
+                          const Icon = getToolIcon(item.type);
                           return (
                             <TableRow key={item.id}>
                               <TableCell className="font-medium">
-                                {formatDate(item.date)}
+                                {formatDate(item.createdAt)}
                               </TableCell>
                               <TableCell>
                                 <div className="flex items-center">
                                   <Icon className="h-4 w-4 mr-2 text-purple-600 dark:text-purple-400" />
-                                  <span>{item.tool}</span>
+                                  <span>{item.type}</span>
                                 </div>
                               </TableCell>
                               <TableCell>
                                 <Badge variant="outline">
-                                  {item.pointsUsed} points
+                                  {item.transactionHistory?.debitAmount} points
                                 </Badge>
                               </TableCell>
                               <TableCell>
-                                <div className="h-10 w-10 rounded-md overflow-hidden">
-                                  <Image
-                                    src={item.result || "/placeholder.svg"}
-                                    alt={item.tool}
-                                    width={40}
-                                    height={40}
-                                    className="object-cover"
-                                  />
-                                </div>
+                                <Badge
+                                  variant="outline"
+                                  className={getStatusColor(item.status)}
+                                >
+                                  {getStatusText(item.status)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {item.status === "SUCCEEDED" ? (
+                                  <div className="h-10 w-10 rounded-md overflow-hidden">
+                                    <Image
+                                      src={
+                                        item.resultData?.outputImageUrl ||
+                                        "/placeholder.svg"
+                                      }
+                                      alt={item.type}
+                                      width={40}
+                                      height={40}
+                                      className="object-cover"
+                                    />
+                                  </div>
+                                ) : (
+                                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                                    {getStatusText(item.status)}
+                                  </p>
+                                )}
                               </TableCell>
                               <TableCell className="text-right">
                                 <DropdownMenu>
@@ -599,7 +725,13 @@ export default function ProfilePage() {
                             colSpan={5}
                             className="text-center py-8 text-slate-500 dark:text-slate-400"
                           >
-                            No operations found matching your filters.
+                            {isLoadingTasks || isFetchingTasks ? (
+                              <div className="flex justify-center items-center h-full w-full">
+                                <LoadingSpinner />
+                              </div>
+                            ) : (
+                              "No operations found matching your filters."
+                            )}
                           </TableCell>
                         </TableRow>
                       )}
@@ -611,27 +743,22 @@ export default function ProfilePage() {
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-slate-500 dark:text-slate-400">
                     Showing{" "}
-                    <span className="font-medium">
-                      {filteredHistory.length}
-                    </span>{" "}
+                    <span className="font-medium">{tasks?.results.length}</span>{" "}
                     of{" "}
-                    <span className="font-medium">{usageHistory.length}</span>{" "}
+                    <span className="font-medium">{tasks?.totalResults}</span>{" "}
                     operations
                   </p>
-                  <div className="flex items-center space-x-2">
-                    <Button variant="outline" size="sm" disabled>
-                      Previous
-                    </Button>
-                    <Button variant="outline" size="sm" disabled>
-                      Next
-                    </Button>
-                  </div>
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={tasks?.totalPages || 1}
+                    onPageChange={setCurrentPage}
+                  />
                 </div>
               </CardContent>
             </Card>
 
             {/* Export Options */}
-            <Card>
+            {/* <Card>
               <CardHeader>
                 <CardTitle>Export Data</CardTitle>
                 <CardDescription>
@@ -654,7 +781,7 @@ export default function ProfilePage() {
                   </Button>
                 </div>
               </CardContent>
-            </Card>
+            </Card> */}
           </TabsContent>
 
           {/* Settings Tab */}
@@ -671,14 +798,14 @@ export default function ProfilePage() {
                   <CardContent className="space-y-6">
                     <div className="space-y-2">
                       <Label htmlFor="name">Full Name</Label>
-                      <Input id="name" defaultValue={userData.name} />
+                      <Input id="name" defaultValue={"userData.name"} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="email">Email Address</Label>
                       <Input
                         id="email"
                         type="email"
-                        defaultValue={userData.email}
+                        defaultValue={"userData.email"}
                       />
                     </div>
                     <Button className="w-full">Save Changes</Button>

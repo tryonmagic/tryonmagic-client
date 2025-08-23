@@ -33,3 +33,20 @@ export const handleDownload = (images: string[]) => {
 };
 
 export const CDN_URL = "api/images";
+
+export const getStatusText = (status: string) => {
+  switch (status) {
+    case "SUCCEEDED":
+      return "Completed";
+    case "PROCESSING":
+      return "Processing";
+    case "QUEUED":
+      return "Queued";
+    case "PENDING":
+      return "Pending";
+    case "FAILED":
+      return "Failed";
+    default:
+      return status;
+  }
+};

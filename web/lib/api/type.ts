@@ -2,7 +2,7 @@ export interface GenericAPIResponse<T = unknown> {
   code: number;
   status: string;
   message: string;
-  data?: T | null;
+  data: T | null;
 }
 
 export enum ImageSourceType {
@@ -70,12 +70,41 @@ export enum TaskType {
   REMOVE_BACKGROUND = "REMOVE_BACKGROUND",
   GENERATE_IMAGE = "GENERATE_IMAGE",
   REPLACE_BACKGROUND = "REPLACE_BACKGROUND",
+  GENERATE_AI_MODEL = "GENERATE_AI_MODEL",
   VTON = "VTON",
   UPSCALE = "UPSCALE",
   ENHANCE = "ENHANCE",
   EXPAND_IMAGE = "EXPAND_IMAGE",
   EDIT_IMAGE = "EDIT_IMAGE",
   PRODUCT_IMAGE_EDITING = "PRODUCT_IMAGE_EDITING",
+}
+
+export interface Transaction {
+  id: string;
+  userId: string;
+  user?: any; // Optionally, a User object
+  taskId?: string | null;
+  task?: any; // Optionally, a Task object
+  transactionType: string;
+  transactionStatus: string;
+  debitAmount: number;
+  creditAmount: number;
+  netAmount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  description: string;
+  referenceId?: string;
+  referenceType?: string;
+  paymentMethod?: string;
+  paymentStatus?: string;
+  currency?: string;
+  amountPaid?: number;
+  exchangeRate?: number;
+  metadata?: string;
+  createdAt: string;
+  updatedAt: string;
+  processedAt?: string | null;
+  expiresAt?: string | null;
 }
 
 export interface Task<T = unknown> {
@@ -91,6 +120,7 @@ export interface Task<T = unknown> {
   updatedAt: string;
   startedAt?: string | null;
   completedAt?: string | null;
+  transactionHistory?: Transaction | null;
 }
 
 export interface TaskProgress<T = unknown> {

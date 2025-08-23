@@ -128,7 +128,6 @@ export default function VirtualTryOnPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const modelsPerPage = 10;
 
-  // const { data: aiModels, isLoading } = useAuthenticatedQuery()
   const {
     isLoading,
     data: aiModels,
