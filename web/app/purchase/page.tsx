@@ -324,9 +324,9 @@ export default function PurchasePage() {
             </Card>
           </motion.div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
             <div className="lg:col-span-2 space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {pricingTiers.map((tier) => (
                   <Card
                     key={tier.id}
@@ -388,8 +388,19 @@ export default function PurchasePage() {
                     </CardFooter>
                   </Card>
                 ))}
-              </div>
+              </div> */}
 
+              <Card className="bg-green-100 dark:bg-green-900/30">
+                <CardHeader>
+                  <CardDescription>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
+                      Currently, we are giving everyone a limited credit of{" "}
+                      <b>10 points</b> to try our app. Soon, the subscription
+                      plan will be published for more credit.
+                    </p>
+                  </CardDescription>
+                </CardHeader>
+              </Card>
               <Card>
                 <CardHeader>
                   <CardTitle>Points Usage</CardTitle>
@@ -470,7 +481,7 @@ export default function PurchasePage() {
               </Card>
             </div>
 
-            <div>
+            {/* <div>
               <div className="sticky top-20">
                 <Card className="border-0 shadow-xl">
                   <CardHeader>
@@ -628,7 +639,7 @@ export default function PurchasePage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         )}
 
