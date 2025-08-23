@@ -38,6 +38,7 @@ import {
   getToolIcon,
 } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import UsagesHistory from "./components/UsagesHistory";
 
 export default function ProfilePage() {
   const searchParams = useSearchParams();
@@ -51,7 +52,6 @@ export default function ProfilePage() {
   } = useAuthenticatedQuery({
     queryKey: ["usage-history"],
     queryFn: getUsageHistory,
-    placeholderData: (value) => value,
     staleTime: 1000 * 5,
   });
 
@@ -437,6 +437,7 @@ export default function ProfilePage() {
 
           {/* Usage History Tab */}
           <TabsContent value="usage" className="space-y-8">
+            <UsagesHistory />
             {/* Export Options */}
             {/* <Card>
               <CardHeader>

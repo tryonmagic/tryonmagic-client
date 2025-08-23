@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { ArrowRight, Download, Search, ChevronDown } from "lucide-react";
+import { ArrowRight, Download, Search, ChevronDown, View } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -194,23 +194,12 @@ export default function UsagesHistory() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <ChevronDown className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              <Download className="mr-2 h-4 w-4" />
-                              <span>Download</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <ArrowRight className="mr-2 h-4 w-4" />
-                              <span>View Details</span>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <Button variant="ghost" size="icon">
+                          <View className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon">
+                          <Download className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );
@@ -218,7 +207,7 @@ export default function UsagesHistory() {
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={5}
+                    colSpan={6}
                     className="text-center py-8 text-slate-500 dark:text-slate-400"
                   >
                     {isLoadingTasks || isFetchingTasks ? (
