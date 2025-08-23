@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import NextImage from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -20,9 +20,6 @@ import {
   ArrowRight,
   MoveHorizontal,
   MoveVertical,
-  Move,
-  Check,
-  X,
   RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,16 +27,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import ImageUploader, {
   ImageInfo,

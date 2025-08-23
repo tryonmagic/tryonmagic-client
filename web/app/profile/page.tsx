@@ -1,6 +1,5 @@
 "use client";
 
-import type React from "react";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -8,23 +7,12 @@ import Image from "next/image";
 import {
   CreditCard,
   History,
-  Calendar,
   Clock,
   ArrowRight,
-  Download,
-  Search,
-  ChevronDown,
   Sparkles,
-  Eraser,
-  Wand2,
-  ImagePlus,
-  Maximize,
-  Edit,
-  Camera,
   ShieldCheck,
   Key,
   Trash2,
-  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,136 +24,25 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useAppBridge } from "@shopify/app-bridge-react";
-import { getTasks, getUsageHistory } from "./queries";
+import { getUsageHistory } from "./queries";
 import { useAuthenticatedQuery } from "@/lib/hooks/useAuthenticatedQuery";
-import { getStatusText } from "@/lib/utils";
+import {
+  formatDate,
+  getStatusBadgeVariant,
+  getStatusText,
+  getToolIcon,
+} from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { TaskType } from "@/lib/api/type";
-import Pagination from "@/components/ui/pagination";
-import CircularProgress from "@/components/ui/CircularProgress";
-import Loading from "../loading";
-import LoadingSpinner from "@/components/ui/LoadingSpinner";
-
-const getStatusBadgeVariant = (status: string) => {
-  switch (status) {
-    case "SUCCEEDED":
-      return "default"; // Green
-    case "PROCESSING":
-    case "QUEUED":
-      return "secondary"; // Blue/Gray
-    case "PENDING":
-      return "outline"; // White with border
-    case "FAILED":
-      return "destructive"; // Red
-    default:
-      return "outline";
-  }
-};
-
-// Get tool-specific icon
-type ToolType = TaskType | string;
-
-const getToolIcon = (type: ToolType) => {
-  // Support both enum and string values
-  switch (type) {
-    case TaskType.REMOVE_BACKGROUND:
-    case "REMOVE_BACKGROUND":
-    case "Remove Background":
-      return Eraser;
-    case TaskType.GENERATE_AI_MODEL:
-    case "GENERATE_AI_MODEL":
-    case "Generate AI Model":
-      return ImagePlus;
-    case TaskType.VTON:
-    case "VTON":
-    case "V-Toning":
-      return User;
-    case TaskType.UPSCALE:
-    case "UPSCALE":
-    case "Upscale":
-      return Wand2;
-    case TaskType.ENHANCE:
-    case "ENHANCE":
-    case "Enhance":
-      return Wand2;
-    case TaskType.EXPAND_IMAGE:
-    case "EXPAND_IMAGE":
-    case "Expand Image":
-      return Maximize;
-    case TaskType.EDIT_IMAGE:
-    case "EDIT_IMAGE":
-    case "Edit Image":
-      return Sparkles;
-    case TaskType.PRODUCT_IMAGE_EDITING:
-    case "PRODUCT_IMAGE_EDITING":
-    case "Product Image Editing":
-      return Sparkles;
-    case TaskType.REPLACE_BACKGROUND:
-    case "REPLACE_BACKGROUND":
-    case "Replace Background":
-      return Eraser;
-    case TaskType.GENERATE_IMAGE:
-    case "GENERATE_IMAGE":
-    case "Generate Image":
-      return ImagePlus;
-    default:
-      return Sparkles;
-  }
-};
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case "SUCCEEDED":
-      return "bg-green-500 text-white";
-    case "PROCESSING":
-    case "QUEUED":
-      return "bg-blue-500 text-white";
-    case "PENDING":
-      return "bg-amber-500 text-white";
-    case "FAILED":
-      return "bg-red-500 text-white";
-  }
-  return "bg-slate-500 text-white";
-};
-
-const tasksPerPage = 10;
 
 export default function ProfilePage() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
   const [activeTab, setActiveTab] = useState("overview");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterTool, setFilterTool] = useState("all");
-  const [dateRange, setDateRange] = useState("all-time");
-  const [currentPage, setCurrentPage] = useState(1);
 
   const {
     isLoading,
@@ -178,36 +55,12 @@ export default function ProfilePage() {
     staleTime: 1000 * 5,
   });
 
-  const {
-    data: tasks,
-    isFetching: isFetchingTasks,
-    isLoading: isLoadingTasks,
-  } = useAuthenticatedQuery({
-    queryKey: ["users/me/tasks", { page: currentPage, pageSize: tasksPerPage }],
-    queryFn: getTasks,
-    staleTime: 1000 * 5,
-    enabled: activeTab === "usage",
-  });
-
   // Set the active tab based on URL parameter
   useEffect(() => {
     if (tabParam && ["overview", "usage", "settings"].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
-
-  // Format date for display
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "numeric",
-      hour12: true,
-    }).format(date);
-  };
 
   if (!usageSummary) {
     return <div>Loading...</div>;
@@ -584,179 +437,6 @@ export default function ProfilePage() {
 
           {/* Usage History Tab */}
           <TabsContent value="usage" className="space-y-8">
-            <Card>
-              <CardHeader>
-                <CardTitle>Usage History</CardTitle>
-                <CardDescription>
-                  Track all your AI operations and points usage
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Filters */}
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500 dark:text-slate-400" />
-                    <Input
-                      type="search"
-                      placeholder="Search operations..."
-                      className="pl-8"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                  <Select value={filterTool} onValueChange={setFilterTool}>
-                    <SelectTrigger className="w-full sm:w-[180px]">
-                      <SelectValue placeholder="Filter by tool" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Tools</SelectItem>
-                      <SelectItem value="AI Fashion Model">
-                        AI Fashion Model
-                      </SelectItem>
-                      <SelectItem value="Remove Background">
-                        Remove Background
-                      </SelectItem>
-                      <SelectItem value="Upscale Image">
-                        Upscale Image
-                      </SelectItem>
-                      <SelectItem value="AI Product">AI Product</SelectItem>
-                      <SelectItem value="Expand Image">Expand Image</SelectItem>
-                      <SelectItem value="Magic Eraser">Magic Eraser</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select value={dateRange} onValueChange={setDateRange}>
-                    <SelectTrigger className="w-full sm:w-[180px]">
-                      <SelectValue placeholder="Date range" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all-time">All Time</SelectItem>
-                      <SelectItem value="last-week">Last 7 Days</SelectItem>
-                      <SelectItem value="last-month">Last 30 Days</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Results Table */}
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date & Time</TableHead>
-                        <TableHead>Tool</TableHead>
-                        <TableHead>Points Used</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Result</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {tasks && tasks.results.length > 0 ? (
-                        tasks.results.map((item) => {
-                          const Icon = getToolIcon(item.type);
-                          return (
-                            <TableRow key={item.id}>
-                              <TableCell className="font-medium">
-                                {formatDate(item.createdAt)}
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center">
-                                  <Icon className="h-4 w-4 mr-2 text-purple-600 dark:text-purple-400" />
-                                  <span>{item.type}</span>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="outline">
-                                  {item.transactionHistory?.debitAmount} points
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <Badge
-                                  variant="outline"
-                                  className={getStatusColor(item.status)}
-                                >
-                                  {getStatusText(item.status)}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                {item.status === "SUCCEEDED" ? (
-                                  <div className="h-10 w-10 rounded-md overflow-hidden">
-                                    <Image
-                                      src={
-                                        item.resultData?.outputImageUrl ||
-                                        "/placeholder.svg"
-                                      }
-                                      alt={item.type}
-                                      width={40}
-                                      height={40}
-                                      className="object-cover"
-                                    />
-                                  </div>
-                                ) : (
-                                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                                    {getStatusText(item.status)}
-                                  </p>
-                                )}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon">
-                                      <ChevronDown className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem>
-                                      <Download className="mr-2 h-4 w-4" />
-                                      <span>Download</span>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem>
-                                      <ArrowRight className="mr-2 h-4 w-4" />
-                                      <span>View Details</span>
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })
-                      ) : (
-                        <TableRow>
-                          <TableCell
-                            colSpan={5}
-                            className="text-center py-8 text-slate-500 dark:text-slate-400"
-                          >
-                            {isLoadingTasks || isFetchingTasks ? (
-                              <div className="flex justify-center items-center h-full w-full">
-                                <LoadingSpinner />
-                              </div>
-                            ) : (
-                              "No operations found matching your filters."
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-
-                {/* Pagination - simplified for demo */}
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Showing{" "}
-                    <span className="font-medium">{tasks?.results.length}</span>{" "}
-                    of{" "}
-                    <span className="font-medium">{tasks?.totalResults}</span>{" "}
-                    operations
-                  </p>
-                  <Pagination
-                    currentPage={currentPage}
-                    totalPages={tasks?.totalPages || 1}
-                    onPageChange={setCurrentPage}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Export Options */}
             {/* <Card>
               <CardHeader>

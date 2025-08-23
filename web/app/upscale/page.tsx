@@ -11,24 +11,19 @@ import {
   Upload,
   Wand2,
   Loader2,
-  Download,
   Trash2,
   Info,
   ZoomIn,
-  Check,
   X,
   Maximize2,
   Loader,
   RefreshCw,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import {
   Tooltip,

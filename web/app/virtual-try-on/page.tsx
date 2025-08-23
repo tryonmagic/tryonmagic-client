@@ -1,13 +1,10 @@
 "use client";
 
-import type React from "react";
-
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowLeft,
-  Upload,
   Sparkles,
   Loader2,
   Download,
@@ -18,12 +15,8 @@ import {
   Tally2,
   Tally3,
   Tally5,
-  Shuffle,
   ImageIcon,
   CheckCircle2,
-  ZoomIn,
-  ZoomOut,
-  RotateCcw,
   Layers,
   Settings,
   Wand2,
@@ -42,18 +35,10 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { cn, handleDownload } from "@/lib/utils";
 import { FilterProvider } from "@/components/model-filters/filter-context";
 import { FilterBar } from "@/components/model-filters/filter-bar";
@@ -78,7 +63,6 @@ import { getGarments } from "@/lib/api/ai-models";
 import ImageUploader, {
   ImageInfo,
 } from "@/lib/uploader/components/ImageUploader";
-import { ImageGallery } from "@/lib/uploader/components/image-upload-manager";
 import { ImageType } from "@/lib/uploader/components/image-upload-manager";
 import Pagination from "@/components/ui/pagination";
 import {

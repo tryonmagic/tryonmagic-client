@@ -1,11 +1,7 @@
 "use client";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { useEffect } from "react";
-import {
-  authenticateShopifyApp,
-  doWebhookRegistration,
-  storeToken,
-} from "../actions";
+import { authenticateShopifyApp } from "../actions";
 import { useRouter, usePathname } from "next/navigation"; // Import useRouter and usePathname
 
 export default function SessionProvider({

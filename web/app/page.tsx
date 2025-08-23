@@ -1,33 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
 import {
   Page,
   Layout,
   Card,
   Text,
   Button,
-  ProgressBar,
-  Badge,
-  ButtonGroup,
-  Grid,
-  Icon,
-  Banner,
   InlineStack,
-  Box,
-  Tooltip,
   Image,
 } from "@shopify/polaris";
 import {
-  CreditCardIcon,
   StarFilledIcon,
   ImageIcon,
   PlusCircleIcon,
   EyeDropperIcon,
 } from "@shopify/polaris-icons";
 import { useAppBridge } from "@shopify/app-bridge-react";
-import { useQuery } from "@tanstack/react-query";
 import { getUserDetailsQuery } from "./queries";
 import { useAuthenticatedQuery } from "@/lib/hooks/useAuthenticatedQuery";
 import CreditIcon from "@/icons/CreditIcon";

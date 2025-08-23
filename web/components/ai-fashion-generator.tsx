@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Loader2, Download, RefreshCw, Sparkles } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -16,19 +16,12 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import AspectRatioSelector from "@/app/ai-model/AspectRation";
 import { generateAIModel } from "@/lib/api/ai-models";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { WebSocketClient } from "@/socket";
 import { TaskProgress, TaskStatus } from "@/lib/api/type";
-import Image from "next/image";
 import EnhancedImage from "./ui/EnhanchedImage";
 import { AxiosError } from "axios";
 
