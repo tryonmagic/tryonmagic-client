@@ -41,9 +41,12 @@ import {
   getStatusBadgeVariant,
   getStatusText,
   getToolIcon,
+  handleDownload,
 } from "@/lib/utils";
 import Pagination from "@/components/ui/pagination";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import { imagePreviewAtom } from "@/app/atom";
+import { useAtom } from "jotai";
 
 const tasksPerPage = 10;
 
@@ -52,6 +55,7 @@ export default function UsagesHistory() {
   const [filterTool, setFilterTool] = useState("all");
   const [dateRange, setDateRange] = useState("all-time");
   const [currentPage, setCurrentPage] = useState(1);
+  const [, setImagePreview] = useAtom(imagePreviewAtom);
 
   const {
     data: tasks,
@@ -191,10 +195,22 @@ export default function UsagesHistory() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() =>
+                            setImagePreview(item.resultData?.outputImageUrl)
+                          }
+                        >
                           <View className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() =>
+                            handleDownload(item.resultData?.outputImageUrl)
+                          }
+                        >
                           <Download className="h-4 w-4" />
                         </Button>
                       </TableCell>

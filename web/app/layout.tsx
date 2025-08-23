@@ -1,9 +1,8 @@
 import Providers from "@/app/providers/providers";
 import { Metadata } from "next";
 import "./globals.css";
-import { NavMenu } from "@/components/nav-menu";
-import { Inter } from "next/font/google";
 import { NavMenu as AppBridgeNavMenu } from "@shopify/app-bridge-react";
+import { ImagePreview } from "@/components/ui/ImagePreview";
 
 export const metadata: Metadata = {
   title: "Next.js Shopify App",
@@ -53,6 +52,7 @@ export default function RootLayout({
             <a href="/magic-eraser">Magic Eraser</a>
             <a href="/purchase">Purchase (200 Points)</a>
           </AppBridgeNavMenu>
+          <ImagePreview />
         </Providers>
       </body>
     </html>

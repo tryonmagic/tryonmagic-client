@@ -34,7 +34,13 @@ export default function debounce(func: (...args: any[]) => void, wait = 166) {
   return debounced;
 }
 
-export const handleDownload = (images: string[]) => {
+export const handleDownload = (images: string | string[]) => {
+  if (!images) return;
+  if (typeof images === "string") {
+    const downloadUrl = `${CDN_URL}?url=${encodeURIComponent(images)}`;
+    window.open(downloadUrl, "_blank");
+    return;
+  }
   images.forEach((image) => {
     const downloadUrl = `${CDN_URL}?url=${encodeURIComponent(image)}`;
     window.open(downloadUrl, "_blank");
