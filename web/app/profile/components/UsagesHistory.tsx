@@ -38,7 +38,7 @@ import { getTasks } from "../queries";
 import { useAuthenticatedQuery } from "@/lib/hooks/useAuthenticatedQuery";
 import {
   formatDate,
-  getStatusColor,
+  getStatusBadgeVariant,
   getStatusText,
   getToolIcon,
 } from "@/lib/utils";
@@ -146,10 +146,7 @@ export default function UsagesHistory() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={getStatusColor(item.status)}
-                        >
+                        <Badge variant={getStatusBadgeVariant(item.status)}>
                           {getStatusText(item.status)}
                         </Badge>
                       </TableCell>

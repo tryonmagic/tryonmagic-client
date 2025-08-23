@@ -138,18 +138,3 @@ export const getToolIcon = (type: ToolType) => {
       return Sparkles;
   }
 };
-
-export const getStatusColor = (status: string) => {
-  switch (status) {
-    case "SUCCEEDED":
-      return "bg-green-500 text-white";
-    case "PROCESSING":
-    case "QUEUED":
-      return "bg-blue-500 text-white";
-    case "PENDING":
-      return "bg-amber-500 text-white";
-    case "FAILED":
-      return "bg-red-500 text-white";
-  }
-  return "bg-slate-500 text-white";
-};
