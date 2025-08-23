@@ -23,7 +23,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 
 const navLinks = [
-  { href: "/", label: "ProdigyAI", isHome: true },
+  { href: "/", label: "TryOnMagic", isHome: true },
   { href: "/ai-model", label: "AI Model" },
   { href: "/ai-product", label: "AI Product" },
   { href: "/virtual-try-on", label: "Virtual Try-On" },
@@ -49,7 +49,7 @@ export function NavMenu() {
             href="/"
             className="mr-6 flex items-center space-x-2 font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600"
           >
-            ProdigyAI
+            TryOnMagic
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
             {navLinks
@@ -83,7 +83,7 @@ export function NavMenu() {
             href="/app"
             className="md:hidden font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600"
           >
-            ProdigyAI
+            TryOnMagic
           </Link>
 
           <div className="flex items-center">

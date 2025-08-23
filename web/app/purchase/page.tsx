@@ -634,7 +634,7 @@ export default function PurchasePage() {
 
         <div className="mt-16 mb-8 text-center">
           <h2 className="text-2xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
-            Why Choose ProdigyAI?
+            Why Choose TryOnMagic?
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <Card className="border-0 shadow-md">

@@ -39,6 +39,7 @@ import {
 } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import UsagesHistory from "./components/UsagesHistory";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 export default function ProfilePage() {
   const searchParams = useSearchParams();
@@ -63,7 +64,11 @@ export default function ProfilePage() {
   }, [tabParam]);
 
   if (!usageSummary) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex justify-center items-center h-full w-full">
+        <LoadingSpinner />
+      </div>
+    );
   }
 
   return (
@@ -71,10 +76,10 @@ export default function ProfilePage() {
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
-            My Profile
+            Usage History
           </h1>
           <p className="text-slate-600 dark:text-slate-400">
-            Manage your account, view usage history, and track your points
+            View your usage history and track your points
           </p>
         </div>
 

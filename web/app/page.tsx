@@ -8,109 +8,15 @@ import {
   Button,
   InlineStack,
   Image,
+  Link,
 } from "@shopify/polaris";
-import {
-  StarFilledIcon,
-  ImageIcon,
-  PlusCircleIcon,
-  EyeDropperIcon,
-} from "@shopify/polaris-icons";
-import { useAppBridge } from "@shopify/app-bridge-react";
 import { getUserDetailsQuery } from "./queries";
 import { useAuthenticatedQuery } from "@/lib/hooks/useAuthenticatedQuery";
 import CreditIcon from "@/icons/CreditIcon";
 import PlanIcon from "@/icons/PlanIcon";
-
-interface ToolUsage {
-  name: string;
-  used: number;
-  total: number;
-  description: string;
-  icon: any;
-  link: string;
-  buttonText: string;
-}
-
-const toolsUsage: ToolUsage[] = [
-  {
-    name: "Model Generation",
-    used: 20,
-    total: 0,
-    description:
-      "Customizable diverse fashion models. Ethnicity, gender, age, and skin tone. From various settings and environments",
-    icon: StarFilledIcon,
-    link: "/ai-model",
-    buttonText: "Try Custom AI Model",
-  },
-  {
-    name: "Image Expand",
-    used: 40,
-    total: 0,
-    description:
-      "Fine details like hair and transparent objects. Batch process multiple images. Perfect edge detection",
-    icon: PlusCircleIcon,
-    link: "/expand-image",
-    buttonText: "Extend Image Seamlessly",
-  },
-  {
-    name: "Image Upscale",
-    used: 25,
-    total: 0,
-    description:
-      "Increase resolution up to 4x. Enhance details and clarity. Fix pixelation and blur",
-    icon: ImageIcon,
-    link: "/upscale",
-    buttonText: "Remove Background",
-  },
-  {
-    name: "Magic Eraser",
-    used: 20,
-    total: 0,
-    description:
-      "Customizable diverse. Ethnicity, gender, age. From various settings",
-    icon: EyeDropperIcon,
-    link: "/magic-eraser",
-    buttonText: "Use Virtual Try-On",
-  },
-];
-
-const toolCards = [
-  {
-    title: "One-click background removal",
-    description:
-      "Fine details like hair and transparent objects. Batch process multiple images. Perfect edge detection",
-    image: "/api/placeholder/400/300",
-    buttonText: "Remove Background",
-    link: "/remove-bg",
-    before: "/api/placeholder/150/150",
-    after: "/api/placeholder/150/150",
-  },
-  {
-    title: "Expand your images",
-    description:
-      "Backgrounds in any direction. Convert portrait to landscape. Create panoramic views & More",
-    buttonText: "Extend Image Seamlessly",
-    link: "/expand-image",
-  },
-  {
-    title: "Try AI product photography",
-    description:
-      "Products in custom environments. Lifestyle product photography. Ideal for e-commerce and marketing",
-    buttonText: "Make Product Photo",
-    link: "/ai-product",
-  },
-  {
-    title: "Try clothes on AI models",
-    description:
-      "Customizable diverse. Ethnicity, gender, age. From various settings",
-    buttonText: "Use Virtual Try-On",
-    link: "/virtual-try-on",
-  },
-];
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 export default function Dashboard() {
-  const app = useAppBridge();
-
   const { data: userData, isLoading: isUserLoading } = useAuthenticatedQuery({
     queryKey: ["user-details"],
     queryFn: getUserDetailsQuery,
@@ -146,19 +52,9 @@ export default function Dashboard() {
 
   if (isUserLoading) {
     return (
-      <Page fullWidth>
-        <Layout>
-          <Layout.Section>
-            <Card>
-              <div style={{ padding: "2rem", textAlign: "center" }}>
-                <Text variant="headingMd" as="h2">
-                  Loading dashboard...
-                </Text>
-              </div>
-            </Card>
-          </Layout.Section>
-        </Layout>
-      </Page>
+      <div className="flex justify-center items-center h-full w-full">
+        <LoadingSpinner />
+      </div>
     );
   }
 
@@ -167,11 +63,28 @@ export default function Dashboard() {
       <Layout>
         {/* Header Section */}
         <Layout.Section>
-          <div style={{ marginBottom: "1.5rem", width: 490 }}>
-            <Text variant="headingXl" as="h1">
-              Welcome {userData?.firstName}! Transform your creative vision with
-              our suite of AI-powered tools.
-            </Text>
+          <div
+            style={{
+              marginBottom: "1.5rem",
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              gap: "1rem",
+            }}
+          >
+            <div style={{ flex: 1 }}>
+              <Text variant="headingXl" as="h1">
+                Welcome {userData?.firstName}! Transform your creative vision
+                with our suite of AI-powered tools.
+              </Text>
+            </div>
+            <div className="flex justify-end flex-1 mr-12 mt-0">
+              <Link url="/profile">
+                <Button variant="primary" size="large">
+                  View usages
+                </Button>
+              </Link>
+            </div>
           </div>
         </Layout.Section>
         <Layout.Section>
@@ -194,7 +107,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <Text variant="bodyMd" as="p" tone="subdued">
-                    Total Credit
+                    Credit Available
                   </Text>
                   <Text variant="headingLg" as="h2" fontWeight="bold">
                     100
@@ -204,6 +117,32 @@ export default function Dashboard() {
             </Card>
             <Card>
               <InlineStack align="start" gap="400">
+                <div
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "50%",
+                    backgroundColor: "#f0f8ff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <CreditIcon />
+                </div>
+                <div>
+                  <Text variant="bodyMd" as="p" tone="subdued">
+                    Total Operations
+                  </Text>
+                  <Text variant="headingLg" as="h2" fontWeight="bold">
+                    100
+                  </Text>
+                </div>
+              </InlineStack>
+            </Card>
+            <Card>
+              <InlineStack align="start" gap="100">
                 <div
                   style={{
                     width: "48px",
@@ -230,7 +169,7 @@ export default function Dashboard() {
             </Card>
             <Card padding="0">
               <div style={{ backgroundColor: "#F3FAFF", padding: "1rem" }}>
-                <InlineStack align="start" gap="400">
+                <InlineStack align="start" gap="200">
                   {toolUsage.map((tool, index) => (
                     <div
                       key={tool.name}
@@ -249,11 +188,6 @@ export default function Dashboard() {
                       </Text>
                     </div>
                   ))}
-                  <div className="flex flex-col gap-2 pr-4">
-                    <Text variant="bodySm" as="h4" alignment="center">
-                      See all usage
-                    </Text>
-                  </div>
                   <div className={"flex flex-col gap-2 pr-4"}>
                     <Text variant="bodySm" as="h4" alignment="center">
                       Need more credits?

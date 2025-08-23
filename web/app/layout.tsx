@@ -37,20 +37,20 @@ export default function RootLayout({
       </head>
       <body>
         <Providers>
-          {/* <NavMenu /> */}
           {children}
           <AppBridgeNavMenu>
             <a href="/" rel="home">
-              ProdigyAI
+              TryOnMagic
             </a>
             <a href="/ai-model">AI Model</a>
+            <a href="/virtual-try-on">Virtual Try-On</a>
             <a href="/ai-product">AI Product</a>
             <a href="/remove-bg">Remove BG</a>
             <a href="/upscale">Upscale</a>
-            <a href="/relight">Relight</a>
             <a href="/expand-image">Expand Image</a>
             <a href="/magic-eraser">Magic Eraser</a>
-            <a href="/purchase">Purchase (200 Points)</a>
+            <a href="/usage">View Usage</a>
+            <a href="/purchase">Purchase (Free 10 Points)</a>
           </AppBridgeNavMenu>
           <ImagePreview />
         </Providers>
