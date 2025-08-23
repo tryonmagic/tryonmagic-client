@@ -18,7 +18,6 @@ COPY --chown=node:node package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY --chown=node:node web/package.json ./web/
 
 # Copy Prisma schema file before installing dependencies
-COPY --chown=node:node web/prisma ./web/prisma/
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
