@@ -28,9 +28,6 @@ COPY --chown=node:node . .
 # Change to web directory for build commands
 WORKDIR /app/web
 
-# Generate Prisma client
-RUN pnpm run postinstall
-
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_S3_DOMAIN
 ARG NEXT_PUBLIC_IMAGE_PROXY_URL
