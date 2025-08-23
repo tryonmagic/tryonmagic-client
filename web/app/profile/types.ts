@@ -1,10 +1,9 @@
-import { SubscriptionStatus } from "@prisma/client";
 import { SubscriptionPlan } from "../purchase/type";
 import { Task } from "@/lib/api/type";
 
 export interface UserSubscription {
   plan: SubscriptionPlan;
-  status: SubscriptionStatus;
+  status: string;
   pointsBalance: number;
   pointsUsed: number;
   pointsTotal: number;
