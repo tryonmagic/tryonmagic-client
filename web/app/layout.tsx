@@ -45,8 +45,8 @@ export default function RootLayout({
             <a href="/ai-model">AI Model</a>
             <a href="/virtual-try-on">Virtual Try-On</a>
             <a href="/ai-product">AI Product</a>
-            <a href="/remove-bg">Remove BG</a>
-            <a href="/upscale">Upscale</a>
+            <a href="/smart-background">Smart Background</a>
+            <a href="/upscale-image">Upscale Image</a>
             <a href="/expand-image">Expand Image</a>
             <a href="/magic-eraser">Magic Eraser</a>
             <a href="/usage">View Usage</a>

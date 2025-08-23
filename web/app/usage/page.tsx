@@ -63,7 +63,7 @@ export default function ProfilePage() {
     }
   }, [tabParam]);
 
-  if (!usageSummary) {
+  if (isLoading || !usageSummary || isFetching) {
     return (
       <div className="flex justify-center items-center h-full w-full">
         <LoadingSpinner />

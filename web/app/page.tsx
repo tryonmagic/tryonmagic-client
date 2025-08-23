@@ -15,6 +15,67 @@ import { useAuthenticatedQuery } from "@/lib/hooks/useAuthenticatedQuery";
 import CreditIcon from "@/icons/CreditIcon";
 import PlanIcon from "@/icons/PlanIcon";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import { getUsageHistory } from "./usage/queries";
+
+const tools = [
+  {
+    name: "AI Product",
+    description: [
+      "Transform your products with advanced AI-powered editing and enhancement",
+      "Replace backgrounds and place products in realistic lifestyle and commercial settings",
+      "Enhance product details and add realistic lighting effects",
+      "Change product colors while maintaining texture and details",
+      // "Generate multiple product variations and configurations",
+      // "Perfect for e-commerce and marketing",
+    ],
+    link: "/ai-product",
+  },
+  {
+    name: "Smart Background",
+    description: [
+      "Remove backgrounds from images with precision and accuracy",
+      "Replace backgrounds with realistic and natural-looking images",
+      "Replace background with any color, image, texture, or pattern",
+      "Replace background with AI ",
+      // "Enhance image quality and clarity",
+      // "Perfect for e-commerce and marketing",
+    ],
+    link: "/smart-background",
+  },
+  {
+    name: "Upscale Image",
+    description: [
+      "Enhance image resolution and quality",
+      "Increase resolution up to 4x",
+      "Enhance details and clarity",
+      "Fix pixelation and blur",
+      // "Perfect for e-commerce and marketing",
+    ],
+    link: "/upscale-image",
+  },
+  {
+    name: "Expand Image",
+    description: [
+      "Extend images seamlessly in any direction",
+      "Convert portrait to landscape",
+      "Create panoramic views and more",
+      "Make images to fit any device",
+      // "Perfect for e-commerce and marketing",
+    ],
+    link: "/expand-image",
+  },
+  {
+    name: "Magic Eraser",
+    description: [
+      "Remove unwanted objects, people, or elements from images",
+      "Perfect for e-commerce and marketing",
+      "Replace objects with any object",
+      "Insert objects into images",
+      // "Perfect for e-commerce and marketing",
+    ],
+    link: "/magic-eraser",
+  },
+];
 
 export default function Dashboard() {
   const { data: userData, isLoading: isUserLoading } = useAuthenticatedQuery({
@@ -22,33 +83,20 @@ export default function Dashboard() {
     queryFn: getUserDetailsQuery,
   });
 
+  const {
+    isLoading,
+    data: usageSummary,
+    isFetching,
+  } = useAuthenticatedQuery({
+    queryKey: ["usage-history"],
+    queryFn: getUsageHistory,
+    staleTime: 1000 * 5,
+  });
+
   const handleUpgradePlan = () => {
     // Navigate to upgrade page or handle upgrade logic
     window.open("/purchase", "_self");
   };
-
-  const toolUsage = [
-    {
-      name: "Model Generation",
-      used: 20,
-      remaining: 0,
-    },
-    {
-      name: "AI Product",
-      used: 20,
-      remaining: 0,
-    },
-    {
-      name: "Virtual Try-On",
-      used: 20,
-      remaining: 0,
-    },
-    {
-      name: "Image Expand",
-      used: 20,
-      remaining: 0,
-    },
-  ];
 
   if (isUserLoading) {
     return (
@@ -78,7 +126,7 @@ export default function Dashboard() {
                 with our suite of AI-powered tools.
               </Text>
             </div>
-            <div className="flex justify-end flex-1 mr-12 mt-0">
+            <div className="flex justify-end flex-1 mr-8 mt-0">
               <Link url="/profile">
                 <Button variant="primary" size="large">
                   View usages
@@ -88,7 +136,7 @@ export default function Dashboard() {
           </div>
         </Layout.Section>
         <Layout.Section>
-          <InlineStack gap="400">
+          <InlineStack gap="500">
             <Card>
               <InlineStack align="start" gap="400">
                 <div
@@ -110,7 +158,7 @@ export default function Dashboard() {
                     Credit Available
                   </Text>
                   <Text variant="headingLg" as="h2" fontWeight="bold">
-                    100
+                    {usageSummary?.currentSubscription.pointsBalance}
                   </Text>
                 </div>
               </InlineStack>
@@ -136,13 +184,13 @@ export default function Dashboard() {
                     Total Operations
                   </Text>
                   <Text variant="headingLg" as="h2" fontWeight="bold">
-                    100
+                    {usageSummary?.totalOperations}
                   </Text>
                 </div>
               </InlineStack>
             </Card>
             <Card>
-              <InlineStack align="start" gap="100">
+              <InlineStack align="start" gap="300">
                 <div
                   style={{
                     width: "48px",
@@ -162,33 +210,50 @@ export default function Dashboard() {
                     Your Plan
                   </Text>
                   <Text variant="headingLg" as="h2" fontWeight="bold">
-                    Free
+                    {usageSummary?.currentSubscription?.plan
+                      ? usageSummary.currentSubscription.plan
+                          .charAt(0)
+                          .toUpperCase() +
+                        usageSummary.currentSubscription.plan
+                          .slice(1)
+                          .toLowerCase()
+                      : ""}
                   </Text>
                 </div>
               </InlineStack>
             </Card>
-            <Card padding="0">
-              <div style={{ backgroundColor: "#F3FAFF", padding: "1rem" }}>
-                <InlineStack align="start" gap="200">
-                  {toolUsage.map((tool, index) => (
-                    <div
-                      key={tool.name}
-                      className={
-                        "flex flex-col gap-2 pr-4" +
-                        (index !== toolUsage.length - 1
-                          ? " border-r-2 border-r-gray-200"
-                          : "")
-                      }
-                    >
-                      <Text variant="headingLg" as="h1" alignment="center">
-                        {tool.used}/{tool.remaining}
-                      </Text>
-                      <Text variant="bodySm" as="h4">
-                        {tool.name}
-                      </Text>
-                    </div>
-                  ))}
-                  <div className={"flex flex-col gap-2 pr-4"}>
+            <div
+              style={{
+                width: "580px",
+                marginLeft: "0.7rem",
+              }}
+            >
+              <Card>
+                <InlineStack align="start" gap="100">
+                  {usageSummary?.usageByTool
+                    // .sort((a, b) => b.toolName.length - a.toolName.length)
+                    .slice(0, 3)
+                    .map((tool, index) => (
+                      <div
+                        key={tool.toolName}
+                        className={
+                          "flex flex-col gap-2 pr-4" +
+                          (index !== usageSummary?.usageByTool.length - 1
+                            ? " border-r-2 border-r-gray-200"
+                            : "")
+                        }
+                      >
+                        <Text variant="headingLg" as="h1" alignment="center">
+                          {tool.usageCount}
+                        </Text>
+                        <Text variant="bodySm" as="h4">
+                          {tool.toolName.length > 18
+                            ? tool.toolName.slice(0, 18) + "..."
+                            : tool.toolName}
+                        </Text>
+                      </div>
+                    ))}
+                  <div className={"flex flex-col gap-2"}>
                     <Text variant="bodySm" as="h4" alignment="center">
                       Need more credits?
                     </Text>
@@ -197,12 +262,12 @@ export default function Dashboard() {
                     </Button>
                   </div>
                 </InlineStack>
-              </div>
-            </Card>
+              </Card>
+            </div>
           </InlineStack>
         </Layout.Section>
         <Layout.Section>
-          <InlineStack gap="400">
+          <InlineStack gap="800">
             <Card padding="0">
               <div
                 style={{
@@ -212,7 +277,7 @@ export default function Dashboard() {
                   background: "linear-gradient(90deg, #fff 60%, #eaf4ff 100%)",
                   padding: "1.5rem",
                   minHeight: "220px",
-                  gap: "2rem",
+                  gap: "3rem",
                 }}
               >
                 {/* Left Side: Text and Button */}
@@ -225,7 +290,7 @@ export default function Dashboard() {
                   }}
                 >
                   <Text variant="headingMd" as="h3" fontWeight="bold">
-                    Create AI Models in Minutes
+                    Create AI Models in Seconds
                   </Text>
                   <div
                     style={{
@@ -278,7 +343,9 @@ export default function Dashboard() {
                       </Text>
                     </div>
                   </div>
-                  <Button>Try Custom AI Model</Button>
+                  <Link url="/ai-model">
+                    <Button variant="primary">Generate AI Model</Button>
+                  </Link>
                 </div>
                 {/* Right Side: Images Grid */}
                 <div
@@ -320,7 +387,7 @@ export default function Dashboard() {
                   background: "linear-gradient(90deg, #fff 60%, #eaf4ff 100%)",
                   padding: "1.5rem",
                   minHeight: "220px",
-                  gap: "2rem",
+                  gap: "3rem",
                 }}
               >
                 {/* Left Side: Text and Button */}
@@ -333,7 +400,7 @@ export default function Dashboard() {
                   }}
                 >
                   <Text variant="headingMd" as="h3" fontWeight="bold">
-                    One-click background removal
+                    Virtual Try-On for your clothes
                   </Text>
                   <div
                     style={{
@@ -343,36 +410,31 @@ export default function Dashboard() {
                       marginBottom: "1.5rem",
                     }}
                   >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.5rem",
-                      }}
-                    >
-                      <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
-                        ✦
-                      </span>
-                      <Text variant="bodyMd" as="span">
-                        Fine details like hair and transparent objects
-                      </Text>
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.5rem",
-                      }}
-                    >
-                      <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
-                        ✦
-                      </span>
-                      <Text variant="bodyMd" as="span">
-                        Perfect edge detection
-                      </Text>
-                    </div>
+                    {[
+                      "Select AI model to try on your garment",
+                      "Upload your own Model image to try on",
+                      "Try on your garment on the model",
+                    ].map((item, index) => (
+                      <div
+                        key={item}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                        }}
+                      >
+                        <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
+                          ✦
+                        </span>
+                        <Text variant="bodyMd" as="span">
+                          {item}
+                        </Text>
+                      </div>
+                    ))}
                   </div>
-                  <Button>Try Custom AI Model</Button>
+                  <Link url="/virtual-try-on">
+                    <Button variant="primary">Try Virtual Try-On</Button>
+                  </Link>
                 </div>
                 {/* Right Side: Images Grid */}
                 <div
@@ -410,271 +472,71 @@ export default function Dashboard() {
 
         {/* New Section: 4 Tool Cards Row */}
         <Layout.Section>
-          <InlineStack gap="400">
+          <div
+            style={{
+              display: "flex",
+              gap: "1rem",
+              alignItems: "stretch",
+            }}
+          >
             {/* Enhance Image Resolution Card */}
-            <Card padding="400">
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "1rem",
-                }}
-              >
-                <Text variant="headingMd" as="h3" fontWeight="bold">
-                  Enhance Image resolution
-                </Text>
+            {tools.map((tool) => (
+              <Card key={tool.name} padding="300">
                 <div
                   style={{
                     display: "flex",
                     flexDirection: "column",
-                    gap: "0.5rem",
+                    justifyContent: "space-between",
+                    width: "201px",
+                    height: "350px",
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                    }}
-                  >
-                    <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
-                      ✦
-                    </span>
-                    <Text variant="bodyMd" as="span">
-                      Increase resolution up to 4x
+                  <div>
+                    <Text variant="headingMd" as="h3" fontWeight="bold">
+                      {tool.name}
                     </Text>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "0.5rem",
+                        marginTop: "1rem",
+                      }}
+                    >
+                      {tool.description.map((item) => (
+                        <div
+                          key={item}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.5rem",
+                          }}
+                        >
+                          <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
+                            ✦
+                          </span>
+                          <Text variant="bodyMd" as="span">
+                            <p style={{ width: "180px" }}>{item}</p>
+                          </Text>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                   <div
                     style={{
                       display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
+                      justifyContent: "center",
+                      marginTop: "1rem",
                     }}
                   >
-                    <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
-                      ✦
-                    </span>
-                    <Text variant="bodyMd" as="span">
-                      Enhance details and clarity
-                    </Text>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                    }}
-                  >
-                    <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
-                      ✦
-                    </span>
-                    <Text variant="bodyMd" as="span">
-                      Fix pixelation and blur
-                    </Text>
-                  </div>
-                </div>
-                <Button>REMOVE BACKGROUND</Button>
-              </div>
-            </Card>
-
-            {/* Expand Your Images Card */}
-            <Card padding="400">
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "1rem",
-                }}
-              >
-                <Text variant="headingMd" as="h3" fontWeight="bold">
-                  Expand your images
-                </Text>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "0.5rem",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                    }}
-                  >
-                    <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
-                      ✦
-                    </span>
-                    <Text variant="bodyMd" as="span">
-                      Backgrounds in any direction
-                    </Text>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                    }}
-                  >
-                    <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
-                      ✦
-                    </span>
-                    <Text variant="bodyMd" as="span">
-                      Convert portrait to landscape
-                    </Text>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                    }}
-                  >
-                    <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
-                      ✦
-                    </span>
-                    <Text variant="bodyMd" as="span">
-                      Create panoramic views & More
-                    </Text>
+                    <Link url={tool.link}>
+                      <Button size="large">{tool.name}</Button>
+                    </Link>
                   </div>
                 </div>
-                <Button>EXTEND IMAGE SEAMLESSLY</Button>
-              </div>
-            </Card>
-
-            {/* Try AI Product Photography Card */}
-            <Card padding="400">
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "1rem",
-                }}
-              >
-                <Text variant="headingMd" as="h3" fontWeight="bold">
-                  Try AI product photography
-                </Text>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "0.5rem",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                    }}
-                  >
-                    <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
-                      ✦
-                    </span>
-                    <Text variant="bodyMd" as="span">
-                      Products in custom environments
-                    </Text>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                    }}
-                  >
-                    <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
-                      ✦
-                    </span>
-                    <Text variant="bodyMd" as="span">
-                      Lifestyle product photography
-                    </Text>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                    }}
-                  >
-                    <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
-                      ✦
-                    </span>
-                    <Text variant="bodyMd" as="span">
-                      Ideal for e-commerce and marketing
-                    </Text>
-                  </div>
-                </div>
-                <Button>MAKE PRODUCT PHOTO</Button>
-              </div>
-            </Card>
-
-            {/* Try Clothes on AI Models Card */}
-            <Card padding="400">
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "1rem",
-                }}
-              >
-                <Text variant="headingMd" as="h3" fontWeight="bold">
-                  Try clothes on AI models
-                </Text>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "0.5rem",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                    }}
-                  >
-                    <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
-                      ✦
-                    </span>
-                    <Text variant="bodyMd" as="span">
-                      Customizable diverse
-                    </Text>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                    }}
-                  >
-                    <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
-                      ✦
-                    </span>
-                    <Text variant="bodyMd" as="span">
-                      Ethnicity, gender, age
-                    </Text>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                    }}
-                  >
-                    <span style={{ color: "#29A0FC", fontSize: "1.2em" }}>
-                      ✦
-                    </span>
-                    <Text variant="bodyMd" as="span">
-                      From various settings
-                    </Text>
-                  </div>
-                </div>
-                <Button>USE VIRTUAL TRY-ON</Button>
-              </div>
-            </Card>
-          </InlineStack>
+              </Card>
+            ))}
+          </div>
         </Layout.Section>
       </Layout>
     </Page>
