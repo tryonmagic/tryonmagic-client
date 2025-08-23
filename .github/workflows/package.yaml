@@ -56,6 +56,6 @@ jobs:
             SHOPIFY_CLI_PARTNERS_TOKEN: ${{ secrets.SHOPIFY_CLI_PARTNERS_TOKEN }}
             SHOPIFY_API_KEY=${{ secrets.SHOPIFY_API_KEY }}
             SHOPIFY_API_SECRET=${{ secrets.SHOPIFY_API_SECRET }}
-          # cache-from: type=gha
-          # cache-to: type=gha,mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
