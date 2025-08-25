@@ -151,13 +151,6 @@ const genders = [
       "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=100&width=100",
     description: "Male model characteristics",
   },
-  {
-    value: "non-binary",
-    label: "Non-binary",
-    image:
-      "https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=100&width=100",
-    description: "Non-binary model characteristics",
-  },
 ];
 
 const ageRanges = [

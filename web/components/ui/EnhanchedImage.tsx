@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import Image, { ImageProps } from "next/image";
 import { X, Download, Maximize } from "lucide-react";
 import { CDN_URL, cn } from "@/lib/utils";
+import { useAtom } from "jotai";
+import { imagePreviewAtom } from "@/app/atom";
 
 interface EnhancedImageProps extends ImageProps {
   src: string;
@@ -27,11 +29,11 @@ export default function EnhancedImage({
   hideDownload = false,
   ...props
 }: EnhancedImageProps) {
-  const [showPreview, setShowPreview] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [buttonSize, setButtonSize] = useState(36);
   const [iconSize, setIconSize] = useState(18);
   const imageRef = useRef<HTMLDivElement>(null);
+  const [, setImagePreview] = useAtom(imagePreviewAtom);
 
   // Calculate button size based on image dimensions
   useEffect(() => {
@@ -92,7 +94,7 @@ export default function EnhancedImage({
         >
           {!hideFullscreenPreview && (
             <button
-              onClick={() => setShowPreview(true)}
+              onClick={() => setImagePreview(src)}
               className="flex items-center justify-center bg-white text-black rounded-full hover:bg-gray-100 transition-colors"
               style={{ width: `${buttonSize}px`, height: `${buttonSize}px` }}
               aria-label="Preview image"
@@ -112,42 +114,6 @@ export default function EnhancedImage({
           )}
         </div>
       </div>
-
-      {/* Fullscreen preview modal */}
-      {showPreview && !hideFullscreenPreview && (
-        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
-          <button
-            onClick={() => setShowPreview(false)}
-            className="absolute top-4 right-4 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full transition-colors"
-            style={{ width: "48px", height: "48px" }}
-            aria-label="Close preview"
-          >
-            <X size={24} className="text-white" />
-          </button>
-
-          <div className="relative max-w-[90vw] max-h-[90vh]">
-            <Image
-              src={src || "/placeholder.svg"}
-              alt={alt}
-              width={width}
-              height={height}
-              className="object-contain max-h-[90vh]"
-              priority={true}
-              quality={100}
-              {...props}
-            />
-
-            <button
-              onClick={handleDownload}
-              className="absolute bottom-4 right-4 flex items-center justify-center bg-white text-black rounded-full hover:bg-gray-100 transition-colors"
-              style={{ width: "48px", height: "48px" }}
-              aria-label="Download image"
-            >
-              <Download size={24} />
-            </button>
-          </div>
-        </div>
-      )}
     </>
   );
 }
