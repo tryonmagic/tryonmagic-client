@@ -329,22 +329,20 @@ export default function VirtualTryOnPage() {
   return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pt-0 pl-8 pr-8 md:p-8">
       <div className="max-w-7xl">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center">
-            <Button variant="ghost" size="icon" asChild className="mr-2">
-              <Link href="/">
-                <ArrowLeft className="h-5 w-5" />
-                <span className="sr-only">Back to home</span>
-              </Link>
-            </Button>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
-                Virtual Try-On
-              </h1>
-              <p className="text-slate-600 dark:text-slate-400">
-                Try clothes on virtual models with AI-powered fitting
-              </p>
-            </div>
+        <div className="flex items-center mb-8">
+          <Button variant="ghost" size="icon" asChild className="mr-2">
+            <Link href="/">
+              <ArrowLeft className="h-5 w-5" />
+              <span className="sr-only">Back to home</span>
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
+              Virtual Try-On
+            </h1>
+            <p className="text-slate-600 dark:text-slate-400">
+              Try clothes on virtual models with AI-powered fitting
+            </p>
           </div>
         </div>
 

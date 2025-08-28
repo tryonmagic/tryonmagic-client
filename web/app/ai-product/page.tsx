@@ -851,10 +851,11 @@ export default function AIProductPage() {
           <Button variant="ghost" size="icon" asChild className="mr-2">
             <Link href="/">
               <ArrowLeft className="h-5 w-5" />
+              <span className="sr-only">Back to home</span>
             </Link>
           </Button>
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600">
+            <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
               AI Product Studio
             </h1>
             <p className="text-slate-600 dark:text-slate-400">
