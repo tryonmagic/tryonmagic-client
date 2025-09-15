@@ -223,6 +223,16 @@ export default function VirtualTryOnPage() {
         setTaskProgress(null);
         return;
       }
+      if (task.status === TaskStatus.SUCCEEDED) {
+        setActiveTab("results");
+        setProgress(100);
+        setIsProcessing(false);
+        setTimeout(() => {
+          setResults(task.resultData?.outputImageUrl ?? []);
+          setSelectedResult(task.resultData?.outputImageUrl[0] ?? null);
+        }, 200);
+        return;
+      }
       const websocket = new WebSocketClient(task.userId);
       websocket.on<TaskProgress<VtonTaskResultData>>(
         "task-progress-" + task.id,

@@ -702,15 +702,15 @@ export default function AIProductPage() {
       case "recolor":
         return (
           <div className="space-y-6 mt-4">
-            <Tabs defaultValue="precise" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+            <Tabs defaultValue="creative" className="w-full">
+              {/* <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="precise" className="text-sm">
                   Precise Recolor
                 </TabsTrigger>
                 <TabsTrigger value="creative" className="text-sm">
                   Creative Recolor
                 </TabsTrigger>
-              </TabsList>
+              </TabsList> */}
 
               <TabsContent value="precise" className="space-y-4 mt-4">
                 <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg">
