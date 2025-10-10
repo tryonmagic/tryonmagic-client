@@ -22,6 +22,9 @@ import {
   ChevronDown,
   ChevronUp,
   Info,
+  Shirt,
+  Palette,
+  Replace,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,6 +48,7 @@ import { subscribedPlan } from "./queries";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { PaymentMethod, SubscriptionPlan } from "./type";
 import toast from "react-hot-toast";
+import { AxiosError } from "axios";
 
 interface PricingTier {
   id: SubscriptionPlan;
@@ -133,38 +137,62 @@ const toolUsage: ToolUsage[] = [
   {
     tool: "AI Fashion Model",
     icon: Sparkles,
-    pointsPerUse: 10,
+    pointsPerUse: 2,
     description: "Generate custom fashion models with various attributes",
   },
   {
     tool: "Remove Background",
     icon: Eraser,
-    pointsPerUse: 5,
+    pointsPerUse: 1,
     description: "Remove image backgrounds with precision",
+  },
+  {
+    tool: "Virtual Try-On",
+    icon: Shirt,
+    pointsPerUse: 3,
+    description: "Try on clothes virtually with AI technology",
   },
   {
     tool: "Upscale Image",
     icon: Wand2,
-    pointsPerUse: 8,
+    pointsPerUse: 1,
     description: "Enhance image resolution and quality",
   },
   {
-    tool: "AI Product",
-    icon: ImagePlus,
-    pointsPerUse: 10,
-    description: "Transform product photography with AI styling",
+    tool: "Enhance Image",
+    icon: Palette,
+    pointsPerUse: 2,
+    description: "Improve image quality and lighting",
   },
   {
     tool: "Expand Image",
     icon: Maximize,
-    pointsPerUse: 8,
+    pointsPerUse: 2,
     description: "Extend image boundaries seamlessly",
   },
   {
     tool: "Magic Eraser",
     icon: Eraser,
-    pointsPerUse: 10,
+    pointsPerUse: 2,
     description: "Remove unwanted objects from images",
+  },
+  {
+    tool: "AI Product",
+    icon: ImagePlus,
+    pointsPerUse: 3,
+    description: "Transform product photography with AI styling",
+  },
+  {
+    tool: "Replace Background",
+    icon: Replace,
+    pointsPerUse: 1,
+    description: "Replace image backgrounds with new scenes",
+  },
+  {
+    tool: "Generate Image",
+    icon: Image,
+    pointsPerUse: 2,
+    description: "Create new images from text descriptions",
   },
 ];
 
@@ -215,18 +243,22 @@ export default function PurchasePage() {
     try {
       const token = await appBridge.idToken();
       const response = await subscribedPlan(token, {
-        plan: selectedPlan.id,
+        plan: SubscriptionPlan.FREE,
         paymentMethod: PaymentMethod.SHOPIFY,
-        referenceId: "1234567890",
+        referenceId: Math.random().toString(36).substring(2, 15),
       });
       toast.success(
         `Points purchased successfully: ${response.data.data?.plan}`,
       );
-      setIsProcessing(false);
-      setPurchaseComplete(true);
+      // setIsProcessing(false);
+      // setPurchaseComplete(true);
     } catch (error) {
       console.error(error);
-      toast.error("Failed to purchase points");
+      let message = "Failed to purchase points";
+      if (error instanceof AxiosError) {
+        message = error.response?.data?.message || message;
+      }
+      toast.error(message);
     }
   };
 
@@ -394,10 +426,18 @@ export default function PurchasePage() {
                 <CardHeader>
                   <CardDescription>
                     <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
-                      Currently, we are giving everyone a limited credit of{" "}
-                      <b>10 points</b> to try our app. Soon, the subscription
+                      Currently, we are giving first 100 users a limited credit
+                      of <b>20 points</b> to try our app. Soon, the subscription
                       plan will be published for more credit.
                     </p>
+
+                    <Button
+                      variant="outline"
+                      onClick={handlePurchase}
+                      className="mt-4 text-purple-600 dark:text-purple-400"
+                    >
+                      Get 20 Points for Free (Limited Time Offer)
+                    </Button>
                   </CardDescription>
                 </CardHeader>
               </Card>

@@ -675,8 +675,8 @@ export default function AIFashionGenerator() {
                       className="w-full mt-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
                       size="lg"
                     >
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Generate Fashion Model
+                      <Sparkles className="mr-2 h-4 w-4" />2 Credits • Generate
+                      Fashion Model
                     </Button>
                   </div>
                 </CardContent>

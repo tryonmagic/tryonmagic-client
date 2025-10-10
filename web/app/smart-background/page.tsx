@@ -823,7 +823,7 @@ export default function RemoveBGPage() {
                                 <>
                                   <Eraser className="mr-2 h-4 w-4" />
                                   <span className="truncate">
-                                    Remove Background
+                                    1 Credit • Remove Background
                                   </span>
                                 </>
                               )}

@@ -847,7 +847,7 @@ export default function ExpandImagePage() {
                           </>
                         ) : (
                           <>
-                            <Maximize className="mr-2 h-4 w-4" />
+                            <Maximize className="mr-2 h-4 w-4" />2 Credits •
                             Expand Image
                           </>
                         )}

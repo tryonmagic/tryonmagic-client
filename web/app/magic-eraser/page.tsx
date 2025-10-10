@@ -965,18 +965,18 @@ export default function MagicEraser() {
                           <>
                             {editType === EditType.INPAINT_REMOVE ? (
                               <>
-                                <Eraser className="mr-2 h-4 w-4" /> Apply Magic
-                                Eraser
+                                <Eraser className="mr-2 h-4 w-4" /> 2 Credits •
+                                Apply Magic Eraser
                               </>
                             ) : editType === EditType.INPAINT_REPLACE ? (
                               <>
-                                <ArrowRightLeft className="mr-2 h-4 w-4" />{" "}
-                                Apply Magic Replace
+                                <ArrowRightLeft className="mr-2 h-4 w-4" /> 2
+                                Credits • Apply Magic Replace
                               </>
                             ) : (
                               <>
-                                <Brush className="mr-2 h-4 w-4" /> Apply Magic
-                                Insert
+                                <Brush className="mr-2 h-4 w-4" /> 2 Credits •
+                                Apply Magic Insert
                               </>
                             )}
                           </>

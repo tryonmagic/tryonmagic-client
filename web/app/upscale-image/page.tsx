@@ -450,7 +450,7 @@ export default function UpscalePage() {
                         ) : (
                           <>
                             <Wand2 className="mr-2 h-4 w-4" />
-                            Upscale Image
+                            1 Credit • Upscale Image
                           </>
                         )}
                       </Button>

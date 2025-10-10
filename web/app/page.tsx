@@ -20,6 +20,7 @@ import { getUsageHistory } from "./usage/queries";
 const tools = [
   {
     name: "AI Product",
+    credits: 3,
     description: [
       "Transform your products with advanced AI-powered editing and enhancement",
       "Replace backgrounds and place products in realistic lifestyle and commercial settings",
@@ -32,6 +33,7 @@ const tools = [
   },
   {
     name: "Smart Background",
+    credits: 1,
     description: [
       "Remove backgrounds from images with precision and accuracy",
       "Replace backgrounds with realistic and natural-looking images",
@@ -44,6 +46,7 @@ const tools = [
   },
   {
     name: "Upscale Image",
+    credits: 1,
     description: [
       "Enhance image resolution and quality",
       "Increase resolution up to 4x",
@@ -55,6 +58,7 @@ const tools = [
   },
   {
     name: "Expand Image",
+    credits: 2,
     description: [
       "Extend images seamlessly in any direction",
       "Convert portrait to landscape",
@@ -66,6 +70,7 @@ const tools = [
   },
   {
     name: "Magic Eraser",
+    credits: 2,
     description: [
       "Remove unwanted objects, people, or elements from images",
       "Perfect for e-commerce and marketing",
@@ -344,7 +349,9 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <Link url="/ai-model">
-                    <Button variant="primary">Generate AI Model</Button>
+                    <Button variant="primary">
+                      2 Credits • Generate AI Model
+                    </Button>
                   </Link>
                 </div>
                 {/* Right Side: Images Grid */}
@@ -433,7 +440,9 @@ export default function Dashboard() {
                     ))}
                   </div>
                   <Link url="/virtual-try-on">
-                    <Button variant="primary">Try Virtual Try-On</Button>
+                    <Button variant="primary">
+                      3 Credits • Try Virtual Try-On
+                    </Button>
                   </Link>
                 </div>
                 {/* Right Side: Images Grid */}
@@ -530,7 +539,7 @@ export default function Dashboard() {
                     }}
                   >
                     <Link url={tool.link}>
-                      <Button size="large">{tool.name}</Button>
+                      <Button size="large">{`${tool.credits} Credit${tool.credits > 1 ? "s" : ""} • ${tool.name}`}</Button>
                     </Link>
                   </div>
                 </div>

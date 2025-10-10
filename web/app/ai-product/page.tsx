@@ -1042,8 +1042,8 @@ export default function AIProductPage() {
                       >
                         <Sparkles className="mr-2 h-4 w-4" />
                         {formData.numberOfVariants > 1
-                          ? `Generate ${formData.numberOfVariants} Variants`
-                          : "Generate Variant"}
+                          ? `3 Credits • Generate ${formData.numberOfVariants} Variants`
+                          : "3 Credits • Generate Variant"}
                       </Button>
 
                       <Button
