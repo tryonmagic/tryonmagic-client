@@ -50,7 +50,7 @@ export default function RootLayout({
             <a href="/expand-image">Expand Image</a>
             <a href="/magic-eraser">Magic Eraser</a>
             <a href="/usage">View Usage</a>
-            <a href="/purchase">Purchase (Free 10 Points)</a>
+            <a href="/purchase">Purchase (Free 20 Points)</a>
           </AppBridgeNavMenu>
           <ImagePreview />
         </Providers>
