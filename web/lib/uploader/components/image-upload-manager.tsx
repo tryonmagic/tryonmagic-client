@@ -434,7 +434,6 @@ export function ImageGallery({
   // Handle image selection
   const toggleImageSelection = useCallback(
     (id: string) => {
-      console.log("imageSelectionLimit", imageSelectionLimit);
       if (imageSelectionLimit === 1) {
         // Only one image can be selected at a time
         setSelectedImages((prev) => {
@@ -801,8 +800,9 @@ export function ImageGallery({
                       {!img.uploading && (
                         <div className="absolute top-2 right-2">
                           <div
+                            onClick={() => toggleImageSelection(img.id)}
                             className={cn(
-                              "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-opacity",
+                              "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-opacity cursor-pointer",
                               selectedImages.find((sImg) => sImg?.id === img.id)
                                 ? "opacity-100 bg-primary border-primary text-primary-foreground"
                                 : "opacity-0 group-hover:opacity-100 bg-black/50 border-white/50 text-white",

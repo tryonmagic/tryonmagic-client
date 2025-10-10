@@ -63,7 +63,10 @@ import { getGarments } from "@/lib/api/ai-models";
 import ImageUploader, {
   ImageInfo,
 } from "@/lib/uploader/components/ImageUploader";
-import { ImageType } from "@/lib/uploader/components/image-upload-manager";
+import {
+  ImageGallery,
+  ImageType,
+} from "@/lib/uploader/components/image-upload-manager";
 import Pagination from "@/components/ui/pagination";
 import {
   DropdownMenu,
@@ -409,6 +412,14 @@ export default function VirtualTryOnPage() {
                           </ul>
                         </DropdownMenuContent>
                       </DropdownMenu>
+                      <Button
+                        onClick={() => setActiveTab("garment")}
+                        disabled={!selectedModel && !uploadedModel}
+                        className="right-0"
+                      >
+                        Next: Select Garment
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
                     </CardTitle>
                     <CardDescription>
                       Choose from our gallery or upload your own model image
@@ -507,27 +518,20 @@ export default function VirtualTryOnPage() {
                       </FilterProvider>
                     </div>
                   </CardContent>
-                  <CardFooter className="flex justify-between">
-                    <Button
-                      variant="outline"
-                      onClick={resetModel}
-                      disabled={!selectedModel && !uploadedModel}
-                    >
-                      Reset Selection
-                    </Button>
-                    <Button
-                      onClick={() => setActiveTab("garment")}
-                      disabled={!selectedModel && !uploadedModel}
-                    >
-                      Next: Select Garment
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </CardFooter>
                 </Card>
               </div>
 
               <div>
-                <Card className="sticky top-8">
+                <div className="rounded-md border border-slate-200 dark:border-slate-700 flex items-center justify-center bg-white dark:bg-slate-800">
+                  <div className="text-center p-4">
+                    <ImageUploader
+                      onUploaded={handleAIModelImageUploaded}
+                      placeholder="Upload your own model"
+                      hideImagePreviewAfterUpload
+                    />
+                  </div>
+                </div>
+                <Card className="sticky mt-4">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       Preview
@@ -548,22 +552,9 @@ export default function VirtualTryOnPage() {
                         </p>
                       )}
                     </CardDescription>
-                    <div className="absolute top-6 right-2">
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedModel(null);
-                          setUploadedModel(null);
-                          setAiModelUploadedImageInfo(null);
-                        }}
-                        disabled={!selectedModel && !uploadedModel}
-                      >
-                        Clear
-                      </Button>
-                    </div>
                   </CardHeader>
                   <CardContent className="h-[400px]">
-                    {selectedModel || uploadedModel ? (
+                    {(selectedModel || uploadedModel) && (
                       <div className="relative h-full rounded-md border border-slate-200 dark:border-slate-700 overflow-hidden">
                         <Image
                           src={getModelSrc() || "/placeholder.svg"}
@@ -571,16 +562,6 @@ export default function VirtualTryOnPage() {
                           fill
                           className="object-contain"
                         />
-                      </div>
-                    ) : (
-                      <div className="h-full rounded-md border border-slate-200 dark:border-slate-700 flex items-center justify-center bg-slate-100 dark:bg-slate-800">
-                        <div className="text-center p-4">
-                          <ImageUploader
-                            onUploaded={handleAIModelImageUploaded}
-                            placeholder="Upload your own model"
-                            hideImagePreviewAfterUpload
-                          />
-                        </div>
                       </div>
                     )}
                   </CardContent>
@@ -648,24 +629,16 @@ export default function VirtualTryOnPage() {
                       {/* Gallery Mode */}
                       {galleryMode && (
                         <div className="space-y-4">
-                          <div className="text-center">
-                            <h3 className="text-lg font-medium mb-2">
-                              Select from Gallery
-                            </h3>
-                            <p className="text-sm text-slate-600 dark:text-slate-400">
-                              Choose from your previously uploaded images
-                            </p>
-                          </div>
-
-                          <div className=" p-1 text-center">
-                            <Button
-                              onClick={() => setShowImageGallery(true)}
-                              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-                            >
-                              <ImageIcon className="mr-2 h-4 w-4" />
-                              Open Image Gallery
-                            </Button>
-                          </div>
+                          <ImageGallery
+                            hideUploadButton
+                            hideActions
+                            hideCancelButton
+                            maxColumns={3}
+                            maxRows={2}
+                            imageSelectionLimit={1}
+                            onSelected={handleGarmentImageSelected}
+                            onClose={() => setShowImageGallery(false)}
+                          />
                         </div>
                       )}
                     </div>
@@ -1617,16 +1590,6 @@ export default function VirtualTryOnPage() {
           </TabsContent>
         </Tabs>
       </div>
-
-      {/* Image Gallery Dialog */}
-      {showImageGallery && (
-        <ImageUploadDialog
-          onImagesSelected={handleGarmentImageSelected}
-          imageSelectionLimit={1}
-          onClose={() => setShowImageGallery(false)}
-          hideUploadButton
-        />
-      )}
     </div>
   );
 }
