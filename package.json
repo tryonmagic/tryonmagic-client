@@ -8,7 +8,9 @@
     "info": "shopify app info",
     "build": "shopify app build",
     "generate": "shopify app generate",
-    "deploy": "shopify app deploy",
+    "deploy": "shopify app deploy --config=shopify.app.toml",
+    "deploy:prod": "shopify app deploy --config=shopify.app.toml",
+    "deploy:test": "shopify app deploy --config=shopify.app.tryonmagic-test.toml",
     "docker-dev": "docker compose up -d"
   },
   "author": "bb_bipul",
