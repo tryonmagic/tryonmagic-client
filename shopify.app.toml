@@ -9,6 +9,14 @@ handle = "tryonmagic"
 [webhooks]
 api_version = "2025-04"
 
+[[webhooks.subscriptions]]
+topics = [ "app/uninstalled" ]
+uri = "/api/webhooks"
+
+[[webhooks.subscriptions]]
+compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
+uri = "/api/webhooks"
+
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "read_customers,write_products"
@@ -24,5 +32,4 @@ redirect_urls = [
 embedded = false
 
 [build]
-include_config_on_deploy = true
 automatically_update_urls_on_dev = false

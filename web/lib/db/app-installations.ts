@@ -1,20 +1,34 @@
+import { AppInstallationsClient } from "@/lib/api/app-installations";
+
+/**
+ * App Installations wrapper
+ * This now uses API calls to a backend service instead of direct MongoDB access
+ */
 export const AppInstallations = {
-  includes: async function (shopDomain: string) {
-    // const shopSessions = await findSessionsByShop(shopDomain);
-
-    // if (shopSessions.length > 0) {
-    //   for (const session of shopSessions) {
-    //     if (session.accessToken) return true;
-    //   }
-    // }
-
-    return false;
+  includes: async function (shopDomain: string): Promise<boolean> {
+    try {
+      return await AppInstallationsClient.includes(shopDomain);
+    } catch (error) {
+      console.error("Error checking app installation:", error);
+      return false;
+    }
   },
 
-  delete: async function (shopDomain: string) {
-    // const shopSessions = await findSessionsByShop(shopDomain);
-    // if (shopSessions.length > 0) {
-    //   await deleteSessions(shopSessions.map((session) => session.id));
-    // }
+  delete: async function (shopDomain: string): Promise<void> {
+    try {
+      await AppInstallationsClient.delete(shopDomain);
+    } catch (error) {
+      console.error("Error deleting app installation:", error);
+      throw error;
+    }
+  },
+
+  create: async function (shopDomain: string, installData: any): Promise<void> {
+    try {
+      await AppInstallationsClient.create(shopDomain, installData);
+    } catch (error) {
+      console.error("Error creating app installation:", error);
+      throw error;
+    }
   },
 };
