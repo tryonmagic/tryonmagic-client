@@ -1,35 +1,38 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "18353aceff3d63b3009f9a0929b687b6"
+client_id = "ff51e32646cbcdd9e38146c563032bea"
+name = "TryOnMagic"
 application_url = "https://app.tryonmagic.com"
 embedded = true
-name = "TryOnMagic"
 handle = "tryonmagic"
+
+[build]
+automatically_update_urls_on_dev = false
 
 [webhooks]
 api_version = "2025-04"
 
 [[webhooks.subscriptions]]
-topics = [ "app/uninstalled" ]
+topics = ["app/uninstalled"]
 uri = "/api/webhooks"
-
-[[webhooks.subscriptions]]
-compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
-uri = "/api/webhooks"
+compliance_topics = [
+  "customers/data_request",
+  "customers/redact",
+  "shop/redact",
+]
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_customers,write_products"
+scopes = ""
+optional_scopes = []
+use_legacy_install_flow = false
 
 [auth]
 redirect_urls = [
   "https://app.tryonmagic.com/auth/callback",
   "https://app.tryonmagic.com/auth/shopify/callback",
-  "https://app.tryonmagic.com/api/auth/callback"
+  "https://app.tryonmagic.com/api/auth/callback",
 ]
 
 [pos]
 embedded = false
-
-[build]
-automatically_update_urls_on_dev = false
