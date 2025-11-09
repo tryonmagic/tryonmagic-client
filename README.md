@@ -186,6 +186,95 @@ how to set up Prisma, see the
 - [Shopify API Library documentation](https://github.com/Shopify/shopify-api-node/tree/main/docs)
 
 
+---
+
+## TryOnMagic - Shopify App Store Listing Content
+
+### App Introduction (100 characters max)
+```
+AI virtual try-on and product image editing. Create visuals that help customers visualize products.
+```
+
+### App Features
+
+#### Virtual Try-On
+- Try clothes on AI-generated or custom uploaded models
+- Select from diverse model gallery with customizable filters
+- Support for tops, bottoms, dresses, and full outfits
+- Adjustable model modes (balanced, quality, speed)
+- Multiple sample generation options
+- Background restoration and clothing preservation
+- Real-time progress tracking via WebSocket
+
+#### AI Model Generation
+- Create customizable diverse fashion models
+- Adjust ethnicity, gender, age, and skin tone
+- Generate models from various settings and environments
+- High-quality model images for virtual try-on
+- Export models for use in product visualization
+
+#### AI Product Editing
+- **Scene Generation**: Replace backgrounds and place products in realistic lifestyle and commercial settings
+- **Product Recoloring**: Change product colors while maintaining texture and details
+- Background removal with precision
+- Realistic lighting effects and shadow matching
+- Multiple style variations
+- High-quality output for e-commerce
+- Transform your products with advanced AI-powered editing and enhancement
+- Enhance product details and add realistic lighting effects
+
+#### Smart Background
+- Remove backgrounds from images with precision
+- Replace backgrounds with AI-generated scenes
+- Replace with any color, image, texture, or pattern
+- Automatic edge detection and refinement
+
+#### Image Upscaling
+- Enhance image resolution up to 4x
+- Improve details and clarity
+- Fix pixelation and blur
+- Maintain image quality during upscaling
+- Support for various image formats
+
+#### Image Expansion
+- Extend images seamlessly in any direction
+- Convert portrait to landscape orientation
+- Create panoramic views
+- Make images fit any device or aspect ratio
+- Intelligent content-aware expansion
+
+#### Magic Eraser
+- Remove unwanted objects, people, or elements from images
+- Replace objects with AI-generated content
+- Insert objects into images using text prompts
+- Precise object selection and removal
+- Maintain natural-looking results
+
+#### Additional Features
+- Credit-based usage system
+- Usage history and analytics tracking
+- Multiple subscription plans
+- Image gallery management
+- Batch image processing
+- Real-time task progress updates
+- Download high-resolution results
+- Integration with Shopify product images
+
+### Feature List for Shopify App Store (80 characters max per feature)
+
+1. **Virtual Try-On**: Show clothing on AI/Custom models to help customers visualize products
+2. **AI Model Generation**: Create diverse fashion models with customizable appearance and settings
+3. **Product Image Editing**: Create, recolor, and generate product variants with AI
+4. **Smart Background**: Remove and replace backgrounds with AI or any image/color
+8. **Advanced Image Editing**: Upscale, expand, erase, and replace objects with AI
+
+
+### App Details (500 characters max)
+
+TryOnMagic provides AI-powered virtual try-on and product image editing tools for Shopify merchants. Create professional product visuals without expensive photo shoots. Showcase clothing on diverse AI models to help customers visualize products. Edit product images with scene generation, background replacement, and color changes while preserving details. Additional tools include image upscaling, expansion, and object removal. Features use a credit-based system with real-time processing.
+
+---
+
 https://youtu.be/yke3_p9jN58
 https://github.com/Phantom-video/Phantom
 https://youtu.be/XoBpd0toZMk
