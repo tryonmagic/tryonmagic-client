@@ -989,7 +989,7 @@ export default function AIProductPage() {
                           />
                         </div>
 
-                        {selectedMode !== "scene" && (
+                        {/* {selectedMode !== "scene" && (
                           <div className="space-y-2">
                             <Label>Number of Variants</Label>
                             <Select
@@ -1012,7 +1012,7 @@ export default function AIProductPage() {
                               </SelectContent>
                             </Select>
                           </div>
-                        )}
+                        )} */}
                       </div>
                     )}
                   </CardContent>
