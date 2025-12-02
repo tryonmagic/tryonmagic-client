@@ -16,6 +16,12 @@ import CreditIcon from "@/icons/CreditIcon";
 import PlanIcon from "@/icons/PlanIcon";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { getUsageHistory } from "./usage/queries";
+import {
+  CardDescription,
+  CardHeader,
+  Card as CardUI,
+} from "@/components/ui/card";
+import { Button as ButtonUI } from "@/components/ui/button";
 
 const tools = [
   {
@@ -139,6 +145,29 @@ export default function Dashboard() {
               </Link>
             </div>
           </div>
+        </Layout.Section>
+        <Layout.Section>
+          <CardUI className="bg-green-100 dark:bg-green-900/30">
+            <CardHeader>
+              <CardDescription>
+                <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
+                  Currently, we are giving first 100 users a limited credit of{" "}
+                  <b>20 points</b> to try our app. Soon, the subscription plan
+                  will be published for more credit.
+                </p>
+
+                <ButtonUI
+                  variant="outline"
+                  onClick={() => {
+                    window.open("/purchase", "_self");
+                  }}
+                  className="mt-4 text-purple-600 dark:text-purple-400"
+                >
+                  Go to Purchase Page
+                </ButtonUI>
+              </CardDescription>
+            </CardHeader>
+          </CardUI>
         </Layout.Section>
         <Layout.Section>
           <InlineStack gap="500">
