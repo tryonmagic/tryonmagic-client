@@ -657,8 +657,8 @@ export default function RemoveBGPage() {
                   <ExampleCard
                     title="Product"
                     description="Clean extraction of product with preservation of shadows and transparent elements."
-                    before="https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=300&width=300"
-                    after="https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=300&width=300"
+                    before="/product_bg.jpeg"
+                    after="/product_rm_bg.png"
                   />
                 </div>
               </div>
