@@ -601,7 +601,7 @@ export function ImageGallery({
                     <div className="p-3 border-b">
                       <h4 className="font-medium">File Type</h4>
                       <div className="mt-2 space-y-2">
-                        {["jpg", "png", "gif"].map((type) => (
+                        {["jpg", "jpeg", "png", "webp"].map((type) => (
                           <label
                             key={type}
                             className="flex items-center gap-2 cursor-pointer"

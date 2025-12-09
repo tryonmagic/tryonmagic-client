@@ -80,21 +80,24 @@ export function VisualSelect({
             {selectedOption && (
               <div className="flex items-center space-x-3">
                 <div className="relative h-8 w-8 overflow-hidden rounded-md">
-                  {selectedOption.color ? (
-                    <div
-                      className="absolute inset-0 rounded-md"
-                      style={{ backgroundColor: selectedOption.color }}
-                    />
-                  ) : (
-                    <img
-                      src={
-                        selectedOption.image ||
-                        "https://ig89yd5z8iykrgxva.lite.vusercontent.nethttps://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg"
-                      }
-                      alt={selectedOption.label}
-                      className="h-full w-full object-cover"
-                    />
-                  )}
+                  {
+                    selectedOption.color && (
+                      <div
+                        className="absolute inset-0 rounded-md"
+                        style={{ backgroundColor: selectedOption.color }}
+                      />
+                    )
+                    // : (
+                    //   <img
+                    //     src={
+                    //       selectedOption.image ||
+                    //       "https://ig89yd5z8iykrgxva.lite.vusercontent.nethttps://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg"
+                    //     }
+                    //     alt={selectedOption.label}
+                    //     className="h-full w-full object-cover"
+                    //   />
+                    // )
+                  }
                 </div>
                 <span>{selectedOption.label}</span>
               </div>

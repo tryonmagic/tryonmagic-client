@@ -59,6 +59,10 @@ import {
 import { createProductImageEditTask } from "@/lib/api/product-image-editing";
 import EnhancedImage from "@/components/ui/EnhanchedImage";
 import { AxiosError } from "axios";
+import {
+  ImageGallery,
+  ImageType,
+} from "@/lib/uploader/components/image-upload-manager";
 
 // Enhanced product editing modes
 const editingModes = [
@@ -87,7 +91,7 @@ const editingModes = [
     features: [
       "Color replacement",
       "Texture preservation",
-      "Multiple variants",
+      // "Multiple variants",
       "Brand matching",
     ],
   },
@@ -114,10 +118,11 @@ const editingModes = [
     icon: Layers,
     color: "from-teal-500 to-blue-500",
     features: [
-      "Size variations",
-      "Configuration options",
-      "Angle generation",
-      "Batch processing",
+      // "Size variations",
+      // "Configuration options",
+      // "Angle generation",
+      // "Batch processing",
+      "Variants generation",
     ],
   },
 ];
@@ -460,6 +465,7 @@ export default function AIProductPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const appBridge = useAppBridge();
 
+  const [galleryMode, setGalleryMode] = useState(false);
   const [formData, setFormData] = useState({
     // Smart Background settings
     backgroundPrompt: "",
@@ -843,6 +849,20 @@ export default function AIProductPage() {
     }
   };
 
+  const handleImageSelected = (selectedImages: ImageType[]) => {
+    if (selectedImages.length > 0) {
+      setUploadedImage(selectedImages[0].url);
+      setUploadedImageInfo({
+        uploadLocation: selectedImages[0].url,
+        width: 0,
+        height: 0,
+        fileName: selectedImages[0].name,
+        previewImageUrl: selectedImages[0].url,
+      });
+    }
+    setActiveTab("edit");
+  };
+
   return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-gradient-to-br from-slate-50 via-white to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-purple-900 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
@@ -896,33 +916,67 @@ export default function AIProductPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Upload className="h-5 w-5" />
-                    <span>Upload Your Product</span>
+                    <span>Select or Upload Your Product</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <ImageUploader onUploaded={handleImageUploaded} />
-
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 p-6 rounded-xl">
-                    <div className="flex items-start space-x-3">
-                      <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
-                      <div>
-                        <h3 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">
-                          Pro Tips for Best Results
-                        </h3>
-                        <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-1">
-                          <li>
-                            • Use high-resolution images (1024px+ recommended)
-                          </li>
-                          <li>
-                            • Ensure good lighting and clear product visibility
-                          </li>
-                          <li>
-                            • Simple backgrounds work best for advanced editing
-                          </li>
-                          <li>• Center your product in the frame</li>
-                        </ul>
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* Mode Toggle */}
+                    <div className="flex items-center justify-center">
+                      <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                        <div className="flex">
+                          <button
+                            onClick={() => setGalleryMode(false)}
+                            className={cn(
+                              "px-4 py-2 rounded-md text-sm font-medium transition-all",
+                              !galleryMode
+                                ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
+                                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100",
+                            )}
+                          >
+                            Upload New
+                          </button>
+                          <button
+                            onClick={() => setGalleryMode(true)}
+                            className={cn(
+                              "px-4 py-2 rounded-md text-sm font-medium transition-all",
+                              galleryMode
+                                ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
+                                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100",
+                            )}
+                          >
+                            Choose from Gallery
+                          </button>
+                        </div>
                       </div>
                     </div>
+
+                    {/* Upload Mode */}
+                    {!galleryMode && (
+                      <div className="h-56">
+                        <ImageUploader
+                          onUploaded={handleImageUploaded}
+                          placeholder="Upload your own product"
+                          hideImagePreviewAfterUpload
+                        />
+                      </div>
+                    )}
+
+                    {/* Gallery Mode */}
+                    {galleryMode && (
+                      <div className="space-y-4">
+                        <ImageGallery
+                          hideUploadButton
+                          hideActions
+                          hideCancelButton
+                          maxColumns={3}
+                          maxRows={2}
+                          imageSelectionLimit={1}
+                          onSelected={handleImageSelected}
+                          // onClose={() => setShowImageGallery(false)}
+                        />
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

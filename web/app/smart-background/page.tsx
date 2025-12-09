@@ -24,7 +24,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,6 +39,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CDN_URL, cn } from "@/lib/utils";
 import ImageUploadDialog, {
   ImageGallery,
+  ImageType,
 } from "@/lib/uploader/components/image-upload-manager";
 import {
   BackgroundSourceType,
@@ -56,13 +57,14 @@ import { useAppBridge } from "@shopify/app-bridge-react";
 import { WebSocketClient } from "@/socket";
 import EnhancedImage from "@/components/ui/EnhanchedImage";
 import { AxiosError } from "axios";
-import ImageUploader from "@/lib/uploader/components/ImageUploader";
+import ImageUploader, {
+  ImageInfo,
+} from "@/lib/uploader/components/ImageUploader";
 
 // Predefined background colors
 const backgroundColors = [
   { name: "White", value: "#FFFFFF" },
   { name: "Black", value: "#000000" },
-  { name: "Transparent", value: "transparent" },
   { name: "Red", value: "#FF0000" },
   { name: "Green", value: "#00FF00" },
   { name: "Blue", value: "#0000FF" },
@@ -255,6 +257,8 @@ export default function RemoveBGPage() {
     null,
   );
 
+  const [galleryMode, setGalleryMode] = useState(false);
+
   const [openImageUploadDialog, setOpenImageUploadDialog] = useState(false);
   const app = useAppBridge();
 
@@ -284,15 +288,7 @@ export default function RemoveBGPage() {
       }
 
       // Check if it has a valid image extension
-      const imageExtensions = [
-        ".jpg",
-        ".jpeg",
-        ".png",
-        ".gif",
-        ".webp",
-        ".bmp",
-        ".svg",
-      ];
+      const imageExtensions = [".jpg", ".jpeg", ".png", ".webp"];
       const pathname = urlObj.pathname.toLowerCase();
       const hasValidExtension = imageExtensions.some((ext) =>
         pathname.endsWith(ext),
@@ -447,11 +443,9 @@ export default function RemoveBGPage() {
     }
   };
 
-  const handleReset = () => {
-    setUploadedImage(null);
+  const resetProcessingState = () => {
     setRemovedBgImage(null);
     setFinalImage(null);
-    setActiveTab("upload");
     setReplaceBgSelectedColor("#FFFFFF");
     setCustomColor("");
     setReplaceBgSelectedImage(null);
@@ -461,6 +455,12 @@ export default function RemoveBGPage() {
     setReplaceBgError(null);
     setCustomImageUrlError(null);
     setTaskProgress(null);
+  };
+
+  const handleReset = () => {
+    setUploadedImage(null);
+    setActiveTab("upload");
+    resetProcessingState();
   };
 
   const getImageUrl = (url: string) => {
@@ -505,6 +505,26 @@ export default function RemoveBGPage() {
 
   const hasErrors = !!(removeBgError || replaceBgError || customImageUrlError);
 
+  const handleImageUploaded = (imageInfo: ImageInfo) => {
+    setUploadedImage({
+      previewUrl: imageInfo.previewImageUrl,
+      originalUrl: imageInfo.uploadLocation,
+    });
+    resetProcessingState();
+    setActiveTab("remove");
+  };
+
+  const handleImageSelected = (selectedImages: ImageType[]) => {
+    if (selectedImages.length > 0) {
+      setUploadedImage({
+        previewUrl: selectedImages[0].url,
+        originalUrl: selectedImages[0].originalUrl,
+      });
+    }
+    resetProcessingState();
+    setActiveTab("remove");
+  };
+
   return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-2 md:p-4">
       <div className="max-w-6xl mx-auto">
@@ -517,7 +537,7 @@ export default function RemoveBGPage() {
           </Button>
           <div>
             <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
-              Remove Background
+              Smart Background
             </h1>
             <p className="text-slate-600 dark:text-slate-400">
               Remove backgrounds and replace them with colors, images, or
@@ -555,20 +575,23 @@ export default function RemoveBGPage() {
           <TabsContent value="upload" className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <Card className="overflow-hidden border-0 shadow-lg">
-                <CardContent className="p-6">
-                  <h2 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">
-                    Select Or Upload Your Image
-                  </h2>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Upload className="h-5 w-5" />
+                    <span>Select or Upload Your Image</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div className="space-y-4">
                     {/* Mode Toggle */}
                     <div className="flex items-center justify-center">
                       <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                         <div className="flex">
                           <button
-                            onClick={() => setUploadImageTab("new")}
+                            onClick={() => setGalleryMode(false)}
                             className={cn(
                               "px-4 py-2 rounded-md text-sm font-medium transition-all",
-                              uploadImageTab === "new"
+                              !galleryMode
                                 ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
                                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100",
                             )}
@@ -576,10 +599,10 @@ export default function RemoveBGPage() {
                             Upload New
                           </button>
                           <button
-                            onClick={() => setUploadImageTab("gallery")}
+                            onClick={() => setGalleryMode(true)}
                             className={cn(
                               "px-4 py-2 rounded-md text-sm font-medium transition-all",
-                              uploadImageTab === "gallery"
+                              galleryMode
                                 ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
                                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100",
                             )}
@@ -591,144 +614,31 @@ export default function RemoveBGPage() {
                     </div>
 
                     {/* Upload Mode */}
-                    {uploadImageTab === "new" && (
+                    {!galleryMode && (
                       <div className="h-56">
                         <ImageUploader
-                          onUploaded={(imageInfo) => {
-                            setUploadedImage({
-                              previewUrl: imageInfo.previewImageUrl,
-                              originalUrl: imageInfo.uploadLocation,
-                            });
-                            setActiveTab("remove");
-                          }}
+                          onUploaded={handleImageUploaded}
+                          placeholder="Upload your own product"
                           hideImagePreviewAfterUpload
                         />
                       </div>
                     )}
 
                     {/* Gallery Mode */}
-                    {uploadImageTab === "gallery" && (
+                    {galleryMode && (
                       <div className="space-y-4">
-                        <div className="text-center">
-                          <h3 className="text-lg font-medium mb-2">
-                            Select from Gallery
-                          </h3>
-                          <p className="text-sm text-slate-600 dark:text-slate-400">
-                            Choose from your previously uploaded images
-                          </p>
-                        </div>
-
-                        <div className=" p-1 text-center">
-                          <Button
-                            onClick={() => {
-                              setOpenImageUploadDialog(true);
-                            }}
-                            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-                          >
-                            <ImageIcon className="mr-2 h-4 w-4" />
-                            Open Image Gallery
-                          </Button>
-                        </div>
+                        <ImageGallery
+                          hideUploadButton
+                          hideActions
+                          hideCancelButton
+                          maxColumns={3}
+                          maxRows={2}
+                          imageSelectionLimit={1}
+                          onSelected={handleImageSelected}
+                          // onClose={() => setShowImageGallery(false)}
+                        />
                       </div>
                     )}
-                  </div>
-                  {openImageUploadDialog && (
-                    <ImageUploadDialog
-                      imageSelectionLimit={1}
-                      onClose={() => setOpenImageUploadDialog(false)}
-                      onImagesSelected={(images) => {
-                        setUploadedImage({
-                          previewUrl: images[0].url,
-                          originalUrl: images[0].originalUrl,
-                        });
-                        setActiveTab("remove");
-                      }}
-                      hideUploadButton
-                    />
-                  )}
-                  {/* <div className="space-y-4">
-                    {openImageUploadDialog && (
-                      <ImageUploadDialog
-                        imageSelectionLimit={1}
-                        onClose={() => setOpenImageUploadDialog(false)}
-                        onImagesSelected={(images) => {
-                          setUploadedImage({
-                            previewUrl: images[0].url,
-                            originalUrl: images[0].originalUrl,
-                          });
-                          setActiveTab("remove");
-                        }}
-                      />
-                    )}
-                    <div
-                      className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-8 text-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
-                      onClick={() => setOpenImageUploadDialog(true)}
-                    >
-                      <div className="flex flex-col items-center justify-center space-y-3">
-                        <div className="rounded-full bg-purple-100 dark:bg-purple-900/30 p-3">
-                          <Upload className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-slate-900 dark:text-white">
-                            Open Image Uploader
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            PNG, JPG or WEBP (max. 10MB)
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-lg">
-                      <div className="flex items-start space-x-3">
-                        <Info className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
-                        <div>
-                          <h3 className="font-medium text-amber-800 dark:text-amber-300 text-sm">
-                            Tips for best results
-                          </h3>
-                          <ul className="text-xs text-amber-700 dark:text-amber-400 mt-1 space-y-1 list-disc pl-4">
-                            <li>Use high-quality images with good lighting</li>
-                            <li>
-                              Ensure the subject has clear edges against the
-                              background
-                            </li>
-                            <li>
-                              For hair and fur, use images with contrasting
-                              backgrounds
-                            </li>
-                            <li>
-                              Avoid images with motion blur or very complex
-                              backgrounds
-                            </li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  </div> */}
-                  <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-lg mt-4">
-                    <div className="flex items-start space-x-3">
-                      <Info className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
-                      <div>
-                        <h3 className="font-medium text-amber-800 dark:text-amber-300 text-sm">
-                          Tips for best results
-                        </h3>
-                        <ul className="text-xs text-amber-700 dark:text-amber-400 mt-1 space-y-1 list-disc pl-4">
-                          <li>Use high-quality images with good lighting</li>
-                          <li>
-                            Ensure the subject has clear edges against the
-                            background
-                          </li>
-                          <li>
-                            For hair and fur, use images with contrasting
-                            backgrounds
-                          </li>
-                          <li>
-                            Avoid images with motion blur or very complex
-                            backgrounds
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -741,8 +651,8 @@ export default function RemoveBGPage() {
                   <ExampleCard
                     title="Portrait"
                     description="Perfect edge detection even with complex hair details and transparent background replacement."
-                    before="https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=300&width=300"
-                    after="https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=300&width=300"
+                    before="/protrait_bg.png"
+                    after="/protrait_rm_bg.png"
                   />
                   <ExampleCard
                     title="Product"
@@ -830,14 +740,16 @@ export default function RemoveBGPage() {
                             </Button>
                           )}
 
-                          <Button
-                            onClick={() => setActiveTab("replace")}
-                            className="flex-1 min-w-0 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-                            size="lg"
-                          >
-                            <Palette className="mr-2 h-4 w-4" />
-                            <span className="truncate">Go to Replace</span>
-                          </Button>
+                          {!removedBgImage && (
+                            <Button
+                              onClick={() => setActiveTab("replace")}
+                              className="flex-1 min-w-0 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                              size="lg"
+                            >
+                              <Palette className="mr-2 h-4 w-4" />
+                              <span className="truncate">Go to Replace</span>
+                            </Button>
+                          )}
                         </div>
 
                         {removeBgError && (

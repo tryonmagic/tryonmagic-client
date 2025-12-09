@@ -11,6 +11,9 @@ const imageLoader = ({
   width: number;
   quality?: number;
 }) => {
+  if (src.startsWith("/")) {
+    return src;
+  }
   return `${CDN_URL}?url=${encodeURIComponent(src)}`;
 };
 
