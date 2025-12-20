@@ -16,12 +16,6 @@ import CreditIcon from "@/icons/CreditIcon";
 import PlanIcon from "@/icons/PlanIcon";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { getUsageHistory } from "./usage/queries";
-import {
-  CardDescription,
-  CardHeader,
-  Card as CardUI,
-} from "@/components/ui/card";
-import { Button as ButtonUI } from "@/components/ui/button";
 import { getPointsForTaskType, TaskType } from "@/lib/api/type";
 
 const tools = [
