@@ -53,6 +53,7 @@ import {
   VTONTaskInput,
   VtonTaskResultData,
   AIModel,
+  getPointsForTaskType,
 } from "@/lib/api/type";
 import { newTask as newVTONTask } from "@/lib/api/tasks";
 import { useAppBridge } from "@shopify/app-bridge-react";
@@ -744,8 +745,8 @@ export default function VirtualTryOnPage() {
                       </>
                     ) : (
                       <>
-                        <Wand2 className="mr-2 h-4 w-4" />3 Credits • Generate
-                        Virtual Try-On
+                        <Wand2 className="mr-2 h-4 w-4" />
+                        {`${getPointsForTaskType(TaskType.VTON)} Credits • Generate Virtual Try-On`}
                       </>
                     )}
                   </Button>

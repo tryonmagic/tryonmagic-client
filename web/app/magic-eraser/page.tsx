@@ -18,7 +18,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import {
@@ -30,6 +30,7 @@ import {
   TaskProgress,
   TaskStatus,
   TaskType,
+  getPointsForTaskType,
 } from "@/lib/api/type";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import ImageUploader, {
@@ -38,6 +39,12 @@ import ImageUploader, {
 import { WebSocketClient } from "@/socket";
 import { newTask } from "@/lib/api/tasks";
 import { AxiosError } from "axios";
+import { cn, handleDownload } from "@/lib/utils";
+import {
+  ImageGallery,
+  ImageType,
+} from "@/lib/uploader/components/image-upload-manager";
+import EnhancedImage from "@/components/ui/EnhanchedImage";
 
 export default function MagicEraser() {
   const [uploadedImageInfo, setUploadedImageInfo] = useState<ImageInfo | null>(
@@ -56,6 +63,7 @@ export default function MagicEraser() {
   const [editType, setEditType] = useState<EditType>(EditType.INPAINT_REMOVE);
   const [replaceFromPrompt, setReplaceFromPrompt] = useState("");
   const [replaceWithPrompt, setReplaceWithPrompt] = useState("");
+  const [galleryMode, setGalleryMode] = useState(false);
 
   const [boxes, setBoxes] = useState<
     { xPct: number; yPct: number; wPct: number; hPct: number }[]
@@ -183,6 +191,19 @@ export default function MagicEraser() {
     setActiveTab("edit"); // Go back to edit tab to adjust settings
   };
 
+  const handleImageSelected = (selectedImages: ImageType[]) => {
+    if (selectedImages.length > 0) {
+      onImageUploaded({
+        uploadLocation: selectedImages[0].url,
+        width: selectedImages[0].width ?? 0,
+        height: selectedImages[0].height ?? 0,
+        fileName: selectedImages[0].name,
+        previewImageUrl: selectedImages[0].url,
+      });
+    }
+    setActiveTab("edit");
+  };
+
   // Helper to get mouse position as percentage of image
   const getRelativePosition = (e: React.MouseEvent) => {
     const img = imageRef.current;
@@ -276,10 +297,116 @@ export default function MagicEraser() {
           </TabsList>
 
           <TabsContent value="upload" className="space-y-8">
-            <ImageUploader
-              style={{ height: "200px" }}
-              onUploaded={onImageUploaded}
-            />
+            <Card className="overflow-hidden border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Upload className="h-5 w-5" />
+                  <span>Select or Upload Your Image</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Mode Toggle */}
+                  <div className="flex items-center justify-center">
+                    <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                      <div className="flex">
+                        <button
+                          onClick={() => setGalleryMode(false)}
+                          className={cn(
+                            "px-4 py-2 rounded-md text-sm font-medium transition-all",
+                            !galleryMode
+                              ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
+                              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100",
+                          )}
+                        >
+                          Upload New
+                        </button>
+                        <button
+                          onClick={() => setGalleryMode(true)}
+                          className={cn(
+                            "px-4 py-2 rounded-md text-sm font-medium transition-all",
+                            galleryMode
+                              ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
+                              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100",
+                          )}
+                        >
+                          Choose from Gallery
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Upload Mode */}
+                  {!galleryMode && (
+                    <div className="h-56">
+                      <ImageUploader
+                        onUploaded={onImageUploaded}
+                        placeholder="Upload your own product"
+                        hideImagePreviewAfterUpload
+                      />
+                    </div>
+                  )}
+
+                  {/* Gallery Mode */}
+                  {galleryMode && (
+                    <div className="space-y-4">
+                      <ImageGallery
+                        hideUploadButton
+                        hideActions
+                        hideCancelButton
+                        maxColumns={3}
+                        maxRows={2}
+                        imageSelectionLimit={1}
+                        onSelected={handleImageSelected}
+                        // onClose={() => setShowImageGallery(false)}
+                      />
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="bg-muted rounded-lg p-6">
+              <h3 className="text-xl font-semibold mb-4">
+                Example Transformations
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-2">
+                  <div className="relative aspect-video overflow-hidden rounded-lg">
+                    <Image
+                      src="/erase.png"
+                      alt="Original image with unwanted object"
+                      width={600}
+                      height={400}
+                      className="object-cover"
+                    />
+                    <div className="absolute top-2 left-2 bg-background/80 text-foreground px-2 py-1 rounded text-sm">
+                      Before
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Image with unwanted objects
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <div className="relative aspect-video overflow-hidden rounded-lg">
+                    <Image
+                      src="/erased.png"
+                      alt="Clean image after magic eraser"
+                      width={600}
+                      height={400}
+                      className="object-cover"
+                    />
+                    <div className="absolute top-2 left-2 bg-background/80 text-foreground px-2 py-1 rounded text-sm">
+                      After
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Clean image after using Magic Eraser
+                  </p>
+                </div>
+              </div>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
               <Card>
@@ -348,48 +475,6 @@ export default function MagicEraser() {
                   </p>
                 </CardContent>
               </Card>
-            </div>
-
-            <div className="bg-muted rounded-lg p-6">
-              <h3 className="text-xl font-semibold mb-4">
-                Example Transformations
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-2">
-                  <div className="relative aspect-video overflow-hidden rounded-lg">
-                    <Image
-                      src="https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=400&width=600"
-                      alt="Original image with unwanted object"
-                      width={600}
-                      height={400}
-                      className="object-cover"
-                    />
-                    <div className="absolute top-2 left-2 bg-background/80 text-foreground px-2 py-1 rounded text-sm">
-                      Before
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Image with unwanted objects
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <div className="relative aspect-video overflow-hidden rounded-lg">
-                    <Image
-                      src="https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=400&width=600"
-                      alt="Clean image after magic eraser"
-                      width={600}
-                      height={400}
-                      className="object-cover"
-                    />
-                    <div className="absolute top-2 left-2 bg-background/80 text-foreground px-2 py-1 rounded text-sm">
-                      After
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Clean image after using Magic Eraser
-                  </p>
-                </div>
-              </div>
             </div>
           </TabsContent>
 
@@ -965,18 +1050,18 @@ export default function MagicEraser() {
                           <>
                             {editType === EditType.INPAINT_REMOVE ? (
                               <>
-                                <Eraser className="mr-2 h-4 w-4" /> 2 Credits •
-                                Apply Magic Eraser
+                                <Eraser className="mr-2 h-4 w-4" />{" "}
+                                {`${getPointsForTaskType(TaskType.EDIT_IMAGE)} Credits • Apply Magic Eraser`}
                               </>
                             ) : editType === EditType.INPAINT_REPLACE ? (
                               <>
-                                <ArrowRightLeft className="mr-2 h-4 w-4" /> 2
-                                Credits • Apply Magic Replace
+                                <ArrowRightLeft className="mr-2 h-4 w-4" />{" "}
+                                {`${getPointsForTaskType(TaskType.EDIT_IMAGE)} Credits • Apply Magic Replace`}
                               </>
                             ) : (
                               <>
-                                <Brush className="mr-2 h-4 w-4" /> 2 Credits •
-                                Apply Magic Insert
+                                <Brush className="mr-2 h-4 w-4" />{" "}
+                                {`${getPointsForTaskType(TaskType.EDIT_IMAGE)} Credits • Apply Magic Insert`}
                               </>
                             )}
                           </>
@@ -1074,7 +1159,7 @@ export default function MagicEraser() {
                     <CardContent className="p-0">
                       {uploadedImageInfo && (
                         <div className="relative w-full aspect-video bg-checkerboard">
-                          <Image
+                          <EnhancedImage
                             src={
                               uploadedImageInfo.previewImageUrl ||
                               "/placeholder.svg"
@@ -1095,7 +1180,7 @@ export default function MagicEraser() {
                     <CardContent className="p-0">
                       {resultImage && (
                         <div className="relative w-full aspect-video bg-checkerboard">
-                          <Image
+                          <EnhancedImage
                             src={resultImage || "/placeholder.svg"}
                             alt="Result image"
                             width={600}
@@ -1111,20 +1196,25 @@ export default function MagicEraser() {
                   </Card>
                 </div>
 
-                <div className="flex flex-wrap justify-center gap-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => setActiveTab("edit")}
-                  >
-                    <Eraser className="mr-2 h-4 w-4" /> Continue Editing
-                  </Button>
-                  <Button variant="default">
-                    <Download className="mr-2 h-4 w-4" /> Download Result
-                  </Button>
-                  <Button variant="outline" onClick={resetImage}>
-                    <Upload className="mr-2 h-4 w-4" /> Upload New Image
-                  </Button>
-                </div>
+                {resultImage && (
+                  <div className="flex flex-wrap justify-center gap-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => setActiveTab("edit")}
+                    >
+                      <Eraser className="mr-2 h-4 w-4" /> Continue Editing
+                    </Button>
+                    <Button variant="outline" onClick={resetImage}>
+                      <Upload className="mr-2 h-4 w-4" /> Upload New Image
+                    </Button>
+                    <Button
+                      variant="default"
+                      onClick={() => handleDownload(resultImage)}
+                    >
+                      <Download className="mr-2 h-4 w-4" /> Download Result
+                    </Button>
+                  </div>
+                )}
 
                 <Card>
                   <CardContent className="p-6">

@@ -130,6 +130,7 @@ export interface TaskProgress<T = unknown> {
   progress?: number;
   resultData?: {
     outputImageUrl: string;
+    error?: string;
   } & T;
 }
 
@@ -327,4 +328,38 @@ export interface SuccessWithPaginationResponse<T = unknown> {
   status: string;
   message: string;
   data: PaginationResponseData<T>;
+}
+
+export function getPointsForTaskType(
+  taskType: TaskType,
+  backgroundSourceType?: BackgroundSourceType,
+): number {
+  switch (taskType) {
+    case TaskType.REMOVE_BACKGROUND:
+      return 1;
+    case TaskType.GENERATE_AI_MODEL:
+      return 3;
+    case TaskType.VTON:
+      return 4;
+    case TaskType.UPSCALE:
+      return 2;
+    case TaskType.ENHANCE:
+      return 3;
+    case TaskType.EXPAND_IMAGE:
+      return 3;
+    case TaskType.EDIT_IMAGE:
+      return 2;
+    case TaskType.PRODUCT_IMAGE_EDITING:
+      return 3;
+    case TaskType.REPLACE_BACKGROUND: {
+      if (backgroundSourceType === BackgroundSourceType.PROMPT) {
+        return 3;
+      }
+      return 1;
+    }
+    case TaskType.GENERATE_IMAGE:
+      return 2;
+    default:
+      return 3;
+  }
 }

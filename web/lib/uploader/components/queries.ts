@@ -54,6 +54,8 @@ export const getFilesQuery: AuthenticatedQueryFunction<
         uploadDate: new Date(image.createdAt!),
         uploading: false,
         progress: 0,
+        width: image.width,
+        height: image.height,
       };
     }),
   );

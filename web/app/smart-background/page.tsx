@@ -51,6 +51,7 @@ import {
   TaskStatus,
   TaskStatusMessageMapping,
   TaskType,
+  getPointsForTaskType,
 } from "@/lib/api/type";
 import { newTask as removeBackgroundTask } from "@/lib/api/tasks";
 import { useAppBridge } from "@shopify/app-bridge-react";
@@ -261,8 +262,6 @@ export default function RemoveBGPage() {
 
   const [openImageUploadDialog, setOpenImageUploadDialog] = useState(false);
   const app = useAppBridge();
-
-  console.log({ replaceBgSelectedImage });
 
   const handleCustomImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -733,7 +732,7 @@ export default function RemoveBGPage() {
                                 <>
                                   <Eraser className="mr-2 h-4 w-4" />
                                   <span className="truncate">
-                                    1 Credit • Remove Background
+                                    {`${getPointsForTaskType(TaskType.REMOVE_BACKGROUND)} Credits • Remove Background`}
                                   </span>
                                 </>
                               )}
@@ -1193,7 +1192,7 @@ export default function RemoveBGPage() {
                           ) : (
                             <>
                               <Sparkles className="mr-2 h-4 w-4" />
-                              Replace Background
+                              {`${getPointsForTaskType(TaskType.REPLACE_BACKGROUND, backgroundType)} Credits • Replace Background`}
                             </>
                           )}
                         </Button>
@@ -1332,17 +1331,6 @@ export default function RemoveBGPage() {
                             Background Preview
                           </p>
                           <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 h-[500px] relative">
-                            {(() => {
-                              console.log("Background preview debug:", {
-                                backgroundType,
-                                replaceBgSelectedImage,
-                                customImageUrl,
-                                hasImage: !!(
-                                  replaceBgSelectedImage || customImageUrl
-                                ),
-                              });
-                              return null;
-                            })()}
                             {backgroundType === BackgroundSourceType.COLOR && (
                               <div
                                 className="w-full h-full"

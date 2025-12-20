@@ -22,11 +22,12 @@ import {
   Card as CardUI,
 } from "@/components/ui/card";
 import { Button as ButtonUI } from "@/components/ui/button";
+import { getPointsForTaskType, TaskType } from "@/lib/api/type";
 
 const tools = [
   {
     name: "AI Product",
-    credits: 3,
+    credits: getPointsForTaskType(TaskType.PRODUCT_IMAGE_EDITING),
     description: [
       "Transform your products with advanced AI-powered editing and enhancement",
       "Replace backgrounds and place products in realistic lifestyle and commercial settings",
@@ -39,7 +40,7 @@ const tools = [
   },
   {
     name: "Smart Background",
-    credits: 1,
+    credits: getPointsForTaskType(TaskType.REMOVE_BACKGROUND),
     description: [
       "Remove backgrounds from images with precision and accuracy",
       "Replace backgrounds with realistic and natural-looking images",
@@ -52,7 +53,7 @@ const tools = [
   },
   {
     name: "Upscale Image",
-    credits: 1,
+    credits: getPointsForTaskType(TaskType.UPSCALE),
     description: [
       "Enhance image resolution and quality",
       "Increase resolution up to 4x",
@@ -64,7 +65,7 @@ const tools = [
   },
   {
     name: "Expand Image",
-    credits: 2,
+    credits: getPointsForTaskType(TaskType.EXPAND_IMAGE),
     description: [
       "Extend images seamlessly in any direction",
       "Convert portrait to landscape",
@@ -76,7 +77,7 @@ const tools = [
   },
   {
     name: "Magic Eraser",
-    credits: 2,
+    credits: getPointsForTaskType(TaskType.EDIT_IMAGE),
     description: [
       "Remove unwanted objects, people, or elements from images",
       "Perfect for e-commerce and marketing",
@@ -145,29 +146,6 @@ export default function Dashboard() {
               </Link>
             </div>
           </div>
-        </Layout.Section>
-        <Layout.Section>
-          <CardUI className="bg-green-100 dark:bg-green-900/30">
-            <CardHeader>
-              <CardDescription>
-                <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
-                  Currently, we are giving first 100 users a limited credit of{" "}
-                  <b>20 points</b> to try our app. Soon, the subscription plan
-                  will be published for more credit.
-                </p>
-
-                <ButtonUI
-                  variant="outline"
-                  onClick={() => {
-                    window.open("/purchase", "_self");
-                  }}
-                  className="mt-4 text-purple-600 dark:text-purple-400"
-                >
-                  Go to Purchase Page
-                </ButtonUI>
-              </CardDescription>
-            </CardHeader>
-          </CardUI>
         </Layout.Section>
         <Layout.Section>
           <InlineStack gap="500">
@@ -379,38 +357,28 @@ export default function Dashboard() {
                   </div>
                   <Link url="/ai-model">
                     <Button variant="primary">
-                      2 Credits • Generate AI Model
+                      {`${getPointsForTaskType(TaskType.GENERATE_AI_MODEL)} Credits • Generate AI Model`}
                     </Button>
                   </Link>
                 </div>
                 {/* Right Side: Images Grid */}
                 <div
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(3, 56px)",
-                    gridTemplateRows: "repeat(2, 56px)",
-                    gap: "12px",
                     alignItems: "center",
                     justifyItems: "center",
-                    background:
-                      "linear-gradient(120deg, #eaf4ff 60%, #fff0 100%)",
-                    borderRadius: "12px",
-                    padding: "12px",
+                    padding: "5px",
                   }}
                 >
-                  {[1, 2, 3, 4, 5, 6].map((item) => (
-                    <Image
-                      key={item}
-                      source="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRaiApYmBJJ72ZqYFdzKrdfCsXtnjAin1nD8A&s"
-                      alt="Model 1"
-                      style={{
-                        borderRadius: "8px",
-                        width: "56px",
-                        height: "56px",
-                        objectFit: "cover",
-                      }}
-                    />
-                  ))}
+                  <Image
+                    source="/ai_models.png"
+                    alt="Model 1"
+                    style={{
+                      borderRadius: "8px",
+                      width: "210px",
+                      height: "210px",
+                      objectFit: "cover",
+                    }}
+                  />
                 </div>
               </div>
             </Card>
@@ -470,38 +438,27 @@ export default function Dashboard() {
                   </div>
                   <Link url="/virtual-try-on">
                     <Button variant="primary">
-                      3 Credits • Try Virtual Try-On
+                      {`${getPointsForTaskType(TaskType.VTON)} Credits • Try Virtual Try-On`}
                     </Button>
                   </Link>
                 </div>
-                {/* Right Side: Images Grid */}
                 <div
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(3, 56px)",
-                    gridTemplateRows: "repeat(2, 56px)",
-                    gap: "12px",
                     alignItems: "center",
                     justifyItems: "center",
-                    background:
-                      "linear-gradient(120deg, #eaf4ff 60%, #fff0 100%)",
-                    borderRadius: "12px",
-                    padding: "12px",
+                    padding: "5px",
                   }}
                 >
-                  {[1, 2, 3, 4, 5, 6].map((item) => (
-                    <Image
-                      key={item}
-                      source="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRaiApYmBJJ72ZqYFdzKrdfCsXtnjAin1nD8A&s"
-                      alt="Model 1"
-                      style={{
-                        borderRadius: "8px",
-                        width: "56px",
-                        height: "56px",
-                        objectFit: "cover",
-                      }}
-                    />
-                  ))}
+                  <Image
+                    source="/tryon.png"
+                    alt="Model 1"
+                    style={{
+                      borderRadius: "8px",
+                      width: "210px",
+                      height: "210px",
+                      objectFit: "cover",
+                    }}
+                  />
                 </div>
               </div>
             </Card>

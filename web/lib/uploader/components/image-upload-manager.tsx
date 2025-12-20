@@ -61,6 +61,8 @@ export type ImageType = {
   uploading?: boolean;
   progress?: number;
   new?: boolean;
+  width?: number;
+  height?: number;
 };
 
 export enum SortOption {

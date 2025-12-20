@@ -23,12 +23,12 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
+import { cn, handleDownload } from "@/lib/utils";
 import ImageUploader, {
   ImageInfo,
 } from "@/lib/uploader/components/ImageUploader";
@@ -41,11 +41,16 @@ import {
   TaskProgress,
   TaskStatus,
   TaskType,
+  getPointsForTaskType,
 } from "@/lib/api/type";
 import { newTask } from "@/lib/api/tasks";
 import { WebSocketClient } from "@/socket";
 import { AxiosError } from "axios";
 import EnhancedImage from "@/components/ui/EnhanchedImage";
+import {
+  ImageGallery,
+  ImageType,
+} from "@/lib/uploader/components/image-upload-manager";
 
 interface ExampleCardProps {
   title: string;
@@ -179,6 +184,7 @@ export default function ExpandImagePage() {
   const [enhanceQuality, setEnhanceQuality] = useState(true);
   const [matchLighting, setMatchLighting] = useState(true);
   const [taskProgress, setTaskProgress] = useState<TaskProgress | null>(null);
+  const [galleryMode, setGalleryMode] = useState(false);
 
   const app = useAppBridge();
 
@@ -340,6 +346,19 @@ export default function ExpandImagePage() {
     return `${percentage}%`;
   };
 
+  const handleImageSelected = (selectedImages: ImageType[]) => {
+    if (selectedImages.length > 0) {
+      onImageUploaded({
+        uploadLocation: selectedImages[0].url,
+        width: selectedImages[0].width ?? 0,
+        height: selectedImages[0].height ?? 0,
+        fileName: selectedImages[0].name,
+        previewImageUrl: selectedImages[0].url,
+      });
+    }
+    setActiveTab("expand");
+  };
+
   // Preview of how the expansion will look
   // ...existing code...
 
@@ -460,42 +479,96 @@ export default function ExpandImagePage() {
           <TabsContent value="upload" className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <Card className="overflow-hidden border-0 shadow-lg">
-                <CardContent className="p-6">
-                  <h2 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">
-                    Upload Your Image
-                  </h2>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Upload className="h-5 w-5" />
+                    <span>Select or Upload Your Image</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div className="space-y-4">
-                    <ImageUploader
-                      onUploaded={onImageUploaded}
-                      hideImagePreviewAfterUpload
-                    />
-
-                    <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-lg">
-                      <div className="flex items-start space-x-3">
-                        <Info className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
-                        <div>
-                          <h3 className="font-medium text-amber-800 dark:text-amber-300 text-sm">
-                            Tips for best results
-                          </h3>
-                          <ul className="text-xs text-amber-700 dark:text-amber-400 mt-1 space-y-1 list-disc pl-4">
-                            <li>
-                              Use images with clear edges and well-defined
-                              subjects
-                            </li>
-                            <li>
-                              Images with simple or gradient backgrounds work
-                              best
-                            </li>
-                            <li>
-                              Avoid images with text that needs to be preserved
-                              at the edges
-                            </li>
-                            <li>
-                              For landscape expansion, choose images with
-                              natural horizons
-                            </li>
-                          </ul>
+                    {/* Mode Toggle */}
+                    <div className="flex items-center justify-center">
+                      <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                        <div className="flex">
+                          <button
+                            onClick={() => setGalleryMode(false)}
+                            className={cn(
+                              "px-4 py-2 rounded-md text-sm font-medium transition-all",
+                              !galleryMode
+                                ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
+                                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100",
+                            )}
+                          >
+                            Upload New
+                          </button>
+                          <button
+                            onClick={() => setGalleryMode(true)}
+                            className={cn(
+                              "px-4 py-2 rounded-md text-sm font-medium transition-all",
+                              galleryMode
+                                ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
+                                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100",
+                            )}
+                          >
+                            Choose from Gallery
+                          </button>
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Upload Mode */}
+                    {!galleryMode && (
+                      <div className="h-56">
+                        <ImageUploader
+                          onUploaded={onImageUploaded}
+                          placeholder="Upload your own product"
+                          hideImagePreviewAfterUpload
+                        />
+                      </div>
+                    )}
+
+                    {/* Gallery Mode */}
+                    {galleryMode && (
+                      <div className="space-y-4">
+                        <ImageGallery
+                          hideUploadButton
+                          hideActions
+                          hideCancelButton
+                          maxColumns={3}
+                          maxRows={2}
+                          imageSelectionLimit={1}
+                          onSelected={handleImageSelected}
+                          // onClose={() => setShowImageGallery(false)}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-lg">
+                    <div className="flex items-start space-x-3">
+                      <Info className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+                      <div>
+                        <h3 className="font-medium text-amber-800 dark:text-amber-300 text-sm">
+                          Tips for best results
+                        </h3>
+                        <ul className="text-xs text-amber-700 dark:text-amber-400 mt-1 space-y-1 list-disc pl-4">
+                          <li>
+                            Use images with clear edges and well-defined
+                            subjects
+                          </li>
+                          <li>
+                            Images with simple or gradient backgrounds work best
+                          </li>
+                          <li>
+                            Avoid images with text that needs to be preserved at
+                            the edges
+                          </li>
+                          <li>
+                            For landscape expansion, choose images with natural
+                            horizons
+                          </li>
+                        </ul>
                       </div>
                     </div>
                   </div>
@@ -508,16 +581,16 @@ export default function ExpandImagePage() {
                 </h2>
                 <div className="grid grid-cols-1 gap-6">
                   <ExampleCard
-                    title="Portrait to Landscape"
-                    description="Convert portrait photos to landscape format with seamless content extension."
-                    before="https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=300&width=200"
-                    after="https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=300&width=500"
+                    title="Expand Image to Landscape"
+                    description="Expand images to landscape format with seamless content extension."
+                    before="/hand_bag_expand.webp"
+                    after="/expand_landscaped.png"
                   />
                   <ExampleCard
                     title="Social Media Adaptation"
                     description="Expand images to fit different social media aspect ratios without cropping."
-                    before="https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=300&width=300"
-                    after="https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=300&width=600"
+                    before="/bag_expand.jpg"
+                    after="/bag_expand_protrait.png"
                   />
                 </div>
               </div>
@@ -847,8 +920,8 @@ export default function ExpandImagePage() {
                           </>
                         ) : (
                           <>
-                            <Maximize className="mr-2 h-4 w-4" />2 Credits •
-                            Expand Image
+                            <Maximize className="mr-2 h-4 w-4" />
+                            {`${getPointsForTaskType(TaskType.EXPAND_IMAGE)} Credits • Expand Image`}
                           </>
                         )}
                       </Button>
@@ -1112,6 +1185,15 @@ export default function ExpandImagePage() {
                         >
                           <Upload className="mr-2 h-4 w-4" />
                           New Image
+                        </Button>
+                        {/* download */}
+                        <Button
+                          onClick={() => handleDownload(expandedImage)}
+                          variant="outline"
+                          className="flex-1 bg-primary text-white"
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          Download
                         </Button>
                       </div>
                     </div>

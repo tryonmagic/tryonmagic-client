@@ -53,6 +53,8 @@ import {
   ImageSourceType,
   StyleType,
   SceneType,
+  TaskStatusMessageMapping,
+  getPointsForTaskType,
   VariantType,
   ProductImageEditTaskResultData,
 } from "@/lib/api/type";
@@ -1096,8 +1098,8 @@ export default function AIProductPage() {
                       >
                         <Sparkles className="mr-2 h-4 w-4" />
                         {formData.numberOfVariants > 1
-                          ? `3 Credits • Generate ${formData.numberOfVariants} Variants`
-                          : "3 Credits • Generate Variant"}
+                          ? `${getPointsForTaskType(TaskType.PRODUCT_IMAGE_EDITING)} Credits • Generate ${formData.numberOfVariants} Variants`
+                          : `${getPointsForTaskType(TaskType.PRODUCT_IMAGE_EDITING)} Credits • Generate Variant`}
                       </Button>
 
                       <Button

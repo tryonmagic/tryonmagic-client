@@ -21,7 +21,12 @@ import AspectRatioSelector from "@/app/ai-model/AspectRation";
 import { generateAIModel } from "@/lib/api/ai-models";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { WebSocketClient } from "@/socket";
-import { TaskProgress, TaskStatus } from "@/lib/api/type";
+import {
+  TaskProgress,
+  TaskStatus,
+  TaskType,
+  getPointsForTaskType,
+} from "@/lib/api/type";
 import EnhancedImage from "./ui/EnhanchedImage";
 import { AxiosError } from "axios";
 
@@ -683,8 +688,8 @@ export default function AIFashionGenerator() {
                       className="w-full mt-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
                       size="lg"
                     >
-                      <Sparkles className="mr-2 h-4 w-4" />2 Credits • Generate
-                      Fashion Model
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      {`${getPointsForTaskType(TaskType.GENERATE_AI_MODEL)} Credits • Generate Fashion Model`}
                     </Button>
                   </div>
                 </CardContent>

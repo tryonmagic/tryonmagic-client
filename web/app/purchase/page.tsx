@@ -422,25 +422,6 @@ export default function PurchasePage() {
                 ))}
               </div> */}
 
-              <Card className="bg-green-100 dark:bg-green-900/30">
-                <CardHeader>
-                  <CardDescription>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
-                      Currently, we are giving first 100 users a limited credit
-                      of <b>20 points</b> to try our app. Soon, the subscription
-                      plan will be published for more credit.
-                    </p>
-
-                    <Button
-                      variant="outline"
-                      onClick={handlePurchase}
-                      className="mt-4 text-purple-600 dark:text-purple-400"
-                    >
-                      Get 20 Points for Free (Limited Time Offer)
-                    </Button>
-                  </CardDescription>
-                </CardHeader>
-              </Card>
               <Card>
                 <CardHeader>
                   <CardTitle>Points Usage</CardTitle>

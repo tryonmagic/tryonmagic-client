@@ -18,9 +18,9 @@ import {
   Maximize2,
   Loader,
   RefreshCw,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -31,9 +31,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn, toCamelCase } from "@/lib/utils";
+import { cn, handleDownload, toCamelCase } from "@/lib/utils";
 import { newTask as upscaleImageTask } from "@/lib/api/tasks";
 import {
+  getPointsForTaskType,
   ImageSourceType,
   NewTask,
   TaskProgress,
@@ -51,6 +52,12 @@ import Image from "next/image";
 import { getImageDimensions } from "@/lib/uploader/utils";
 import { AxiosError } from "axios";
 import EnhancedImage from "@/components/ui/EnhanchedImage";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  ImageGallery,
+  ImageType,
+} from "@/lib/uploader/components/image-upload-manager";
+import { ImagePreview } from "@/components/ui/ImagePreview";
 
 interface ExampleCardProps {
   title: string;
@@ -140,6 +147,8 @@ export default function UpscalePage() {
   const [fullscreenView, setFullscreenView] = useState<
     "original" | "enhanced" | "comparison"
   >("comparison");
+
+  const [galleryMode, setGalleryMode] = useState(false);
 
   const onImageUploaded = (imageInfo: ImageInfo) => {
     setUploadedImageInfo(imageInfo);
@@ -253,7 +262,7 @@ export default function UpscalePage() {
           }
         } else if (data.status === TaskStatus.FAILED) {
           const errorMessage = "Failed to upscale image";
-          setUpscaleError(errorMessage);
+          setUpscaleError(data.resultData?.error?.toString() || errorMessage);
           setTaskProgress(null);
           setIsProcessing(false);
         }
@@ -287,32 +296,6 @@ export default function UpscalePage() {
     setTaskProgress(null);
     setIsFullscreenOpen(false);
     setFullscreenView("comparison");
-  };
-
-  const handleDownload = async () => {
-    if (!upscaledImage?.url) return;
-
-    try {
-      // Fetch the image as a blob
-      const response = await fetch(upscaledImage.url);
-      const blob = await response.blob();
-
-      // Create a download URL
-      const downloadUrl = URL.createObjectURL(blob);
-
-      // Create a temporary link element and trigger download
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.download = `upscaled-image-${Date.now()}.png`;
-      document.body.appendChild(link);
-      link.click();
-
-      // Clean up
-      document.body.removeChild(link);
-      URL.revokeObjectURL(downloadUrl);
-    } catch (error) {
-      console.error("Error downloading image:", error);
-    }
   };
 
   const calculateUpscalePercentage = () => {
@@ -385,6 +368,19 @@ export default function UpscalePage() {
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, [isFullscreenOpen, fullscreenView]);
 
+  const handleImageSelected = (selectedImages: ImageType[]) => {
+    if (selectedImages.length > 0) {
+      onImageUploaded({
+        uploadLocation: selectedImages[0].url,
+        width: selectedImages[0].width ?? 0,
+        height: selectedImages[0].height ?? 0,
+        fileName: selectedImages[0].name,
+        previewImageUrl: selectedImages[0].url,
+      });
+    }
+    setActiveTab("enhance");
+  };
+
   return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
@@ -428,58 +424,70 @@ export default function UpscalePage() {
           <TabsContent value="upload" className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <Card className="overflow-hidden border-0 shadow-lg">
-                <CardContent className="p-6">
-                  <h2 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">
-                    Upload Your Image
-                  </h2>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Upload className="h-5 w-5" />
+                    <span>Select or Upload Your Image</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div className="space-y-4">
-                    <ImageUploader onUploaded={onImageUploaded} />
-                    {/* <div className="mt-32" />
-                    <div>
-                      <Button
-                        onClick={handleUpscale}
-                        className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-                        size="lg"
-                        disabled={!uploadedImageInfo || isProcessing}
-                      >
-                        {isProcessing ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Processing...
-                          </>
-                        ) : (
-                          <>
-                            <Wand2 className="mr-2 h-4 w-4" />
-                            1 Credit • Upscale Image
-                          </>
-                        )}
-                      </Button>
-                    </div> */}
-                    <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-lg">
-                      <div className="flex items-start space-x-3">
-                        <Info className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
-                        <div>
-                          <h3 className="font-medium text-amber-800 dark:text-amber-300 text-sm">
-                            Tips for best results
-                          </h3>
-                          <ul className="text-xs text-amber-700 dark:text-amber-400 mt-1 space-y-1 list-disc pl-4">
-                            <li>
-                              Use images with clear details you want to enhance
-                            </li>
-                            <li>
-                              Higher quality source images yield better results
-                            </li>
-                            {/* <li>
-                              Upscaling works best up to 4x the original size
-                            </li> */}
-                            <li>
-                              For very low resolution images, use the quality
-                              enhancement option
-                            </li>
-                          </ul>
+                    {/* Mode Toggle */}
+                    <div className="flex items-center justify-center">
+                      <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                        <div className="flex">
+                          <button
+                            onClick={() => setGalleryMode(false)}
+                            className={cn(
+                              "px-4 py-2 rounded-md text-sm font-medium transition-all",
+                              !galleryMode
+                                ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
+                                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100",
+                            )}
+                          >
+                            Upload New
+                          </button>
+                          <button
+                            onClick={() => setGalleryMode(true)}
+                            className={cn(
+                              "px-4 py-2 rounded-md text-sm font-medium transition-all",
+                              galleryMode
+                                ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
+                                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100",
+                            )}
+                          >
+                            Choose from Gallery
+                          </button>
                         </div>
                       </div>
                     </div>
+
+                    {/* Upload Mode */}
+                    {!galleryMode && (
+                      <div className="h-56">
+                        <ImageUploader
+                          onUploaded={onImageUploaded}
+                          placeholder="Upload your own product"
+                          hideImagePreviewAfterUpload
+                        />
+                      </div>
+                    )}
+
+                    {/* Gallery Mode */}
+                    {galleryMode && (
+                      <div className="space-y-4">
+                        <ImageGallery
+                          hideUploadButton
+                          hideActions
+                          hideCancelButton
+                          maxColumns={3}
+                          maxRows={2}
+                          imageSelectionLimit={1}
+                          onSelected={handleImageSelected}
+                          // onClose={() => setShowImageGallery(false)}
+                        />
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -492,14 +500,14 @@ export default function UpscalePage() {
                   <ExampleCard
                     title="Low Resolution Photo"
                     description="Upscaled from 480p to 4K with enhanced details and reduced noise."
-                    before="https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=300&width=300"
-                    after="https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=300&width=300"
+                    before="/low_res_upscale.jpg"
+                    after="/upscaled.png"
                   />
                   <ExampleCard
-                    title="Old Photograph"
-                    description="Restored and upscaled with improved clarity and detail preservation."
-                    before="https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=300&width=300"
-                    after="https://ig89yd5z8iykrgxva.lite.vusercontent.net/placeholder.svg?height=300&width=300"
+                    title="Product Image"
+                    description="Upscaled product image with enhanced details and reduced noise."
+                    before="/low_res_upscale_product.jpg"
+                    after="/upscaled_product.png"
                   />
                 </div>
               </div>
@@ -709,14 +717,24 @@ export default function UpscalePage() {
                           <>
                             <RefreshCw className="mr-2 h-4 w-4" />
                             <span className="truncate">
-                              Retry {toCamelCase(upscaleFactor)}
+                              {getPointsForTaskType(
+                                upscaleFactor === "UPSCALE"
+                                  ? TaskType.UPSCALE
+                                  : TaskType.ENHANCE,
+                              )}{" "}
+                              Credits • Retry {toCamelCase(upscaleFactor)}
                             </span>
                           </>
                         ) : (
                           <>
                             <Wand2 className="mr-2 h-4 w-4" />
                             <span className="truncate">
-                              {toCamelCase(upscaleFactor)} Image
+                              {getPointsForTaskType(
+                                upscaleFactor === "UPSCALE"
+                                  ? TaskType.UPSCALE
+                                  : TaskType.ENHANCE,
+                              )}{" "}
+                              Credits • {toCamelCase(upscaleFactor)} Image
                             </span>
                           </>
                         )}
@@ -849,12 +867,9 @@ export default function UpscalePage() {
                           <p className="text-sm text-center font-medium text-slate-500 dark:text-slate-400">
                             Original
                           </p>
-                          <div
-                            className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 relative group cursor-pointer"
-                            onClick={() => openFullscreen("original")}
-                          >
+                          <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 relative group cursor-pointer">
                             {uploadedImageInfo && (
-                              <Image
+                              <EnhancedImage
                                 src={
                                   uploadedImageInfo.previewImageUrl ||
                                   "/placeholder.svg"
@@ -865,27 +880,6 @@ export default function UpscalePage() {
                                 className="w-full h-auto object-contain"
                               />
                             )}
-                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                              <div className="flex space-x-2">
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button variant="secondary" size="sm">
-                                        <Maximize2 className="h-4 w-4 mr-1" />
-                                        View Full
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>View in fullscreen</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                                <Button variant="secondary" size="sm">
-                                  {originalDimensions.width} ×{" "}
-                                  {originalDimensions.height}px
-                                </Button>
-                              </div>
-                            </div>
                           </div>
                         </div>
                         <div className="space-y-2">
@@ -894,10 +888,7 @@ export default function UpscalePage() {
                               ? "Relight"
                               : "Upscaled"}
                           </p>
-                          <div
-                            className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 relative group cursor-pointer"
-                            onClick={() => openFullscreen("enhanced")}
-                          >
+                          <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 relative group cursor-pointer">
                             <EnhancedImage
                               src={upscaledImage.url}
                               alt="Upscaled image"
@@ -905,29 +896,6 @@ export default function UpscalePage() {
                               height={upscaledImage.height || 700}
                               className="w-full h-auto object-contain"
                             />
-                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                              <div className="flex space-x-2">
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button variant="secondary" size="sm">
-                                        <Maximize2 className="h-4 w-4 mr-1" />
-                                        View Full
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>View in fullscreen</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                                {upscaledImage.width && (
-                                  <Button variant="secondary" size="sm">
-                                    {upscaledImage.width} ×{" "}
-                                    {upscaledImage.height}px
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
                           </div>
                         </div>
                       </div>
@@ -986,6 +954,14 @@ export default function UpscalePage() {
                         >
                           <Upload className="mr-2 h-4 w-4" />
                           New Image
+                        </Button>
+                        <Button
+                          onClick={() => handleDownload(upscaledImage.url)}
+                          variant="outline"
+                          className="flex-1 bg-primary text-white"
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          Download
                         </Button>
                       </div>
                     </div>
