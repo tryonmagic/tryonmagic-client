@@ -4,7 +4,7 @@
   "main": "web/dist/index.js",
   "license": "MIT",
   "scripts": {
-    "dev": "shopify app dev",
+    "dev": "shopify app dev --config=shopify.app.tryonmagic-test.toml",
     "info": "shopify app info",
     "build": "shopify app build",
     "generate": "shopify app generate",
