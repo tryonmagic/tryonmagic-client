@@ -17,6 +17,7 @@ import PlanIcon from "@/icons/PlanIcon";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { getUsageHistory } from "./usage/queries";
 import { getPointsForTaskType, TaskType } from "@/lib/api/type";
+import { getSubscriptionPlanName } from "@/lib/utils";
 
 const tools = [
   {
@@ -84,11 +85,6 @@ const tools = [
 ];
 
 export default function Dashboard() {
-  const { data: userData, isLoading: isUserLoading } = useAuthenticatedQuery({
-    queryKey: ["user-details"],
-    queryFn: getUserDetailsQuery,
-  });
-
   const {
     isLoading,
     data: usageSummary,
@@ -99,12 +95,7 @@ export default function Dashboard() {
     staleTime: 1000 * 5,
   });
 
-  const handleUpgradePlan = () => {
-    // Navigate to upgrade page or handle upgrade logic
-    window.open("/purchase", "_self");
-  };
-
-  if (isUserLoading) {
+  if (isLoading || isFetching) {
     return (
       <div className="flex justify-center items-center h-full w-full">
         <LoadingSpinner />
@@ -128,8 +119,8 @@ export default function Dashboard() {
           >
             <div style={{ flex: 1 }}>
               <Text variant="headingXl" as="h1">
-                Welcome {userData?.firstName}! Transform your creative vision
-                with our suite of AI-powered tools.
+                Welcome! Transform your creative vision with our suite of
+                AI-powered tools.
               </Text>
             </div>
             <div className="flex justify-end flex-1 mr-8 mt-0">
@@ -216,14 +207,10 @@ export default function Dashboard() {
                     Your Plan
                   </Text>
                   <Text variant="headingLg" as="h2" fontWeight="bold">
-                    {usageSummary?.currentSubscription?.plan
-                      ? usageSummary.currentSubscription.plan
-                          .charAt(0)
-                          .toUpperCase() +
-                        usageSummary.currentSubscription.plan
-                          .slice(1)
-                          .toLowerCase()
-                      : ""}
+                    {usageSummary &&
+                      getSubscriptionPlanName(
+                        usageSummary?.currentSubscription?.plan,
+                      )}
                   </Text>
                 </div>
               </InlineStack>
