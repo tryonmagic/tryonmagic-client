@@ -9,6 +9,7 @@ import {
   User,
   Wand2,
 } from "lucide-react";
+import { SubscriptionPlan } from "@/app/purchase/type";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -145,4 +146,29 @@ export const getToolIcon = (type: ToolType) => {
   }
 };
 
+export const getSubscriptionPlan = (planName: string) => {
+  const normalizedName = planName.toUpperCase();
 
+  if (normalizedName.includes("PRO")) {
+    return SubscriptionPlan.ENTERPRISE;
+  } else if (normalizedName.includes("GROWTH")) {
+    return SubscriptionPlan.PRO;
+  } else if (normalizedName.includes("STARTER")) {
+    return SubscriptionPlan.BASIC;
+  }
+
+  return SubscriptionPlan.FREE;
+};
+
+export const getSubscriptionPlanName = (plan: SubscriptionPlan) => {
+  switch (plan) {
+    case SubscriptionPlan.ENTERPRISE:
+      return "Pro";
+    case SubscriptionPlan.PRO:
+      return "Growth";
+    case SubscriptionPlan.BASIC:
+      return "Starter";
+    default:
+      return "Free";
+  }
+};

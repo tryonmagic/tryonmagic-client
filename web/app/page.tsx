@@ -263,7 +263,11 @@ export default function Dashboard() {
                     <Text variant="bodySm" as="h4" alignment="center">
                       Need more credits?
                     </Text>
-                    <Button variant="plain" onClick={handleUpgradePlan}>
+                    <Button
+                      variant="plain"
+                      target="_top"
+                      url="https://admin.shopify.com/charges/tryonmagic/pricing_plans"
+                    >
                       Upgrade your plan
                     </Button>
                   </div>

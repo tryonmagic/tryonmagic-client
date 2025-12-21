@@ -1,3 +1,5 @@
+import { Subscription } from "@/lib/api/type";
+
 export interface User {
   id: string;
   firstName: string;
@@ -7,4 +9,5 @@ export interface User {
   emailVerified: boolean;
   createdAt: string;
   updatedAt: string;
+  subscription: Subscription;
 }

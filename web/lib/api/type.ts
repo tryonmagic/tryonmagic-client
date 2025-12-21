@@ -1,3 +1,7 @@
+import { SubscriptionPlan } from "@/app/purchase/type";
+import { User } from "@/types/user";
+import { SubscriptionStatus } from "./subscription-sync";
+
 export interface GenericAPIResponse<T = unknown> {
   code: number;
   status: string;
@@ -362,4 +366,19 @@ export function getPointsForTaskType(
     default:
       return 3;
   }
+}
+
+export interface Subscription {
+  id: string;
+  plan: SubscriptionPlan;
+  status: SubscriptionStatus;
+  pointsBalance: number;
+  pointsUsed: number;
+  pointsTotal: number;
+  monthlyPoints: number;
+  lastResetDate: string;
+  nextResetDate: string;
+  createdAt: string;
+  updatedAt: string;
+  expiresAt?: string | null;
 }

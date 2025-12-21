@@ -11,7 +11,7 @@ export const clientAPI = (sessionToken: string) => {
 };
 
 export const serverSideAPI = axios.create({
-  baseURL: process.env.API_URL,
+  baseURL: process.env.API_URL || "http://localhost:8000",
   headers: {
     "Content-Type": "application/json",
   },

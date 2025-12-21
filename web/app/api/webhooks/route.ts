@@ -9,6 +9,11 @@ import {
   redactShopData,
 } from "@/lib/db/gdpr-models";
 import crypto from "crypto";
+import {
+  syncSubscriptionWithBackend,
+  SubscriptionStatus,
+} from "@/lib/api/subscription-sync";
+import { SubscriptionPlan } from "@/app/purchase/type";
 
 /**
  * Verify the HMAC signature of the webhook request
@@ -226,6 +231,157 @@ async function handleAppUninstalled(shop: string, payload: any): Promise<void> {
 }
 
 /**
+ * Handle SUBSCRIPTION_CONTRACTS_CREATE webhook
+ * Triggered when a merchant subscribes to a new plan
+ */
+async function handleSubscriptionCreate(
+  shop: string,
+  payload: any,
+): Promise<void> {
+  console.log("Processing subscription/create webhook", {
+    shop,
+    subscriptionId: payload.admin_graphql_api_id,
+  });
+
+  try {
+    // Extract subscription details from webhook payload
+    const subscriptionId = payload.admin_graphql_api_id;
+    const status = mapShopifyStatusToInternal(payload.status);
+
+    // Map Shopify plan name to internal plan enum
+    const plan = mapShopifyPlanToInternal(payload.name || "FREE");
+
+    // Get billing cycle dates
+    const currentPeriodStart = payload.billing_policy?.interval_start_date;
+    const currentPeriodEnd = payload.next_billing_date;
+
+    // Create a session token for backend API call
+    // Note: For webhook calls, we need to use the offline access token
+    const session = await shopify().session.customAppSession(shop);
+    const sessionToken = session.accessToken || "";
+
+    // Sync with backend
+    await syncSubscriptionWithBackend(sessionToken, {
+      shopDomain: shop,
+      subscriptionId,
+      plan,
+      status,
+      currentPeriodStart,
+      currentPeriodEnd,
+      metadata: {
+        webhookPayload: payload,
+        eventType: "create",
+      },
+    });
+
+    console.log("Subscription create synced with backend:", {
+      shop,
+      subscriptionId,
+      plan,
+      status,
+    });
+  } catch (error) {
+    console.error("Error handling subscription/create:", error);
+    throw error;
+  }
+}
+
+/**
+ * Handle SUBSCRIPTION_CONTRACTS_UPDATE webhook
+ * Triggered when a merchant updates their subscription (upgrade/downgrade/cancel)
+ */
+async function handleSubscriptionUpdate(
+  shop: string,
+  payload: any,
+): Promise<void> {
+  console.log("Processing subscription/update webhook", {
+    shop,
+    subscriptionId: payload.admin_graphql_api_id,
+  });
+
+  try {
+    // Extract subscription details from webhook payload
+    const subscriptionId = payload.admin_graphql_api_id;
+    const status = mapShopifyStatusToInternal(payload.status);
+
+    // Map Shopify plan name to internal plan enum
+    const plan = mapShopifyPlanToInternal(payload.name || "FREE");
+
+    // Get billing cycle dates
+    const currentPeriodStart = payload.billing_policy?.interval_start_date;
+    const currentPeriodEnd = payload.next_billing_date;
+
+    // Create a session token for backend API call
+    const session = await shopify().session.customAppSession(shop);
+    const sessionToken = session.accessToken || "";
+
+    // Sync with backend
+    await syncSubscriptionWithBackend(sessionToken, {
+      shopDomain: shop,
+      subscriptionId,
+      plan,
+      status,
+      currentPeriodStart,
+      currentPeriodEnd,
+      metadata: {
+        webhookPayload: payload,
+        eventType: "update",
+      },
+    });
+
+    console.log("Subscription update synced with backend:", {
+      shop,
+      subscriptionId,
+      plan,
+      status,
+    });
+  } catch (error) {
+    console.error("Error handling subscription/update:", error);
+    throw error;
+  }
+}
+
+/**
+ * Map Shopify subscription status to internal status enum
+ */
+function mapShopifyStatusToInternal(shopifyStatus: string): SubscriptionStatus {
+  const statusMap: Record<string, SubscriptionStatus> = {
+    active: SubscriptionStatus.ACTIVE,
+    cancelled: SubscriptionStatus.CANCELLED,
+    paused: SubscriptionStatus.PAUSED,
+    expired: SubscriptionStatus.EXPIRED,
+    pending: SubscriptionStatus.PENDING,
+  };
+
+  return statusMap[shopifyStatus?.toLowerCase()] || SubscriptionStatus.PENDING;
+}
+
+/**
+ * Map Shopify plan name to internal SubscriptionPlan enum
+ * Adjust this mapping based on your actual Shopify plan names
+ */
+function mapShopifyPlanToInternal(planName: string): SubscriptionPlan {
+  const normalizedName = planName.toUpperCase();
+
+  // Map based on plan name keywords
+  if (normalizedName.includes("ENTERPRISE")) {
+    return SubscriptionPlan.ENTERPRISE;
+  } else if (
+    normalizedName.includes("PRO") ||
+    normalizedName.includes("PREMIUM")
+  ) {
+    return SubscriptionPlan.PRO;
+  } else if (
+    normalizedName.includes("BASIC") ||
+    normalizedName.includes("STANDARD")
+  ) {
+    return SubscriptionPlan.BASIC;
+  }
+
+  return SubscriptionPlan.FREE;
+}
+
+/**
  * Main webhook handler endpoint
  * Handles all webhook topics including mandatory GDPR webhooks
  */
@@ -289,6 +445,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
       case "APP_UNINSTALLED":
         await handleAppUninstalled(shop, payload);
+        break;
+
+      case "SUBSCRIPTION_CONTRACTS_CREATE":
+        await handleSubscriptionCreate(shop, payload);
+        break;
+
+      case "SUBSCRIPTION_CONTRACTS_UPDATE":
+        await handleSubscriptionUpdate(shop, payload);
         break;
 
       default:

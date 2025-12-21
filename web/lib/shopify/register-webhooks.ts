@@ -17,6 +17,20 @@ export function addHandlers() {
           await AppInstallations.delete(shop);
         },
       },
+      ["SUBSCRIPTION_CONTRACTS_CREATE"]: {
+        deliveryMethod: DeliveryMethod.Http,
+        callbackUrl: "/api/webhooks",
+        callback: async (_topic, shop, _body) => {
+          console.log("Subscription created for shop: " + shop);
+        },
+      },
+      ["SUBSCRIPTION_CONTRACTS_UPDATE"]: {
+        deliveryMethod: DeliveryMethod.Http,
+        callbackUrl: "/api/webhooks",
+        callback: async (_topic, shop, _body) => {
+          console.log("Subscription updated for shop: " + shop);
+        },
+      },
     });
     console.log("Added handlers");
     webhooksInitialized = true;
