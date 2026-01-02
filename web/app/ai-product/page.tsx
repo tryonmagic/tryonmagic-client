@@ -65,6 +65,9 @@ import {
   ImageGallery,
   ImageType,
 } from "@/lib/uploader/components/image-upload-manager";
+import { ShopifyImageActions } from "@/components/shopify/ShopifyImageActions";
+
+import toast from "react-hot-toast";
 
 // Enhanced product editing modes
 const editingModes = [
@@ -1270,8 +1273,7 @@ export default function AIProductPage() {
                     </Card>
                   )}
 
-                  {/* Actions */}
-                  <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex flex-row gap-4">
                     <Button
                       onClick={() => setActiveTab("edit")}
                       variant="outline"
@@ -1280,20 +1282,13 @@ export default function AIProductPage() {
                       <Settings className="mr-2 h-4 w-4" />
                       Adjust Settings
                     </Button>
-                    {/* <Button
-                      onClick={handleGenerate}
-                      className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-                    >
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Generate New Variants
-                    </Button> */}
-                    <Button
-                      onClick={() => handleDownload(generatedImages)}
-                      className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-                    >
-                      <Download className="mr-2 h-4 w-4" />
-                      Download
-                    </Button>
+
+                    <ShopifyImageActions
+                      filePrefix="ai-product"
+                      className="flex-1"
+                      images={generatedImages}
+                      selectedImageIndex={selectedImageIndex}
+                    />
                   </div>
                 </div>
               ) : null}

@@ -32,6 +32,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn, handleDownload, toCamelCase } from "@/lib/utils";
+import { ShopifyImageActions } from "@/components/shopify/ShopifyImageActions";
 import { newTask as upscaleImageTask } from "@/lib/api/tasks";
 import {
   getPointsForTaskType,
@@ -939,14 +940,10 @@ export default function UpscalePage() {
                         </div>
                       )}
 
-                      <div className="flex space-x-4">
-                        <Button
-                          onClick={() => setActiveTab("enhance")}
-                          variant="outline"
-                          className="flex-1"
-                        >
-                          Adjust Settings
-                        </Button>
+                      <ShopifyImageActions
+                        filePrefix="upscale-image"
+                        images={upscaledImage.url}
+                      >
                         <Button
                           onClick={handleReset}
                           variant="outline"
@@ -955,15 +952,7 @@ export default function UpscalePage() {
                           <Upload className="mr-2 h-4 w-4" />
                           New Image
                         </Button>
-                        <Button
-                          onClick={() => handleDownload(upscaledImage.url)}
-                          variant="outline"
-                          className="flex-1 bg-primary text-white"
-                        >
-                          <Download className="mr-2 h-4 w-4" />
-                          Download
-                        </Button>
-                      </div>
+                      </ShopifyImageActions>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center min-h-[500px]">

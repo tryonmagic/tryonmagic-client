@@ -29,6 +29,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn, handleDownload } from "@/lib/utils";
+import { ShopifyImageActions } from "@/components/shopify/ShopifyImageActions";
 import ImageUploader, {
   ImageInfo,
 } from "@/lib/uploader/components/ImageUploader";
@@ -1155,18 +1156,6 @@ export default function ExpandImagePage() {
                               </span>
                             </span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">
-                              Fill Style:
-                            </span>
-                            <span className="font-medium">
-                              {
-                                contentFillStyles.find(
-                                  (s) => s.id === fillStyle,
-                                )?.label
-                              }
-                            </span>
-                          </div>
                         </div>
                       </div>
 
@@ -1178,23 +1167,11 @@ export default function ExpandImagePage() {
                         >
                           Adjust Settings
                         </Button>
-                        <Button
-                          onClick={handleReset}
-                          variant="outline"
-                          className="flex-1"
-                        >
-                          <Upload className="mr-2 h-4 w-4" />
-                          New Image
-                        </Button>
-                        {/* download */}
-                        <Button
-                          onClick={() => handleDownload(expandedImage)}
-                          variant="outline"
-                          className="flex-1 bg-primary text-white"
-                        >
-                          <Download className="mr-2 h-4 w-4" />
-                          Download
-                        </Button>
+                        <ShopifyImageActions
+                          filePrefix="expand-image"
+                          images={expandedImage}
+                          selectedImageIndex={0}
+                        />
                       </div>
                     </div>
                   ) : (

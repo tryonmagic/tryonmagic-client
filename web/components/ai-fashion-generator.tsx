@@ -29,6 +29,7 @@ import {
 } from "@/lib/api/type";
 import EnhancedImage from "./ui/EnhanchedImage";
 import { AxiosError } from "axios";
+import { ShopifyImageActions } from "./shopify/ShopifyImageActions";
 
 const locations = [
   {
@@ -705,7 +706,7 @@ export default function AIFashionGenerator() {
             transition={{ duration: 0.5 }}
             className="flex flex-col items-center justify-center"
           >
-            <Card className="w-full max-w-2xl mx-auto overflow-hidden">
+            <Card className="w-full overflow-hidden">
               <CardContent className="p-6">
                 {isGenerating ? (
                   <div className="flex flex-col items-center justify-center min-h-[500px]">
@@ -740,29 +741,29 @@ export default function AIFashionGenerator() {
                   </div>
                 ) : generatedImage ? (
                   <div className="space-y-4">
-                    <EnhancedImage
-                      src={generatedImage}
-                      alt="Generated fashion model"
-                      className="w-full h-auto rounded-lg shadow-lg object-cover aspect-[3/4]"
-                      height={700}
-                      width={500}
-                    />
-
+                    <div className="flex justify-center">
+                      <EnhancedImage
+                        src={generatedImage}
+                        alt="Generated fashion model"
+                        // className="w-full h-auto rounded-lg shadow-lg object-cover aspect-[3/4]"
+                        height={400}
+                        width={400}
+                      />
+                    </div>
                     <div className="flex space-x-4">
                       <Button
                         onClick={handleReset}
-                        // variant="outline"
+                        variant="outline"
                         className="flex-1"
                       >
                         Modify Parameters
                       </Button>
-                      <Button
-                        onClick={handleGenerate}
-                        className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-                      >
-                        <Sparkles className="mr-2 h-4 w-4" />
-                        Generate New
-                      </Button>
+                      <ShopifyImageActions
+                        filePrefix="ai-models"
+                        className="flex-1"
+                        images={generatedImage}
+                        selectedImageIndex={0}
+                      />
                     </div>
                   </div>
                 ) : (

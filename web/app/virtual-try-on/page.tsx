@@ -40,6 +40,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cn, handleDownload } from "@/lib/utils";
+import { ShopifyImageActions } from "@/components/shopify/ShopifyImageActions";
 import { FilterProvider } from "@/components/model-filters/filter-context";
 import { FilterBar } from "@/components/model-filters/filter-bar";
 import EnhancedImage from "@/components/ui/EnhanchedImage";
@@ -936,15 +937,7 @@ export default function VirtualTryOnPage() {
                         )}
 
                         {/* Action buttons */}
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setActiveTab("config")}
-                          >
-                            <Settings className="mr-2 h-3 w-3" />
-                            Adjust Settings
-                          </Button>
+                        <div className="flex flex-wrap gap-2 ml-8">
                           <Button
                             variant="outline"
                             size="sm"
@@ -975,13 +968,14 @@ export default function VirtualTryOnPage() {
                               </>
                             )}
                           </Button>
-                          <Button
+                          <ShopifyImageActions
+                            filePrefix="vton"
+                            images={results}
+                            selectedImageIndex={results.findIndex(
+                              (r) => r === selectedResult,
+                            )}
                             size="sm"
-                            onClick={() => handleDownload(results)}
-                          >
-                            <Download className="mr-2 h-3 w-3" />
-                            Download {results.length > 1 ? "All" : "Result"}
-                          </Button>
+                          />
                         </div>
                       </div>
                     </CardContent>

@@ -40,6 +40,7 @@ import { WebSocketClient } from "@/socket";
 import { newTask } from "@/lib/api/tasks";
 import { AxiosError } from "axios";
 import { cn, handleDownload } from "@/lib/utils";
+import { ShopifyImageActions } from "@/components/shopify/ShopifyImageActions";
 import {
   ImageGallery,
   ImageType,
@@ -1207,12 +1208,11 @@ export default function MagicEraser() {
                     <Button variant="outline" onClick={resetImage}>
                       <Upload className="mr-2 h-4 w-4" /> Upload New Image
                     </Button>
-                    <Button
-                      variant="default"
-                      onClick={() => handleDownload(resultImage)}
-                    >
-                      <Download className="mr-2 h-4 w-4" /> Download Result
-                    </Button>
+                    <ShopifyImageActions
+                      filePrefix="magic-eraser"
+                      images={resultImage}
+                      selectedImageIndex={0}
+                    />
                   </div>
                 )}
 

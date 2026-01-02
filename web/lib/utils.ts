@@ -10,6 +10,9 @@ import {
   Wand2,
 } from "lucide-react";
 import { SubscriptionPlan } from "@/app/purchase/type";
+import { GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { s3 } from "@/app/api/images/service";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -171,4 +174,37 @@ export const getSubscriptionPlanName = (plan: SubscriptionPlan) => {
     default:
       return "Free";
   }
+};
+
+export const getImageFetchUrl = async (imageUrl: string) => {
+  if (imageUrl.startsWith("http")) {
+    return imageUrl;
+  }
+  const urlWithBucket = imageUrl?.replace("s3://", "").split("/");
+  if (!urlWithBucket) {
+    throw new Error("Invalid URL");
+  }
+  const Bucket = urlWithBucket.shift();
+  const Key = urlWithBucket.join("/");
+  const filename = Key.split("/").pop(); // Extract just the filename
+  const ext = filename?.split(".").pop()?.toLowerCase();
+
+  let contentType = "image/png";
+  if (ext === "jpg" || ext === "jpeg") contentType = "image/jpeg";
+  if (ext === "webp") contentType = "image/webp";
+
+  // Set signed URL to expire in 12 hours (43200 seconds)
+  // Also, set cache headers to allow client caching for 12 hours
+  const command = new GetObjectCommand({
+    Bucket,
+    Key,
+    ResponseContentDisposition: `attachment; filename="${filename}"`,
+    ResponseContentType: contentType,
+    ResponseCacheControl: "public, max-age=43200, immutable",
+  });
+
+  const url = await getSignedUrl(s3, command, {
+    expiresIn: 60 * 60 * 12,
+  });
+  return url;
 };

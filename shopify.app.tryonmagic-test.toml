@@ -22,7 +22,7 @@ uri = "/api/webhooks"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_customers,write_products"
+scopes = "read_customers,write_products,write_files,read_files"
 
 [auth]
 redirect_urls = ["https://whale-factor-emphasis-vanilla.trycloudflare.com/auth/callback", "https://whale-factor-emphasis-vanilla.trycloudflare.com/auth/shopify/callback", "https://whale-factor-emphasis-vanilla.trycloudflare.com/api/auth/callback"]

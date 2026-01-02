@@ -7,6 +7,8 @@ import {
   syncSubscriptionWithBackend,
 } from "@/lib/api/subscription-sync";
 import { getSubscriptionPlan } from "@/lib/utils";
+import { authenticateShopifyApp } from "../actions";
+import { useRouter, usePathname } from "next/navigation"; // Import useRouter and usePathname
 
 export default function SessionProvider({
   children,
@@ -15,11 +17,9 @@ export default function SessionProvider({
 }) {
   const app = useAppBridge();
 
-  // const router = useRouter();
-  // const pathname = usePathname(); // Get the current path
+  const router = useRouter();
+  const pathname = usePathname(); // Get the current path
 
-  // Sync subscription with backend on page load
-  // Fetch current subscription from Shopify via server-side query and sync with backend
   useEffect(() => {
     const syncSubscription = async () => {
       try {
@@ -69,42 +69,39 @@ export default function SessionProvider({
       }
     };
 
-    syncSubscription();
-  }, [app]);
-
-  // useEffect(() => {
-  //   app
-  //     .idToken()
-  //     .then((token) => {
-  //       if (!token) {
-  //         if (pathname !== "/") {
-  //           router.push("/");
-  //         }
-  //         return;
-  //       }
-  //       console.log("Token", token);
-  //       authenticateShopifyApp(token)
-  //         .then((data) => {
-  //           console.log("App authenticated");
-  //         })
-  //         .catch((error) => {
-  //           console.error("Error storing token", error);
-  //         });
-  //       // doWebhookRegistration(token)
-  //       //   .then(() => {
-  //       //     console.log("Webhook registered");
-  //       //   })
-  //       //   .catch((error) => {
-  //       //     console.error("Error registering webhook", error);
-  //       //   });
-  //     })
-  //     .catch((error) => {
-  //       console.error("Error fetching token", error);
-  //       if (pathname !== "/") {
-  //         router.push("/");
-  //       }
-  //     });
-  // }, [app, pathname, router]);
+    app
+      .idToken()
+      .then((token) => {
+        if (!token) {
+          if (pathname !== "/") {
+            router.push("/");
+          }
+          return;
+        }
+        console.log("Token", token);
+        authenticateShopifyApp(token)
+          .then((data) => {
+            console.log("App authenticated");
+            syncSubscription();
+          })
+          .catch((error) => {
+            console.error("Error storing token", error);
+          });
+        // doWebhookRegistration(token)
+        //   .then(() => {
+        //     console.log("Webhook registered");
+        //   })
+        //   .catch((error) => {
+        //     console.error("Error registering webhook", error);
+        //   });
+      })
+      .catch((error) => {
+        console.error("Error fetching token", error);
+        if (pathname !== "/") {
+          router.push("/");
+        }
+      });
+  }, [app, pathname, router]);
 
   return <>{children}</>;
 }

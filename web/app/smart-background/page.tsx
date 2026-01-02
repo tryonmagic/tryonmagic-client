@@ -22,7 +22,9 @@ import {
   RefreshCw,
   ChevronDown,
   ChevronUp,
+  Settings,
 } from "lucide-react";
+import { ShopifyImageActions } from "@/components/shopify/ShopifyImageActions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -873,6 +875,11 @@ export default function RemoveBGPage() {
                             AI-generated background.
                           </p>
                         </div>
+                        <ShopifyImageActions
+                          filePrefix="removed-bg"
+                          images={removedBgImage}
+                          selectedImageIndex={0}
+                        />
                       </div>
                     )}
                   </CardContent>
@@ -1530,16 +1537,13 @@ export default function RemoveBGPage() {
                           variant="outline"
                           className="flex-1"
                         >
-                          Try Different Background
+                          Try Again
                         </Button>
-                        <Button
-                          onClick={handleReset}
-                          variant="outline"
-                          className="flex-1"
-                        >
-                          <Upload className="mr-2 h-4 w-4" />
-                          New Image
-                        </Button>
+                        <ShopifyImageActions
+                          filePrefix="bg"
+                          images={finalImage}
+                          selectedImageIndex={0}
+                        />
                       </div>
                     </div>
                   ) : (
