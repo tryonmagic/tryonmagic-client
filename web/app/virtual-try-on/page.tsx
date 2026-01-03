@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -78,6 +78,7 @@ import {
 import ImageUploadDialog from "@/lib/uploader/components/image-upload-manager";
 import { AxiosError } from "axios";
 import toast from "react-hot-toast";
+import ShopifyFileBrowser from "@/components/shopify/ShopifyFileBrowser";
 
 export default function VirtualTryOnPage() {
   const [activeTab, setActiveTab] = useState("model");
@@ -92,7 +93,12 @@ export default function VirtualTryOnPage() {
   const appBridge = useAppBridge();
   const [garmentImage, setGarmentImage] = useState<string | null>(null);
   const [showImageGallery, setShowImageGallery] = useState(false);
-  const [galleryMode, setGalleryMode] = useState(false);
+  const [garmentSelectionMode, setGarmentSelectionMode] = useState<
+    "upload" | "gallery" | "shopify"
+  >("upload");
+  const [modelSelectionMode, setModelSelectionMode] = useState<
+    "gallery" | "upload" | "shopify"
+  >("gallery");
   const garmentFileInputRef = useRef<HTMLInputElement>(null);
   const [vtonError, setVtonError] = useState<string | null>(null);
 
@@ -429,100 +435,172 @@ export default function VirtualTryOnPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-6">
-                      {/* Filter controls */}
-                      <FilterProvider>
-                        <FilterBar />
-                        {/* Model gallery */}
-                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-1">
-                          {isFetching || isLoading ? (
-                            <div className="col-span-full text-center py-12">
-                              <Loader2 className="h-12 w-12 animate-spin text-purple-600 mx-auto mb-4" />
-                              <p className="text-slate-500 dark:text-slate-400">
-                                Loading models...
-                              </p>
-                            </div>
-                          ) : !aiModels?.results ||
-                            aiModels.results.length === 0 ? (
-                            <div className="col-span-full text-center py-12">
-                              <ImageIcon className="h-16 w-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-                              <p className="text-slate-500 dark:text-slate-400">
-                                No models available.
-                              </p>
-                            </div>
-                          ) : currentModels?.length === 0 ? (
-                            <div className="col-span-full text-center py-12">
-                              <ImageIcon className="h-16 w-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-                              <p className="text-slate-500 dark:text-slate-400">
-                                No models found matching your criteria.
-                              </p>
-                              <Button
-                                variant="outline"
-                                className="mt-4"
-                                onClick={() => setModelFilter("all")}
-                              >
-                                Clear filters
-                              </Button>
-                            </div>
-                          ) : (
-                            currentModels?.map((model) => (
-                              <div
-                                key={model.id}
-                                className={cn(
-                                  "relative h-40 rounded-md overflow-hidden cursor-pointer border-2 transition-all",
-                                  selectedModel === model.id
-                                    ? "border-purple-600 shadow-md"
-                                    : "border-transparent hover:border-slate-300 dark:hover:border-slate-700",
-                                )}
-                                onClick={() => {
-                                  setSelectedModel(model.id);
-                                  setUploadedModel(null);
-                                  setAiModelUploadedImageInfo(null);
-                                }}
-                              >
-                                <Image
-                                  src={
-                                    model.modelImageUrl || "/placeholder.svg"
-                                  }
-                                  alt={model.modelTitle}
-                                  fill
-                                  className="object-contain"
-                                />
-                                {selectedModel === model.id && (
-                                  <div className="absolute top-2 right-2 bg-purple-600 rounded-full p-1">
-                                    <CheckCircle2 className="h-4 w-4 text-white" />
-                                  </div>
-                                )}
-                              </div>
-                            ))
-                          )}
+                      {/* Model Mode Toggle */}
+                      <div className="flex items-center justify-center">
+                        <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                          <div className="flex flex-wrap gap-1 justify-center">
+                            <button
+                              onClick={() => {
+                                setModelSelectionMode("gallery");
+                                resetModel();
+                              }}
+                              className={cn(
+                                "px-4 py-2 rounded-md text-sm font-medium transition-all",
+                                modelSelectionMode === "gallery"
+                                  ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
+                                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100",
+                              )}
+                            >
+                              AI Model Gallery
+                            </button>
+                            <button
+                              onClick={() => {
+                                setModelSelectionMode("upload");
+                                resetModel();
+                              }}
+                              className={cn(
+                                "px-4 py-2 rounded-md text-sm font-medium transition-all",
+                                modelSelectionMode === "upload"
+                                  ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
+                                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100",
+                              )}
+                            >
+                              Upload New
+                            </button>
+                            <button
+                              onClick={() => {
+                                setModelSelectionMode("shopify");
+                                resetModel();
+                              }}
+                              className={cn(
+                                "px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2",
+                                modelSelectionMode === "shopify"
+                                  ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
+                                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100",
+                              )}
+                            >
+                              <Layers className="h-4 w-4" />
+                              Shopify
+                            </button>
+                          </div>
                         </div>
-                        <Pagination
-                          currentPage={currentPage}
-                          totalPages={totalPages}
-                          onPageChange={setCurrentPage}
+                      </div>
+
+                      {/* AI Gallery Mode */}
+                      {modelSelectionMode === "gallery" && (
+                        <div className="space-y-6">
+                          {/* Filter controls */}
+                          <FilterProvider>
+                            <FilterBar />
+                            {/* Model gallery */}
+                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-1">
+                              {isFetching || isLoading ? (
+                                <div className="col-span-full text-center py-12">
+                                  <Loader2 className="h-12 w-12 animate-spin text-purple-600 mx-auto mb-4" />
+                                  <p className="text-slate-500 dark:text-slate-400">
+                                    Loading models...
+                                  </p>
+                                </div>
+                              ) : !aiModels?.results ||
+                                aiModels.results.length === 0 ? (
+                                <div className="col-span-full text-center py-12">
+                                  <ImageIcon className="h-16 w-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+                                  <p className="text-slate-500 dark:text-slate-400">
+                                    No models available.
+                                  </p>
+                                </div>
+                              ) : currentModels?.length === 0 ? (
+                                <div className="col-span-full text-center py-12">
+                                  <ImageIcon className="h-16 w-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+                                  <p className="text-slate-500 dark:text-slate-400">
+                                    No models found matching your criteria.
+                                  </p>
+                                  <Button
+                                    variant="outline"
+                                    className="mt-4"
+                                    onClick={() => setModelFilter("all")}
+                                  >
+                                    Clear filters
+                                  </Button>
+                                </div>
+                              ) : (
+                                currentModels?.map((model) => (
+                                  <div
+                                    key={model.id}
+                                    className={cn(
+                                      "relative h-40 rounded-md overflow-hidden cursor-pointer border-2 transition-all",
+                                      selectedModel === model.id
+                                        ? "border-purple-600 shadow-md"
+                                        : "border-transparent hover:border-slate-300 dark:hover:border-slate-700",
+                                    )}
+                                    onClick={() => {
+                                      setSelectedModel(model.id);
+                                      setUploadedModel(null);
+                                      setAiModelUploadedImageInfo(null);
+                                    }}
+                                  >
+                                    <Image
+                                      src={
+                                        model.modelImageUrl ||
+                                        "/placeholder.svg"
+                                      }
+                                      alt={model.modelTitle}
+                                      fill
+                                      className="object-contain"
+                                    />
+                                    {selectedModel === model.id && (
+                                      <div className="absolute top-2 right-2 bg-purple-600 rounded-full p-1">
+                                        <CheckCircle2 className="h-4 w-4 text-white" />
+                                      </div>
+                                    )}
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                            <Pagination
+                              currentPage={currentPage}
+                              totalPages={totalPages}
+                              onPageChange={setCurrentPage}
+                            />
+                          </FilterProvider>
+                        </div>
+                      )}
+
+                      {/* Upload Mode */}
+                      {modelSelectionMode === "upload" && (
+                        <div className="py-12 flex items-center justify-center bg-slate-50 dark:bg-slate-900/50 rounded-lg border-2 border-dashed border-slate-200 dark:border-slate-800">
+                          <div className="text-center p-4">
+                            <ImageUploader
+                              onUploaded={handleAIModelImageUploaded}
+                              placeholder="Upload your own model"
+                              hideImagePreviewAfterUpload
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Shopify Mode */}
+                      {modelSelectionMode === "shopify" && (
+                        <ShopifyFileBrowser
+                          selectedImage={uploadedModel}
+                          setSelectedImage={(url) => {
+                            setUploadedModel(url);
+                            setSelectedModel(null);
+                            setAiModelUploadedImageInfo(null);
+                          }}
                         />
-                      </FilterProvider>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
               </div>
 
-              <div>
-                <div className="rounded-md border border-slate-200 dark:border-slate-700 flex items-center justify-center bg-white dark:bg-slate-800">
-                  <div className="text-center p-4">
-                    <ImageUploader
-                      onUploaded={handleAIModelImageUploaded}
-                      placeholder="Upload your own model"
-                      hideImagePreviewAfterUpload
-                    />
-                  </div>
-                </div>
-                <Card className="sticky mt-4">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      Preview
-                    </CardTitle>
-                    {/* <CardDescription>
+              <Card className="sticky mt-4">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    Preview
+                  </CardTitle>
+                  {/* <CardDescription>
                       Your selected model
                       {selectedModel && (
                         <p
@@ -538,21 +616,20 @@ export default function VirtualTryOnPage() {
                         </p>
                       )}
                     </CardDescription> */}
-                  </CardHeader>
-                  <CardContent className="h-[400px]">
-                    {(selectedModel || uploadedModel) && (
-                      <div className="relative h-full rounded-md border border-slate-200 dark:border-slate-700 overflow-hidden">
-                        <Image
-                          src={getModelSrc() || "/placeholder.svg"}
-                          alt="Selected model"
-                          fill
-                          className="object-contain"
-                        />
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
+                </CardHeader>
+                <CardContent className="h-[400px]">
+                  {(selectedModel || uploadedModel) && (
+                    <div className="relative h-full rounded-md border border-slate-200 dark:border-slate-700 overflow-hidden">
+                      <Image
+                        src={getModelSrc() || "/placeholder.svg"}
+                        alt="Selected model"
+                        fill
+                        className="object-contain"
+                      />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
 
@@ -581,12 +658,12 @@ export default function VirtualTryOnPage() {
                       {/* Mode Toggle */}
                       <div className="flex items-center justify-center">
                         <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
-                          <div className="flex">
+                          <div className="flex flex-wrap gap-1 justify-center">
                             <button
-                              onClick={() => setGalleryMode(false)}
+                              onClick={() => setGarmentSelectionMode("upload")}
                               className={cn(
                                 "px-4 py-2 rounded-md text-sm font-medium transition-all",
-                                !galleryMode
+                                garmentSelectionMode === "upload"
                                   ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
                                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100",
                               )}
@@ -594,22 +671,34 @@ export default function VirtualTryOnPage() {
                               Upload New
                             </button>
                             <button
-                              onClick={() => setGalleryMode(true)}
+                              onClick={() => setGarmentSelectionMode("gallery")}
                               className={cn(
                                 "px-4 py-2 rounded-md text-sm font-medium transition-all",
-                                galleryMode
+                                garmentSelectionMode === "gallery"
                                   ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
                                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100",
                               )}
                             >
                               Choose from Gallery
                             </button>
+                            <button
+                              onClick={() => setGarmentSelectionMode("shopify")}
+                              className={cn(
+                                "px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2",
+                                garmentSelectionMode === "shopify"
+                                  ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
+                                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100",
+                              )}
+                            >
+                              <Layers className="h-4 w-4" />
+                              Shopify
+                            </button>
                           </div>
                         </div>
                       </div>
 
                       {/* Upload Mode */}
-                      {!galleryMode && (
+                      {garmentSelectionMode === "upload" && (
                         <div className="h-56">
                           <ImageUploader
                             onUploaded={handleGarmentImageUploaded}
@@ -620,7 +709,7 @@ export default function VirtualTryOnPage() {
                       )}
 
                       {/* Gallery Mode */}
-                      {galleryMode && (
+                      {garmentSelectionMode === "gallery" && (
                         <div className="space-y-4">
                           <ImageGallery
                             hideUploadButton
@@ -633,6 +722,14 @@ export default function VirtualTryOnPage() {
                             onClose={() => setShowImageGallery(false)}
                           />
                         </div>
+                      )}
+
+                      {/* Shopify Mode */}
+                      {garmentSelectionMode === "shopify" && (
+                        <ShopifyFileBrowser
+                          selectedImage={garmentImage}
+                          setSelectedImage={setGarmentImage}
+                        />
                       )}
                     </div>
                   </CardContent>

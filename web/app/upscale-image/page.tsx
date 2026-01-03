@@ -19,6 +19,12 @@ import {
   Loader,
   RefreshCw,
   Download,
+  CheckCircle2,
+  Layers,
+  Settings,
+  ArrowRight,
+  XIcon,
+  ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -59,6 +65,7 @@ import {
   ImageType,
 } from "@/lib/uploader/components/image-upload-manager";
 import { ImagePreview } from "@/components/ui/ImagePreview";
+import ShopifyFileBrowser from "@/components/shopify/ShopifyFileBrowser";
 
 interface ExampleCardProps {
   title: string;
@@ -149,7 +156,9 @@ export default function UpscalePage() {
     "original" | "enhanced" | "comparison"
   >("comparison");
 
-  const [galleryMode, setGalleryMode] = useState(false);
+  const [selectionMode, setSelectionMode] = useState<
+    "upload" | "gallery" | "shopify"
+  >("upload");
 
   const onImageUploaded = (imageInfo: ImageInfo) => {
     setUploadedImageInfo(imageInfo);
@@ -382,6 +391,36 @@ export default function UpscalePage() {
     setActiveTab("enhance");
   };
 
+  const handleOnShopifyImageSelected = async (url: string) => {
+    const img = new window.Image();
+    img.src = url;
+
+    const [sizeRes] = await Promise.all([
+      fetch(url, { method: "HEAD" }).catch(() => null),
+      new Promise((resolve) => {
+        img.onload = resolve;
+        img.onerror = resolve;
+      }),
+    ]);
+
+    const size = parseInt(sizeRes?.headers.get("content-length") || "0");
+
+    handleImageSelected([
+      {
+        id: url,
+        url,
+        name: "Shopify Image",
+        originalUrl: url,
+        thumbnailUrl: url,
+        size: size,
+        type: "image/png",
+        tags: [],
+        uploadDate: new Date(),
+        width: img.naturalWidth || 1024,
+        height: img.naturalHeight || 1024,
+      },
+    ] as any);
+  };
   return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
@@ -438,10 +477,10 @@ export default function UpscalePage() {
                       <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                         <div className="flex">
                           <button
-                            onClick={() => setGalleryMode(false)}
+                            onClick={() => setSelectionMode("upload")}
                             className={cn(
                               "px-4 py-2 rounded-md text-sm font-medium transition-all",
-                              !galleryMode
+                              selectionMode === "upload"
                                 ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
                                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100",
                             )}
@@ -449,22 +488,34 @@ export default function UpscalePage() {
                             Upload New
                           </button>
                           <button
-                            onClick={() => setGalleryMode(true)}
+                            onClick={() => setSelectionMode("gallery")}
                             className={cn(
                               "px-4 py-2 rounded-md text-sm font-medium transition-all",
-                              galleryMode
+                              selectionMode === "gallery"
                                 ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
                                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100",
                             )}
                           >
                             Choose from Gallery
                           </button>
+                          <button
+                            onClick={() => setSelectionMode("shopify")}
+                            className={cn(
+                              "px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2",
+                              selectionMode === "shopify"
+                                ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
+                                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100",
+                            )}
+                          >
+                            <Layers className="h-4 w-4" />
+                            Shopify
+                          </button>
                         </div>
                       </div>
                     </div>
 
                     {/* Upload Mode */}
-                    {!galleryMode && (
+                    {selectionMode === "upload" && (
                       <div className="h-56">
                         <ImageUploader
                           onUploaded={onImageUploaded}
@@ -475,7 +526,7 @@ export default function UpscalePage() {
                     )}
 
                     {/* Gallery Mode */}
-                    {galleryMode && (
+                    {selectionMode === "gallery" && (
                       <div className="space-y-4">
                         <ImageGallery
                           hideUploadButton
@@ -485,9 +536,16 @@ export default function UpscalePage() {
                           maxRows={2}
                           imageSelectionLimit={1}
                           onSelected={handleImageSelected}
-                          // onClose={() => setShowImageGallery(false)}
                         />
                       </div>
+                    )}
+
+                    {/* Shopify Mode */}
+                    {selectionMode === "shopify" && (
+                      <ShopifyFileBrowser
+                        selectedImage={uploadedImageInfo?.previewImageUrl}
+                        setSelectedImage={handleOnShopifyImageSelected}
+                      />
                     )}
                   </div>
                 </CardContent>
