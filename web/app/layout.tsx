@@ -49,8 +49,7 @@ export default function RootLayout({
             <a href="/upscale-image">Upscale Image</a>
             <a href="/expand-image">Expand Image</a>
             <a href="/magic-eraser">Magic Eraser</a>
-            <a href="/usage">View Usage</a>
-            <a href="/billing">Billing</a>
+            <a href="/billing">Billing & Usages</a>
           </AppBridgeNavMenu>
           <ImagePreview />
         </Providers>

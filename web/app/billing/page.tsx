@@ -27,6 +27,7 @@ import { getSubscriptionPlan, getSubscriptionPlanName } from "@/lib/utils";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import CircularProgress from "@/components/ui/CircularProgress";
 import { getUserDetailsQuery } from "../queries";
+import Usages from "./usage/Usages";
 
 export default function BillingPage() {
   const app = useAppBridge();
@@ -141,108 +142,115 @@ export default function BillingPage() {
   const isActive = currentSubscription?.status === "ACTIVE";
 
   return (
-    <Page
-      title="Billing & Subscription"
-      subtitle="Manage your plan and billing details"
-      backAction={{ content: "Home", onAction: () => router.push("/") }}
-    >
-      {toastMessage && (
-        <Layout.Section>
-          <Banner
-            tone={toastMessage.error ? "critical" : "success"}
-            onDismiss={() => setToastMessage(null)}
-          >
-            <p>{toastMessage.content}</p>
-          </Banner>
-        </Layout.Section>
-      )}
+    <div className="px-8">
+      <Page
+        title="Billing & Subscription"
+        subtitle="Manage your plan and billing details"
+        backAction={{ content: "Home", onAction: () => router.push("/") }}
+        fullWidth
+      >
+        {toastMessage && (
+          <Layout.Section>
+            <Banner
+              tone={toastMessage.error ? "critical" : "success"}
+              onDismiss={() => setToastMessage(null)}
+            >
+              <p>{toastMessage.content}</p>
+            </Banner>
+          </Layout.Section>
+        )}
 
-      <Layout>
-        <Layout.Section>
-          <Card>
-            {isLoading ? (
-              <SkeletonBodyText lines={3} />
-            ) : (
-              <BlockStack gap="500">
-                {isRefetching && (
-                  <InlineStack align="center">
-                    <Spinner size="small" />
-                  </InlineStack>
-                )}
-                <BlockStack gap="200">
-                  <InlineStack align="space-between">
-                    <Text variant="headingMd" as="h2">
-                      Current Plan
+        <Layout>
+          <Layout.Section>
+            <Card>
+              {isLoading ? (
+                <SkeletonBodyText lines={3} />
+              ) : (
+                <BlockStack gap="500">
+                  {isRefetching && (
+                    <InlineStack align="center">
+                      <Spinner size="small" />
+                    </InlineStack>
+                  )}
+                  <BlockStack gap="200">
+                    <InlineStack align="space-between">
+                      <Text variant="headingMd" as="h2">
+                        Current Plan
+                      </Text>
+                      <Badge tone={isActive ? "success" : undefined}>
+                        {isActive ? "Active" : "Inactive"}
+                      </Badge>
+                    </InlineStack>
+                    <Text as="p" tone="subdued">
+                      You are currently subscribed to the{" "}
+                      <Text as="span" fontWeight="bold">
+                        {currentSubscription &&
+                          getSubscriptionPlanName(currentSubscription.plan)}
+                      </Text>{" "}
+                      plan.
                     </Text>
-                    <Badge tone={isActive ? "success" : undefined}>
-                      {isActive ? "Active" : "Inactive"}
-                    </Badge>
-                  </InlineStack>
-                  <Text as="p" tone="subdued">
-                    You are currently subscribed to the{" "}
-                    <Text as="span" fontWeight="bold">
-                      {currentSubscription &&
-                        getSubscriptionPlanName(currentSubscription.plan)}
-                    </Text>{" "}
-                    plan.
-                  </Text>
-                </BlockStack>
+                  </BlockStack>
 
-                <BlockStack gap="400">
-                  <InlineStack gap="400" wrap={false}>
-                    <div style={{ flex: 1 }}>
-                      <Card background="bg-surface-secondary">
-                        <BlockStack gap="100">
-                          <Text as="h3" variant="headingSm" tone="subdued">
-                            Points Balance
-                          </Text>
-                          <Text as="p" variant="headingLg">
-                            {currentSubscription?.pointsBalance || 0}
-                          </Text>
-                        </BlockStack>
-                      </Card>
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <Card background="bg-surface-secondary">
-                        <BlockStack gap="100">
-                          <Text as="h3" variant="headingSm" tone="subdued">
-                            Next Reset
-                          </Text>
-                          <Text as="p" variant="headingLg">
-                            {formatDate(currentSubscription?.nextResetDate)}
-                          </Text>
-                        </BlockStack>
-                      </Card>
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <Card background="bg-surface-secondary">
-                        <BlockStack gap="100">
-                          <Text as="h3" variant="headingSm" tone="subdued">
-                            Monthly Points
-                          </Text>
-                          <Text as="p" variant="headingLg">
-                            {currentSubscription?.monthlyPoints || 0}
-                          </Text>
-                        </BlockStack>
-                      </Card>
-                    </div>
+                  <BlockStack gap="400">
+                    <InlineStack gap="400" wrap={false}>
+                      <div style={{ flex: 1 }}>
+                        <Card background="bg-surface-secondary">
+                          <BlockStack gap="100">
+                            <Text as="h3" variant="headingSm" tone="subdued">
+                              Points Balance
+                            </Text>
+                            <Text as="p" variant="headingLg">
+                              {currentSubscription?.pointsBalance || 0}
+                            </Text>
+                          </BlockStack>
+                        </Card>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <Card background="bg-surface-secondary">
+                          <BlockStack gap="100">
+                            <Text as="h3" variant="headingSm" tone="subdued">
+                              Next Reset
+                            </Text>
+                            <Text as="p" variant="headingLg">
+                              {formatDate(currentSubscription?.nextResetDate)}
+                            </Text>
+                          </BlockStack>
+                        </Card>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <Card background="bg-surface-secondary">
+                          <BlockStack gap="100">
+                            <Text as="h3" variant="headingSm" tone="subdued">
+                              Monthly Points
+                            </Text>
+                            <Text as="p" variant="headingLg">
+                              {currentSubscription?.monthlyPoints || 0}
+                            </Text>
+                          </BlockStack>
+                        </Card>
+                      </div>
+                    </InlineStack>
+                  </BlockStack>
+
+                  <InlineStack align="end" gap="300">
+                    <Button
+                      variant="primary"
+                      target="_top"
+                      url="https://admin.shopify.com/charges/tryonmagic/pricing_plans"
+                    >
+                      {isFreePlan ? "Upgrade Plan" : "Manage Subscription"}
+                    </Button>
                   </InlineStack>
                 </BlockStack>
+              )}
+            </Card>
+          </Layout.Section>
 
-                <InlineStack align="end" gap="300">
-                  <Button
-                    variant="primary"
-                    target="_top"
-                    url="https://admin.shopify.com/charges/tryonmagic/pricing_plans"
-                  >
-                    {isFreePlan ? "Upgrade Plan" : "Manage Subscription"}
-                  </Button>
-                </InlineStack>
-              </BlockStack>
-            )}
-          </Card>
-        </Layout.Section>
-      </Layout>
-    </Page>
+          <Layout.Section>
+            <Usages />
+          </Layout.Section>
+        </Layout>
+      </Page>
+    </div>
   );
 }
