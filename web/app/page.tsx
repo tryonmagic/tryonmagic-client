@@ -15,9 +15,9 @@ import { useAuthenticatedQuery } from "@/lib/hooks/useAuthenticatedQuery";
 import CreditIcon from "@/icons/CreditIcon";
 import PlanIcon from "@/icons/PlanIcon";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
-import { getUsageHistory } from "./usage/queries";
 import { getPointsForTaskType, TaskType } from "@/lib/api/type";
 import { getSubscriptionPlanName } from "@/lib/utils";
+import { getUsageHistory } from "./billing/usage/queries";
 
 const tools = [
   {

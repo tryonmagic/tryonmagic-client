@@ -140,10 +140,6 @@ export const getToolIcon = (type: ToolType) => {
     case "REPLACE_BACKGROUND":
     case "Replace Background":
       return Eraser;
-    case TaskType.GENERATE_IMAGE:
-    case "GENERATE_IMAGE":
-    case "Generate Image":
-      return ImagePlus;
     default:
       return Sparkles;
   }

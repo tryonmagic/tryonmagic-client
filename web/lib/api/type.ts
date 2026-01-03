@@ -72,7 +72,7 @@ export const TaskStatusMessageMapping = {
 
 export enum TaskType {
   REMOVE_BACKGROUND = "REMOVE_BACKGROUND",
-  GENERATE_IMAGE = "GENERATE_IMAGE",
+  // GENERATE_IMAGE = "GENERATE_IMAGE",
   REPLACE_BACKGROUND = "REPLACE_BACKGROUND",
   GENERATE_AI_MODEL = "GENERATE_AI_MODEL",
   VTON = "VTON",
@@ -82,6 +82,18 @@ export enum TaskType {
   EDIT_IMAGE = "EDIT_IMAGE",
   PRODUCT_IMAGE_EDITING = "PRODUCT_IMAGE_EDITING",
 }
+
+export const TaskTypeLabel = {
+  [TaskType.REMOVE_BACKGROUND]: "Remove Background",
+  [TaskType.REPLACE_BACKGROUND]: "Replace Background",
+  [TaskType.GENERATE_AI_MODEL]: "AI Model",
+  [TaskType.VTON]: "VTON",
+  [TaskType.UPSCALE]: "Upscale",
+  [TaskType.ENHANCE]: "Enhance",
+  [TaskType.EXPAND_IMAGE]: "Expand Image",
+  [TaskType.EDIT_IMAGE]: "Edit Image",
+  [TaskType.PRODUCT_IMAGE_EDITING]: "Product Image Editing",
+};
 
 export interface Transaction {
   id: string;
@@ -361,8 +373,6 @@ export function getPointsForTaskType(
       }
       return 1;
     }
-    case TaskType.GENERATE_IMAGE:
-      return 2;
     default:
       return 3;
   }

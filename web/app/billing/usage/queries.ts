@@ -25,14 +25,24 @@ export const getTasks: AuthenticatedQueryFunction<
     {
       page: number;
       pageSize: number;
+      taskType?: string;
+      taskStatus?: string;
+      dateFrom?: string;
+      dateTo?: string;
     },
   ]
 > = async (token, queryKey) => {
-  const [, { page, pageSize }] = queryKey;
+  const [, { page, pageSize, taskType, taskStatus, dateFrom, dateTo }] =
+    queryKey;
   const params: Record<string, string | boolean | number | string[]> = {
     page,
     pageSize,
   };
+
+  if (taskType && taskType !== "all") params.taskType = taskType;
+  if (taskStatus && taskStatus !== "all") params.taskStatus = taskStatus;
+  if (dateFrom) params.dateFrom = dateFrom;
+  if (dateTo) params.dateTo = dateTo;
 
   const res = await clientAPI(token).get<SuccessWithPaginationResponse<Task>>(
     "/users/me/tasks",
