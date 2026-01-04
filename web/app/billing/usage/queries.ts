@@ -7,6 +7,7 @@ import {
 } from "@/lib/api/type";
 import { UsageSummary } from "./types";
 import { AuthenticatedQueryFunction } from "@/lib/hooks/useAuthenticatedQuery";
+import { AuthenticatedMutationFunction } from "@/lib/hooks/useAuthenticatedMutation";
 
 export const getUsageHistory: AuthenticatedQueryFunction<
   UsageSummary | null,
@@ -58,4 +59,16 @@ export const getTasks: AuthenticatedQueryFunction<
     totalPages: res.data.data.totalPages,
     totalResults: res.data.data.totalResults,
   };
+};
+
+export const submitTaskAudit: AuthenticatedMutationFunction<
+  GenericAPIResponse<null>,
+  { taskId: string; reason: string; isRefundRequested: boolean }
+> = async (token, variables) => {
+  const { taskId, reason, isRefundRequested } = variables;
+  const res = await clientAPI(token).post<GenericAPIResponse<null>>(
+    `/users/tasks/${taskId}/audit`,
+    { reason, isRefundRequested },
+  );
+  return res.data;
 };

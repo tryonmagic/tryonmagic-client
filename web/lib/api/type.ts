@@ -123,6 +123,24 @@ export interface Transaction {
   expiresAt?: string | null;
 }
 
+export enum AuditStatus {
+  PENDING = "PENDING",
+  RESOLVED = "RESOLVED",
+  REJECTED = "REJECTED",
+}
+
+export interface TaskAudit {
+  id: string;
+  taskId: string;
+  userId: string;
+  reason: string;
+  isRefundRequested: boolean;
+  adminFeedback?: string;
+  status: AuditStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Task<T = unknown> {
   id: string;
   type: TaskType;
@@ -137,6 +155,7 @@ export interface Task<T = unknown> {
   startedAt?: string | null;
   completedAt?: string | null;
   transactionHistory?: Transaction | null;
+  taskAudit?: TaskAudit | null;
 }
 
 export interface TaskProgress<T = unknown> {

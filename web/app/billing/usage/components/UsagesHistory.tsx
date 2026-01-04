@@ -1,8 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import Image from "next/image";
-import { ArrowRight, Download, Search, ChevronDown, View } from "lucide-react";
+import { imagePreviewAtom } from "@/app/atom";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,8 +10,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import Pagination from "@/components/ui/pagination";
 import {
   Select,
   SelectContent,
@@ -29,25 +29,27 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { getTasks } from "../queries";
+  AuditStatus,
+  Task,
+  TaskStatus,
+  TaskType,
+  TaskTypeLabel,
+} from "@/lib/api/type";
 import { useAuthenticatedQuery } from "@/lib/hooks/useAuthenticatedQuery";
 import {
+  cn,
   formatDate,
   getStatusBadgeVariant,
   getStatusText,
   getToolIcon,
   handleDownload,
 } from "@/lib/utils";
-import Pagination from "@/components/ui/pagination";
-import LoadingSpinner from "@/components/ui/LoadingSpinner";
-import { imagePreviewAtom } from "@/app/atom";
 import { useAtom } from "jotai";
-import { TaskStatus, TaskType, TaskTypeLabel } from "@/lib/api/type";
+import { Download, Flag, View, RotateCw } from "lucide-react";
+import Image from "next/image";
+import { useMemo, useState } from "react";
+import { getTasks } from "../queries";
+import { MagicAuditDialog } from "./MagicAuditDialog";
 
 const tasksPerPage = 10;
 
@@ -58,6 +60,7 @@ export default function UsagesHistory() {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [, setImagePreview] = useAtom(imagePreviewAtom);
 
   const { startDate: effectiveStart, endDate: effectiveEnd } = useMemo(() => {
@@ -96,6 +99,7 @@ export default function UsagesHistory() {
     data: tasks,
     isFetching: isFetchingTasks,
     isLoading: isLoadingTasks,
+    refetch,
   } = useAuthenticatedQuery({
     queryKey: [
       "users/me/tasks",
@@ -186,6 +190,18 @@ export default function UsagesHistory() {
                 <SelectItem value="custom">Custom Range</SelectItem>
               </SelectContent>
             </Select>
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => refetch()}
+              disabled={isFetchingTasks || isLoadingTasks}
+              title="Refresh data"
+            >
+              <RotateCw
+                className={`h-4 w-4 ${isFetchingTasks || isLoadingTasks ? "animate-spin" : ""}`}
+              />
+            </Button>
           </div>
 
           {dateRange === "custom" && (
@@ -300,6 +316,7 @@ export default function UsagesHistory() {
                           onClick={() =>
                             setImagePreview(item.resultData?.outputImageUrl)
                           }
+                          title="View image"
                         >
                           <View className="h-4 w-4" />
                         </Button>
@@ -309,8 +326,34 @@ export default function UsagesHistory() {
                           onClick={() =>
                             handleDownload(item.resultData?.outputImageUrl)
                           }
+                          title="Download"
                         >
                           <Download className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setSelectedTask(item)}
+                          title={
+                            item.taskAudit
+                              ? "View Audit Details"
+                              : "Magic Audit"
+                          }
+                          className="group"
+                        >
+                          <Flag
+                            className={cn(
+                              "h-4 w-4 transition-colors",
+                              !item.taskAudit &&
+                                "text-slate-400 group-hover:text-orange-400",
+                              item.taskAudit?.status === AuditStatus.PENDING &&
+                                "text-orange-500",
+                              item.taskAudit?.status === AuditStatus.RESOLVED &&
+                                "text-green-500",
+                              item.taskAudit?.status === AuditStatus.REJECTED &&
+                                "text-red-600",
+                            )}
+                          />
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -350,6 +393,11 @@ export default function UsagesHistory() {
           />
         </div>
       </CardContent>
+      <MagicAuditDialog
+        task={selectedTask}
+        onClose={() => setSelectedTask(null)}
+        onSuccess={() => refetch()}
+      />
     </Card>
   );
 }
