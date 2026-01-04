@@ -1,4 +1,4 @@
-import { SubscriptionPlan } from "../purchase/type";
+import { SubscriptionPlan } from "@/app/purchase/type";
 import { Task } from "@/lib/api/type";
 
 export interface UserSubscription {
