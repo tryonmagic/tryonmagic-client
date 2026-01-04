@@ -124,7 +124,7 @@ export default function Dashboard() {
               </Text>
             </div>
             <div className="flex justify-end flex-1 mr-8 mt-0">
-              <Link url="/usage">
+              <Link url="/billing">
                 <Button variant="primary" size="large">
                   View usages
                 </Button>
