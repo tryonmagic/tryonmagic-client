@@ -9,7 +9,7 @@ import {
 import { getSubscriptionPlan } from "@/lib/utils";
 import { authenticateShopifyApp } from "../actions";
 import { useRouter, usePathname } from "next/navigation"; // Import useRouter and usePathname
-import toast from "react-hot-toast";
+// import toast from "react-hot-toast";
 
 export default function SessionProvider({
   children,
@@ -33,14 +33,14 @@ export default function SessionProvider({
           await getCurrentShopifySubscription(sessionToken);
 
         if (!shopifySubscription) {
-          toast.success("Redirecting to Shopify billing page...");
-          // Only redirect once to avoid loops
-          if (!redirectAttempted.current) {
-            redirectAttempted.current = true;
+          // toast.success("Redirecting to Shopify billing page...");
+          // // Only redirect once to avoid loops
+          // if (!redirectAttempted.current) {
+          //   redirectAttempted.current = true;
 
-            window.location.href =
-              "https://admin.shopify.com/charges/tryonmagic/pricing_plans";
-          }
+          //   window.location.href =
+          //     "https://admin.shopify.com/charges/tryonmagic/pricing_plans";
+          // }
           return;
         }
 
