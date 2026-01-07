@@ -1,6 +1,6 @@
 "use client";
 import { useAppBridge } from "@shopify/app-bridge-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { getCurrentShopifySubscription } from "../billing/queries";
 import {
   SubscriptionStatus,
@@ -9,6 +9,7 @@ import {
 import { getSubscriptionPlan } from "@/lib/utils";
 import { authenticateShopifyApp } from "../actions";
 import { useRouter, usePathname } from "next/navigation"; // Import useRouter and usePathname
+import toast from "react-hot-toast";
 
 export default function SessionProvider({
   children,
@@ -19,6 +20,7 @@ export default function SessionProvider({
 
   const router = useRouter();
   const pathname = usePathname(); // Get the current path
+  const redirectAttempted = useRef(false); // Track if we've already attempted redirect
 
   useEffect(() => {
     const syncSubscription = async () => {
@@ -29,10 +31,16 @@ export default function SessionProvider({
         // Fetch current subscription from Shopify via server-side query
         const shopifySubscription =
           await getCurrentShopifySubscription(sessionToken);
-        console.log("Shopify subscription:", shopifySubscription);
 
         if (!shopifySubscription) {
-          console.log("No active Shopify subscription found");
+          toast.success("Redirecting to Shopify billing page...");
+          // Only redirect once to avoid loops
+          if (!redirectAttempted.current) {
+            redirectAttempted.current = true;
+
+            window.location.href =
+              "https://admin.shopify.com/charges/tryonmagic/pricing_plans";
+          }
           return;
         }
 
