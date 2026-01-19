@@ -40,7 +40,6 @@ export default function SessionProvider({
           await getCurrentShopifySubscription(sessionToken);
 
         if (!shopifySubscription) {
-          console.log("No active Shopify subscription found - requiring subscription");
           setSubscriptionState("none");
           setSubscription(null);
           return;
@@ -50,14 +49,12 @@ export default function SessionProvider({
         
         // Check if subscription status is ACTIVE
         if (subscription.status.toUpperCase() !== "ACTIVE") {
-          console.log("Subscription is not active:", subscription.status);
           setSubscriptionState("none");
           setSubscription(null);
           return;
         }
 
         // Subscription is active - set state
-        console.log("Active subscription found:", subscription.name);
         setSubscription(subscription);
         setShopDomain(shopifySubscription.shop);
         setSubscriptionState("active");
@@ -86,11 +83,11 @@ export default function SessionProvider({
             shopifySubscriptionId: subscription.id,
           },
         }).catch((error) => {
-          console.error("Error syncing subscription with backend:", error);
+          console.error("Error syncing subscription with backend:");
           // Don't fail the whole flow if backend sync fails
         });
       } catch (error) {
-        console.error("Error checking Shopify subscription:", error);
+        console.error("Error checking Shopify subscription:");
         setSubscriptionState("error");
       }
     };
@@ -102,7 +99,6 @@ export default function SessionProvider({
         const token = await app.idToken();
         
         if (!token) {
-          console.log("No session token available");
           if (pathname !== "/") {
             router.push("/");
           }
@@ -110,14 +106,12 @@ export default function SessionProvider({
           return;
         }
 
-        console.log("Session token obtained");
 
         // Authenticate the app first
         try {
-          await authenticateShopifyApp(token);
-          console.log("App authenticated successfully");
+          await authenticateShopifyApp(token);  
         } catch (error) {
-          console.error("Error authenticating app:", error);
+          console.error("Error authenticating app:");
           // Continue to check subscription even if auth fails
           // as the user might already be authenticated
         }
@@ -125,7 +119,7 @@ export default function SessionProvider({
         // Check and sync subscription
         await checkAndSyncSubscription(token);
       } catch (error) {
-        console.error("Error initializing session:", error);
+        console.error("Error initializing session:");
         if (pathname !== "/") {
           router.push("/");
         }

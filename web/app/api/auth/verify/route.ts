@@ -38,7 +38,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log("sessionToken", sessionToken);
 
     // Create a new request with the session token in the authorization header
     // This is required by the verifyRequest function
@@ -51,7 +50,6 @@ export async function GET(request: NextRequest) {
     modifiedRequest.headers.set("authorization", `Bearer ${sessionToken}`);
 
     // Verify the session token and get shop/access token
-    console.log("verifying session");
     const { shop, session } = await verifyRequest(modifiedRequest, true);
 
     if (!shop || !session.accessToken) {

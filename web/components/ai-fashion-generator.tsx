@@ -429,7 +429,6 @@ export default function AIFashionGenerator() {
 
       const websocket = new WebSocketClient(task.userId);
       websocket.on<TaskProgress>("task-progress-" + task.id, (data) => {
-        console.log("WebSocket data received:", data);
         setTaskProgress(data);
         if (data.status === TaskStatus.SUCCEEDED) {
           setIsGenerating(false);
@@ -443,7 +442,7 @@ export default function AIFashionGenerator() {
         }
       });
     } catch (error) {
-      console.error("Error generating fashion model:", error);
+      console.error("Error generating fashion model:");
       setIsGenerating(false);
       setTaskProgress(null);
       setGeneratedImage("");

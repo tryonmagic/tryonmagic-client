@@ -45,11 +45,9 @@ export const AppInstallationsClient = {
       }
 
       const data = await response.json();
-      console.log(
-        `Deleted ${data.sessionsDeleted || 0} sessions for shop: ${shopDomain}`,
-      );
+
     } catch (error) {
-      console.error("Error deleting app installation:", error);
+      console.error("Error deleting app installation:");
       throw error;
     }
   },
@@ -76,9 +74,9 @@ export const AppInstallationsClient = {
         );
       }
 
-      console.log(`App installed for shop: ${shopDomain}`);
+      console.log(`App installed for shop:`);
     } catch (error) {
-      console.error("Error creating app installation:", error);
+      console.error("Error creating app installation:");
       throw error;
     }
   },

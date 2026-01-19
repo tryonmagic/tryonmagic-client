@@ -9,5 +9,4 @@ const apiKey = process.env.SHOPIFY_API_KEY || "";
  */
 export async function storeSession(session: ShopifySession) {
   const data = await serverSideAPI.post("/auth/store-shopify-token", session);
-  console.log({ data: data.data });
 }

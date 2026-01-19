@@ -13,7 +13,7 @@ export function addHandlers() {
         deliveryMethod: DeliveryMethod.Http,
         callbackUrl: "/api/webhooks",
         callback: async (_topic, shop, _body) => {
-          console.log("Uninstalled app from shop: " + shop);
+          console.log("Uninstalled app from shop:");
           await AppInstallations.delete(shop);
         },
       },
@@ -21,14 +21,14 @@ export function addHandlers() {
         deliveryMethod: DeliveryMethod.Http,
         callbackUrl: "/api/webhooks",
         callback: async (_topic, shop, _body) => {
-          console.log("Subscription created for shop: " + shop);
+          console.log("Subscription created for shop:");
         },
       },
       ["SUBSCRIPTION_CONTRACTS_UPDATE"]: {
         deliveryMethod: DeliveryMethod.Http,
         callbackUrl: "/api/webhooks",
         callback: async (_topic, shop, _body) => {
-          console.log("Subscription updated for shop: " + shop);
+          console.log("Subscription updated for shop:");
         },
       },
     });
@@ -42,5 +42,5 @@ export function addHandlers() {
 export async function registerWebhooks(session: Session) {
   addHandlers();
   const responses = await shopify().webhooks.register({ session });
-  console.log("Webhooks added", responses);
+  console.log("Webhooks added");
 }

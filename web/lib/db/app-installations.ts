@@ -9,7 +9,7 @@ export const AppInstallations = {
     try {
       return await AppInstallationsClient.includes(shopDomain);
     } catch (error) {
-      console.error("Error checking app installation:", error);
+      console.error("Error checking app installation:");
       return false;
     }
   },
@@ -18,7 +18,7 @@ export const AppInstallations = {
     try {
       await AppInstallationsClient.delete(shopDomain);
     } catch (error) {
-      console.error("Error deleting app installation:", error);
+      console.error("Error deleting app installation:");
       throw error;
     }
   },
@@ -27,7 +27,7 @@ export const AppInstallations = {
     try {
       await AppInstallationsClient.create(shopDomain, installData);
     } catch (error) {
-      console.error("Error creating app installation:", error);
+      console.error("Error creating app installation:");
       throw error;
     }
   },

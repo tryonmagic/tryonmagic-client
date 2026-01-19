@@ -153,7 +153,6 @@ export default function VirtualTryOnPage() {
   const totalModels = aiModels?.totalResults || 0;
   const totalPages = aiModels?.totalPages || 0;
   const currentModels = aiModels?.results ?? [];
-  console.log({ aiModels });
 
   const handleAIModelImageUploaded = (imageInfo: ImageInfo) => {
     setAiModelUploadedImageInfo(imageInfo);
@@ -248,7 +247,7 @@ export default function VirtualTryOnPage() {
       websocket.on<TaskProgress<VtonTaskResultData>>(
         "task-progress-" + task.id,
         (data) => {
-          console.log("WebSocket data received:", data);
+          console.log("WebSocket data received:");
           setTaskProgress(data);
           if (data.status === TaskStatus.SUCCEEDED) {
             setActiveTab("results");
@@ -268,7 +267,7 @@ export default function VirtualTryOnPage() {
         },
       );
     } catch (error) {
-      console.error("Error processing virtual try-on:", error);
+      console.error("Error processing virtual try-on:");
       setIsProcessing(false);
       setTaskProgress(null);
       const errorMessage =
@@ -316,7 +315,6 @@ export default function VirtualTryOnPage() {
 
   // Get the current garment image source
   const getGarmentSrc = () => {
-    console.log("garmentImage", garmentImage);
     return garmentImage!;
   };
 
@@ -344,7 +342,6 @@ export default function VirtualTryOnPage() {
     const selectedImages = images.filter((img) =>
       selectedImageIds.includes(img.id),
     );
-    console.log({ selectedImages });
   };
 
   return (

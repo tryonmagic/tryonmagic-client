@@ -51,14 +51,13 @@ export const syncSubscriptionWithBackend = async (
   syncData: SubscriptionSyncRequest,
 ): Promise<SubscriptionSyncResponse> => {
   try {
-    console.log("Syncing subscription with backend:", syncData);
     const response = await clientAPI(token).post<
       GenericAPIResponse<SubscriptionSyncResponse>
     >("subscription/shopify/sync", syncData);
 
     return response.data.data || { success: false };
   } catch (error) {
-    console.error("Error syncing subscription with backend:", error);
+    console.error("Error syncing subscription with backend:");
     throw error;
   }
 };
@@ -77,7 +76,7 @@ export const getSubscriptionStatus = async (
 
     return response.data.data || { success: false };
   } catch (error) {
-    console.error("Error getting subscription status:", error);
+    console.error("Error getting subscription status:");
     throw error;
   }
 };

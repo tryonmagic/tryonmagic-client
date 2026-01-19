@@ -253,7 +253,6 @@ export default function PurchasePage() {
       // setIsProcessing(false);
       // setPurchaseComplete(true);
     } catch (error) {
-      console.error(error);
       let message = "Failed to purchase points";
       if (error instanceof AxiosError) {
         message = error.response?.data?.message || message;

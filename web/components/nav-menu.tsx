@@ -59,8 +59,6 @@ export function NavMenu() {
                   key={link.href}
                   href={link.href}
                   onClick={() => {
-                    console.log("Link clicked 1", window.location.host);
-                    console.log("Link clicked 2", link.href);
                     window.location.href = link.href;
                   }}
                   className={cn(

@@ -48,11 +48,6 @@ export async function verifyRequest(
     req.headers.get("authorization");
 
   const _sessionToken = sessionToken ?? bearerToken?.replace("Bearer ", "");
-  console.log({
-    sessionToken,
-    bearerToken,
-    _sessionToken,
-  });
   if (!_sessionToken) {
     throw new Error("No bearer or session token present");
   }

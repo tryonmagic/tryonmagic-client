@@ -625,7 +625,7 @@ export default function AIProductPage() {
       websocket.on<TaskProgress<ProductImageEditTaskResultData>>(
         "task-progress-" + task.id,
         (data) => {
-          console.log("WebSocket data received:", data);
+          console.log("WebSocket data received:");
           setTaskProgress(data);
 
           if (data.status === TaskStatus.SUCCEEDED) {
@@ -648,7 +648,7 @@ export default function AIProductPage() {
             setError(
               "Generation failed. Please try again with different settings.",
             );
-            console.error("Task failed:", data);
+            console.error("Task failed:");
           }
         },
       );

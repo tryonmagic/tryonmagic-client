@@ -81,7 +81,6 @@ export default function ShopifyFileBrowser({
         }
       }
     } catch (error) {
-      console.error("Shopify Selection Error:", error);
       toast.error("Failed to select product from Shopify");
     }
   };

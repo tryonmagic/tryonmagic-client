@@ -283,7 +283,7 @@ export default function ExpandImagePage() {
       }
       const websocket = new WebSocketClient(task.userId);
       websocket.on<TaskProgress>("task-progress-" + task.id, async (data) => {
-        console.log("WebSocket data received:", data);
+        console.log("WebSocket data received:");
         setTaskProgress(data);
         if (data.status === TaskStatus.SUCCEEDED) {
           setIsProcessing(false);
@@ -301,7 +301,6 @@ export default function ExpandImagePage() {
           setError(
             "Image expansion failed. Please try again with different settings.",
           );
-          console.error("Task failed:", data);
         }
       });
     } catch (error) {

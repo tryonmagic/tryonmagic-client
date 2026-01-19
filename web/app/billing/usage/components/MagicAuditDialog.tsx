@@ -39,7 +39,6 @@ export function MagicAuditDialog({
 
   const taskId = task?.id || null;
   const existingAudit = task?.taskAudit;
-  console.log("existingAudit", existingAudit);
 
   const { mutate: submitAudit, isPending } = useAuthenticatedMutation({
     mutationFn: (

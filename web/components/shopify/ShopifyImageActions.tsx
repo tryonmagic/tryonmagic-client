@@ -76,7 +76,7 @@ export function ShopifyImageActions({
         id: toastId,
       });
     } catch (error) {
-      console.error("Upload error:", error);
+      console.error("Upload error:");
       toast.error(error instanceof Error ? error.message : "Failed to upload", {
         id: toastId,
       });
@@ -141,7 +141,6 @@ export function ShopifyImageActions({
         id: toastId,
       });
     } catch (error) {
-      console.error("Attachment error:", error);
       if (toastId) {
         toast.error(
           error instanceof Error ? error.message : "Failed to attach image",

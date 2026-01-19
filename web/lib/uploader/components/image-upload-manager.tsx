@@ -493,7 +493,6 @@ export function ImageGallery({
   const handleSearchWithDebounce = useMemo(
     () =>
       debounce((value: string) => {
-        console.log("value", value);
         setSearchQuery(value);
         setCurrentPage(1);
       }, 300),

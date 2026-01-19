@@ -32,11 +32,11 @@ export async function getCurrentShopifySubscription(
     );
 
     if (!session || !session.accessToken) {
-      console.error("No valid session found for shop:", shop);
+      console.error("No valid session found for shop:");
       return null;
     }
 
-    console.log("Session created, access token exists:", !!session.accessToken);
+    console.log("Session created, access token exists:");
 
     // Create GraphQL client using the correct Shopify API method
     const GraphqlClient = shopify().clients.Graphql;
@@ -62,7 +62,7 @@ export async function getCurrentShopifySubscription(
       data: query,
     });
 
-    console.log("Shopify GraphQL response:", JSON.stringify(response, null, 2));
+    console.log("Shopify GraphQL response:");
 
     // Handle response structure
     const data = response.body || response.data || response;
@@ -71,11 +71,11 @@ export async function getCurrentShopifySubscription(
       data?.currentAppInstallation?.activeSubscriptions;
 
     if (!activeSubscriptions || activeSubscriptions.length === 0) {
-      console.log("No active subscriptions found for shop:", shop);
+      console.log("No active subscriptions found for shop:");
       return null;
     }
 
-    console.log("Found active subscriptions:", activeSubscriptions.length);
+    console.log("Found active subscriptions:");
 
     // Return the first active subscription
     return {
@@ -83,10 +83,9 @@ export async function getCurrentShopifySubscription(
       shop,
     };
   } catch (error) {
-    console.error("Error fetching Shopify subscription:", error);
+    console.error("Error fetching Shopify subscription:");
     if (error instanceof Error) {
-      console.error("Error message:", error.message);
-      console.error("Error stack:", error.stack);
+      console.error("Error message:");
     }
     return null;
   }

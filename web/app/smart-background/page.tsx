@@ -365,7 +365,6 @@ export default function RemoveBGPage() {
 
       const websocket = new WebSocketClient(task.userId);
       websocket.on<TaskProgress>("task-progress-" + task.id, (data) => {
-        console.log("WebSocket data received:", data);
         setTaskProgress(data);
         if (data.status === TaskStatus.SUCCEEDED) {
           setRemovedBgImage(data.resultData?.outputImageUrl || null);
@@ -428,7 +427,6 @@ export default function RemoveBGPage() {
       }
       const websocket = new WebSocketClient(task.userId);
       websocket.on<TaskProgress>("task-progress-" + task.id, (data) => {
-        console.log("WebSocket data received:", data);
         setTaskProgress(data);
         if (data.status === TaskStatus.SUCCEEDED) {
           setActiveTab("result");
@@ -491,7 +489,6 @@ export default function RemoveBGPage() {
       const imageUrl = replaceBgSelectedImage
         ? `${CDN_URL}?url=${encodeURIComponent(replaceBgSelectedImage)}`
         : customImageUrl;
-      console.log(imageUrl);
       return {
         backgroundImage: `url(${imageUrl})`,
         backgroundSize: "cover",
@@ -1126,7 +1123,6 @@ export default function RemoveBGPage() {
                                 maxRows={2}
                                 imageSelectionLimit={1}
                                 onSelected={(images) => {
-                                  console.log(images);
                                   setReplaceBgSelectedImage(images[0].url);
                                   setCustomImageUrl("");
                                 }}
@@ -1356,7 +1352,7 @@ export default function RemoveBGPage() {
                                     fill
                                     className="object-cover"
                                     onError={(e) => {
-                                      console.error("Image failed to load:", e);
+                                      console.error("Image failed to load:");
                                     }}
                                     onLoad={() => {
                                       console.log("Image loaded successfully");

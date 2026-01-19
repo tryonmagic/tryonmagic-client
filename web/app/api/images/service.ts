@@ -30,7 +30,6 @@ export const s3 = new S3({
   endpoint: process.env.S3_ENDPOINT,
 });
 
-console.log(process.env);
 
 const S3_BUCKET = process.env.S3_BUCKET;
 

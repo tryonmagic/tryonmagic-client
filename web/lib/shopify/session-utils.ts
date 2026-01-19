@@ -28,7 +28,7 @@ export async function getSessionToken(): Promise<string | null> {
     }
     return null;
   } catch (error) {
-    console.error("Error getting session token:", error);
+    console.error("Error getting session token:");
     return null;
   }
 }
@@ -119,7 +119,7 @@ export async function getSessionInfo(
 
     return sessionInfo;
   } catch (error) {
-    console.error("Error getting session info:", error);
+    console.error("Error getting session info:");
     clearSessionToken();
     return null;
   }
@@ -141,7 +141,7 @@ export function createAuthHeaders(
  * Handle session errors and redirect to auth if needed
  */
 export function handleSessionError(error: Error): void {
-  console.error("Session error:", error);
+  console.error("Session error:");
 
   // Clear invalid session
   clearSessionToken();

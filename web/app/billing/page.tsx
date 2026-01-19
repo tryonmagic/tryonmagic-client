@@ -61,7 +61,6 @@ export default function BillingPage() {
         // Fetch current subscription from Shopify via server-side query
         const shopifySubscription =
           await getCurrentShopifySubscription(sessionToken);
-        console.log("Shopify subscription:", shopifySubscription);
 
         if (!shopifySubscription) {
           console.log("No active Shopify subscription found");
@@ -96,14 +95,10 @@ export default function BillingPage() {
           },
         });
 
-        console.log("Shopify subscription synced with backend:", {
-          id: subscription.id,
-          name: subscription.name,
-          status: subscription.status,
-        });
+        console.log("Shopify subscription synced with backend:");
         refetch();
       } catch (error) {
-        console.error("Error syncing Shopify subscription:", error);
+        console.error("Error syncing Shopify subscription:");
         // Silently fail - don't block UI if sync fails
       }
     };

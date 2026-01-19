@@ -249,7 +249,6 @@ export default function UpscalePage() {
 
       const websocket = new WebSocketClient(task.userId);
       websocket.on<TaskProgress>("task-progress-" + task.id, async (data) => {
-        console.log("WebSocket data received:", data);
         setTaskProgress(data);
         if (data.status === TaskStatus.SUCCEEDED) {
           setIsProcessing(false);
@@ -261,7 +260,6 @@ export default function UpscalePage() {
             const dimension = await getImageDimensions(
               data.resultData.outputImageUrl,
             );
-            console.log("Image dimensions:", dimension);
             setUpscaledImage({
               url: data.resultData.outputImageUrl,
               width: dimension.width,

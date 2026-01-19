@@ -278,7 +278,6 @@ export class Uploader {
           this.sendNextPart();
         })
         .catch((error) => {
-          console.log(error);
           const retryCount = this.partsRetryAttempts[part.partNumber] ?? 0;
           if (retryCount >= this.multiPartUploadOptions.partRetryCount) {
             this.abort();
