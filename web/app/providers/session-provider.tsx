@@ -8,8 +8,8 @@ import {
 } from "@/lib/api/subscription-sync";
 import { getSubscriptionPlan } from "@/lib/utils";
 import { authenticateShopifyApp } from "../actions";
-import { useRouter, usePathname } from "next/navigation"; // Import useRouter and usePathname
-// import toast from "react-hot-toast";
+import { useRouter, usePathname } from "next/navigation";
+import { useSubscription } from "./subscription-context";
 
 export default function SessionProvider({
   children,
@@ -17,32 +17,50 @@ export default function SessionProvider({
   children: React.ReactNode;
 }) {
   const app = useAppBridge();
-
   const router = useRouter();
-  const pathname = usePathname(); // Get the current path
-  const redirectAttempted = useRef(false); // Track if we've already attempted redirect
+  const pathname = usePathname();
+  const checkAttempted = useRef(false);
+
+  const {
+    setSubscriptionState,
+    setSubscription,
+    setShopDomain,
+  } = useSubscription();
 
   useEffect(() => {
-    const syncSubscription = async () => {
-      try {
-        // Get session token for authentication
-        const sessionToken = await app.idToken();
+    // Prevent multiple checks
+    if (checkAttempted.current) {
+      return;
+    }
 
+    const checkAndSyncSubscription = async (sessionToken: string) => {
+      try {
         // Fetch current subscription from Shopify via server-side query
         const shopifySubscription =
           await getCurrentShopifySubscription(sessionToken);
 
         if (!shopifySubscription) {
-          // toast.success("Redirecting to Shopify billing page...");
-          // // Only redirect once to avoid loops
-          // if (!redirectAttempted.current) {
-          //   redirectAttempted.current = true;
-
-          //   window.location.href =
-          //     "https://admin.shopify.com/charges/tryonmagic/pricing_plans";
-          // }
+          console.log("No active Shopify subscription found - requiring subscription");
+          setSubscriptionState("none");
+          setSubscription(null);
           return;
         }
+
+        const subscription = shopifySubscription.subscription;
+        
+        // Check if subscription status is ACTIVE
+        if (subscription.status.toUpperCase() !== "ACTIVE") {
+          console.log("Subscription is not active:", subscription.status);
+          setSubscriptionState("none");
+          setSubscription(null);
+          return;
+        }
+
+        // Subscription is active - set state
+        console.log("Active subscription found:", subscription.name);
+        setSubscription(subscription);
+        setShopDomain(shopifySubscription.shop);
+        setSubscriptionState("active");
 
         // Map Shopify status to internal status enum
         const statusMap: Record<string, SubscriptionStatus> = {
@@ -53,11 +71,8 @@ export default function SessionProvider({
           PENDING: SubscriptionStatus.PENDING,
         };
 
-        const token = await app.idToken();
-        const subscription = shopifySubscription.subscription;
-
-        // Sync Shopify subscription with backend
-        await syncSubscriptionWithBackend(token, {
+        // Sync Shopify subscription with backend (non-blocking)
+        syncSubscriptionWithBackend(sessionToken, {
           shopDomain: shopifySubscription.shop,
           subscriptionId: subscription.id,
           plan: getSubscriptionPlan(subscription.name),
@@ -67,49 +82,66 @@ export default function SessionProvider({
           currentPeriodStart: subscription.createdAt,
           currentPeriodEnd: subscription.currentPeriodEnd || undefined,
           metadata: {
-            source: "billing_page_server_query",
+            source: "session_provider_sync",
             shopifySubscriptionId: subscription.id,
           },
+        }).catch((error) => {
+          console.error("Error syncing subscription with backend:", error);
+          // Don't fail the whole flow if backend sync fails
         });
       } catch (error) {
-        console.error("Error syncing Shopify subscription:", error);
-        // Silently fail - don't block UI if sync fails
+        console.error("Error checking Shopify subscription:", error);
+        setSubscriptionState("error");
       }
     };
 
-    app
-      .idToken()
-      .then((token) => {
+    const initializeSession = async () => {
+      checkAttempted.current = true;
+      
+      try {
+        const token = await app.idToken();
+        
         if (!token) {
+          console.log("No session token available");
           if (pathname !== "/") {
             router.push("/");
           }
+          setSubscriptionState("error");
           return;
         }
-        console.log("Token", token);
-        authenticateShopifyApp(token)
-          .then((data) => {
-            console.log("App authenticated");
-            syncSubscription();
-          })
-          .catch((error) => {
-            console.error("Error storing token", error);
-          });
-        // doWebhookRegistration(token)
-        //   .then(() => {
-        //     console.log("Webhook registered");
-        //   })
-        //   .catch((error) => {
-        //     console.error("Error registering webhook", error);
-        //   });
-      })
-      .catch((error) => {
-        console.error("Error fetching token", error);
+
+        console.log("Session token obtained");
+
+        // Authenticate the app first
+        try {
+          await authenticateShopifyApp(token);
+          console.log("App authenticated successfully");
+        } catch (error) {
+          console.error("Error authenticating app:", error);
+          // Continue to check subscription even if auth fails
+          // as the user might already be authenticated
+        }
+
+        // Check and sync subscription
+        await checkAndSyncSubscription(token);
+      } catch (error) {
+        console.error("Error initializing session:", error);
         if (pathname !== "/") {
           router.push("/");
         }
-      });
-  }, [app, pathname, router]);
+        setSubscriptionState("error");
+      }
+    };
+
+    initializeSession();
+  }, [
+    app,
+    pathname,
+    router,
+    setSubscriptionState,
+    setSubscription,
+    setShopDomain,
+  ]);
 
   return <>{children}</>;
 }
