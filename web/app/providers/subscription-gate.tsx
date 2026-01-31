@@ -13,10 +13,7 @@ import {
   Banner,
   Box,
 } from "@shopify/polaris";
-import {
-  useSubscription,
-  SHOPIFY_BILLING_URL,
-} from "./subscription-context";
+import { useSubscription, SHOPIFY_BILLING_URL } from "./subscription-context";
 
 /**
  * SubscriptionGate component
@@ -31,23 +28,20 @@ import {
 export function SubscriptionGate({ children }: { children: React.ReactNode }) {
   const { subscriptionState } = useSubscription();
 
-
-
-  // Loading state - show spinner while checking subscription
+  // Loading state - do not block rendering
   if (subscriptionState === "loading") {
     return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "100vh",
-          flexDirection: "column",
-          gap: "1rem",
-        }}
-      >
-        <Spinner size="large" />
-      </div>
+      <>
+        <div style={{ padding: "1rem" }}>
+          <Banner tone="info">
+            <InlineStack gap="200" align="center">
+              <Spinner size="small" />
+              <span>Checking subscription...</span>
+            </InlineStack>
+          </Banner>
+        </div>
+        {children}
+      </>
     );
   }
 
@@ -57,7 +51,6 @@ export function SubscriptionGate({ children }: { children: React.ReactNode }) {
       <div style={{ padding: "2rem" }}>
         <Page>
           <Layout>
-
             <Layout.Section>
               <Card>
                 <BlockStack gap="500">

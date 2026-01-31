@@ -25,9 +25,15 @@ export default function SessionProvider({
     setSubscriptionState,
     setSubscription,
     setShopDomain,
+    hasCheckedSubscription,
+    setHasCheckedSubscription,
   } = useSubscription();
 
   useEffect(() => {
+    if (hasCheckedSubscription) {
+      return;
+    }
+
     // Prevent multiple checks
     if (checkAttempted.current) {
       return;
@@ -42,15 +48,17 @@ export default function SessionProvider({
         if (!shopifySubscription) {
           setSubscriptionState("none");
           setSubscription(null);
+          setHasCheckedSubscription(true);
           return;
         }
 
         const subscription = shopifySubscription.subscription;
-        
+
         // Check if subscription status is ACTIVE
         if (subscription.status.toUpperCase() !== "ACTIVE") {
           setSubscriptionState("none");
           setSubscription(null);
+          setHasCheckedSubscription(true);
           return;
         }
 
@@ -58,6 +66,7 @@ export default function SessionProvider({
         setSubscription(subscription);
         setShopDomain(shopifySubscription.shop);
         setSubscriptionState("active");
+        setHasCheckedSubscription(true);
 
         // Map Shopify status to internal status enum
         const statusMap: Record<string, SubscriptionStatus> = {
@@ -89,27 +98,28 @@ export default function SessionProvider({
       } catch (error) {
         console.error("Error checking Shopify subscription:");
         setSubscriptionState("error");
+        setHasCheckedSubscription(true);
       }
     };
 
     const initializeSession = async () => {
       checkAttempted.current = true;
-      
+
       try {
         const token = await app.idToken();
-        
+
         if (!token) {
           if (pathname !== "/") {
             router.push("/");
           }
           setSubscriptionState("error");
+          setHasCheckedSubscription(true);
           return;
         }
 
-
         // Authenticate the app first
         try {
-          await authenticateShopifyApp(token);  
+          await authenticateShopifyApp(token);
         } catch (error) {
           console.error("Error authenticating app:");
           // Continue to check subscription even if auth fails
@@ -124,17 +134,20 @@ export default function SessionProvider({
           router.push("/");
         }
         setSubscriptionState("error");
+        setHasCheckedSubscription(true);
       }
     };
 
     initializeSession();
   }, [
     app,
+    hasCheckedSubscription,
     pathname,
     router,
     setSubscriptionState,
     setSubscription,
     setShopDomain,
+    setHasCheckedSubscription,
   ]);
 
   return <>{children}</>;
