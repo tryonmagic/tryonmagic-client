@@ -28,23 +28,6 @@ import { useSubscription, SHOPIFY_BILLING_URL } from "./subscription-context";
 export function SubscriptionGate({ children }: { children: React.ReactNode }) {
   const { subscriptionState } = useSubscription();
 
-  // Loading state - do not block rendering
-  if (subscriptionState === "loading") {
-    return (
-      <>
-        <div style={{ padding: "1rem" }}>
-          <Banner tone="info">
-            <InlineStack gap="200" align="center">
-              <Spinner size="small" />
-              <span>Checking subscription...</span>
-            </InlineStack>
-          </Banner>
-        </div>
-        {children}
-      </>
-    );
-  }
-
   // No subscription - show subscription required page
   if (subscriptionState === "none") {
     return (
