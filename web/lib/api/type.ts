@@ -87,7 +87,7 @@ export const TaskTypeLabel = {
   [TaskType.REMOVE_BACKGROUND]: "Remove Background",
   [TaskType.REPLACE_BACKGROUND]: "Replace Background",
   [TaskType.GENERATE_AI_MODEL]: "AI Model",
-  [TaskType.VTON]: "VTON",
+  [TaskType.VTON]: "Garments Studio",
   [TaskType.UPSCALE]: "Upscale",
   [TaskType.ENHANCE]: "Enhance",
   [TaskType.EXPAND_IMAGE]: "Expand Image",
