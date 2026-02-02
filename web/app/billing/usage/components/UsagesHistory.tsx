@@ -256,7 +256,7 @@ export default function UsagesHistory() {
                       <TableCell>
                         <div className="flex items-center">
                           <Icon className="h-4 w-4 mr-2 text-purple-600 dark:text-purple-400" />
-                          <span>{item.type}</span>
+                          <span>{TaskTypeLabel[item.type] || item.type}</span>
                         </div>
                       </TableCell>
                       <TableCell>
