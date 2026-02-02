@@ -43,7 +43,7 @@ export default function RootLayout({
               TryOnMagic
             </a>
             <a href="/ai-model">AI Model</a>
-            <a href="/virtual-try-on">Virtual Try-On</a>
+            <a href="/garments-studio">Garments Studio</a>
             <a href="/ai-product">AI Product</a>
             <a href="/smart-background">Smart Background</a>
             <a href="/upscale-image">Upscale Image</a>
