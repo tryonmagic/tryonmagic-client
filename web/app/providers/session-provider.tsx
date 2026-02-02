@@ -30,15 +30,6 @@ export default function SessionProvider({
   } = useSubscription();
 
   useEffect(() => {
-    if (hasCheckedSubscription) {
-      return;
-    }
-
-    // Prevent multiple checks
-    if (checkAttempted.current) {
-      return;
-    }
-
     const checkAndSyncSubscription = async (sessionToken: string) => {
       try {
         // Fetch current subscription from Shopify via server-side query
@@ -102,32 +93,12 @@ export default function SessionProvider({
       }
     };
 
-    const initializeSession = async () => {
+    const initializeSession = async (sessionToken: string) => {
       checkAttempted.current = true;
 
       try {
-        const token = await app.idToken();
-
-        if (!token) {
-          if (pathname !== "/") {
-            router.push("/");
-          }
-          setSubscriptionState("error");
-          setHasCheckedSubscription(true);
-          return;
-        }
-
-        // Authenticate the app first
-        try {
-          await authenticateShopifyApp(token);
-        } catch (error) {
-          console.error("Error authenticating app:");
-          // Continue to check subscription even if auth fails
-          // as the user might already be authenticated
-        }
-
         // Check and sync subscription
-        await checkAndSyncSubscription(token);
+        await checkAndSyncSubscription(sessionToken);
       } catch (error) {
         console.error("Error initializing session:");
         if (pathname !== "/") {
@@ -137,8 +108,36 @@ export default function SessionProvider({
         setHasCheckedSubscription(true);
       }
     };
+    const checkToken = async () => {
+      const token = await app.idToken();
 
-    initializeSession();
+      if (!token) {
+        if (pathname !== "/") {
+          router.push("/");
+        }
+        setSubscriptionState("error");
+        setHasCheckedSubscription(true);
+        // return;
+      }
+
+      try {
+        await authenticateShopifyApp(token);
+      } catch (error) {
+        console.error("Error authenticating app:", error);
+      }
+
+      if (hasCheckedSubscription) {
+        return;
+      }
+
+      // Prevent multiple checks
+      if (checkAttempted.current) {
+        return;
+      }
+
+      initializeSession(token);
+    };
+    checkToken();
   }, [
     app,
     hasCheckedSubscription,
