@@ -182,7 +182,7 @@ export default function VirtualTryOnPage() {
     setSeed(Math.floor(Math.random() * 1000000));
   };
 
-  // Process the virtual try-on
+  // Process the Garments Studio render
   const processVirtualTryOn = async (defaultSeed = 42) => {
     if ((!selectedModel && !uploadedModel) || !garmentImage) {
       return;
@@ -258,7 +258,7 @@ export default function VirtualTryOnPage() {
               setSelectedResult(data.resultData?.outputImageUrl[0] ?? null);
             }, 200);
           } else if (data.status === TaskStatus.FAILED) {
-            const errorMessage = "Virtual try-on failed. Please try again.";
+            const errorMessage = "Garments Studio failed. Please try again.";
             setVtonError(errorMessage);
             toast.error(errorMessage);
             setIsProcessing(false);
@@ -267,13 +267,13 @@ export default function VirtualTryOnPage() {
         },
       );
     } catch (error) {
-      console.error("Error processing virtual try-on:");
+      console.error("Error processing Garments Studio:");
       setIsProcessing(false);
       setTaskProgress(null);
       const errorMessage =
         error instanceof AxiosError
           ? error.response?.data?.message ||
-            "Failed to process virtual try-on. Please try again."
+            "Failed to process Garments Studio. Please try again."
           : "An unexpected error occurred. Please try again.";
       setVtonError(errorMessage);
     }
@@ -356,7 +356,7 @@ export default function VirtualTryOnPage() {
           </Button>
           <div>
             <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
-              Virtual Try-On
+              Garments Studio
             </h1>
             <p className="text-slate-600 dark:text-slate-400">
               Try clothes on virtual models with AI-powered fitting
@@ -841,7 +841,7 @@ export default function VirtualTryOnPage() {
                     ) : (
                       <>
                         <Wand2 className="mr-2 h-4 w-4" />
-                        {`${getPointsForTaskType(TaskType.VTON)} Credits • Generate Virtual Try-On`}
+                        {`${getPointsForTaskType(TaskType.VTON)} Credits • Try Garments Studio`}
                       </>
                     )}
                   </Button>
@@ -907,7 +907,7 @@ export default function VirtualTryOnPage() {
                   <div className="mb-8 text-center">
                     <Loader2 className="h-12 w-12 animate-spin text-purple-600 mx-auto mb-4" />
                     <h3 className="text-xl font-medium mb-2">
-                      Processing Virtual Try-On
+                      Processing Garments Studio
                     </h3>
                     <p className="text-slate-500 dark:text-slate-400 max-w-md mx-auto">
                       Our AI is fitting the garment to your model. This may take
@@ -931,7 +931,8 @@ export default function VirtualTryOnPage() {
                     {progress >= 60 &&
                       progress < 90 &&
                       "Adjusting details and lighting..."}
-                    {progress >= 90 && "Finalizing the virtual try-on..."}
+                    {progress >= 90 &&
+                      "Finalizing the Garments Studio render..."}
                   </div>
                 </CardContent>
               </Card>
@@ -941,7 +942,7 @@ export default function VirtualTryOnPage() {
                   <div className="mb-8 text-center">
                     <XIcon className="h-12 w-12 text-red-500 mx-auto mb-4" />
                     <h3 className="text-xl font-medium mb-2">
-                      Virtual Try-On Failed
+                      Garments Studio Failed
                     </h3>
                     <p className="text-red-500 dark:text-red-300 max-w-md mx-auto">
                       {vtonError}
@@ -974,7 +975,7 @@ export default function VirtualTryOnPage() {
                           {selectedResult && (
                             <EnhancedImage
                               src={getResultSrc() || "/placeholder.svg"}
-                              alt="Virtual try-on result"
+                              alt="Garments Studio result"
                               width={500}
                               height={500}
                               className="w-full h-full object-contain"
@@ -1192,7 +1193,7 @@ export default function VirtualTryOnPage() {
                   <ImageIcon className="h-16 w-16 text-slate-300 dark:text-slate-600 mb-4" />
                   <h3 className="text-xl font-medium mb-2">No Results Yet</h3>
                   <p className="text-slate-500 dark:text-slate-400 text-center max-w-md">
-                    Configure your virtual try-on settings and generate results
+                    Configure your Garments Studio settings and generate results
                     to see them here.
                   </p>
                   <Button className="mt-4" onClick={handleReset}>
@@ -1205,7 +1206,7 @@ export default function VirtualTryOnPage() {
             {/* How it works section */}
             <Card>
               <CardHeader>
-                <CardTitle>How Virtual Try-On Works</CardTitle>
+                <CardTitle>How Garments Studio Works</CardTitle>
                 <CardDescription>
                   Understanding the AI-powered fitting process
                 </CardDescription>

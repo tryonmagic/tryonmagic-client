@@ -26,7 +26,7 @@ const navLinks = [
   { href: "/", label: "TryOnMagic", isHome: true },
   { href: "/ai-model", label: "AI Model" },
   { href: "/ai-product", label: "AI Product" },
-  { href: "/virtual-try-on", label: "Virtual Try-On" },
+  { href: "/garments-studio", label: "Garments Studio" },
   { href: "/remove-bg", label: "Remove BG" },
   { href: "/upscale", label: "Upscale" },
   // { href: "/relight", label: "Relight" },

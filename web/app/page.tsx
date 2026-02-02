@@ -389,7 +389,7 @@ export default function Dashboard() {
                   }}
                 >
                   <Text variant="headingMd" as="h3" fontWeight="bold">
-                    Virtual Try-On for your clothes
+                    Garments Studio for your clothes
                   </Text>
                   <div
                     style={{
@@ -421,9 +421,9 @@ export default function Dashboard() {
                       </div>
                     ))}
                   </div>
-                  <Link url="/virtual-try-on">
+                  <Link url="/garments-studio">
                     <Button variant="primary">
-                      {`${getPointsForTaskType(TaskType.VTON)} Credits • Try Virtual Try-On`}
+                      {`${getPointsForTaskType(TaskType.VTON)} Credits • Garments Studio`}
                     </Button>
                   </Link>
                 </div>

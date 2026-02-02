@@ -147,10 +147,10 @@ const toolUsage: ToolUsage[] = [
     description: "Remove image backgrounds with precision",
   },
   {
-    tool: "Virtual Try-On",
+    tool: "Garments Studio",
     icon: Shirt,
     pointsPerUse: 3,
-    description: "Try on clothes virtually with AI technology",
+    description: "Try on clothes with AI technology",
   },
   {
     tool: "Upscale Image",

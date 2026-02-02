@@ -35,7 +35,7 @@ const changelogEntries: ChangelogEntry[] = [
       {
         type: "feature",
         description:
-          "Virtual Try-On functionality with AI-generated and custom model support",
+          "Garments Studio - cloths try on functionality with AI-generated and custom model support",
       },
       {
         type: "feature",
@@ -91,7 +91,7 @@ const changelogEntries: ChangelogEntry[] = [
     changes: [
       {
         type: "improvement",
-        description: "Enhanced Virtual Try-On processing speed by 40%",
+        description: "Enhanced Garments Studio processing speed by 40%",
       },
       {
         type: "improvement",

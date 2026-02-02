@@ -70,7 +70,7 @@ export default function PrivacyPolicyPage() {
                 </Text>
                 <ul style={{ paddingLeft: "1.5rem", marginTop: "0.5rem" }}>
                   <li>Product images you upload</li>
-                  <li>Model images for virtual try-on</li>
+                  <li>Model images for garments studio</li>
                   <li>Generated and processed images</li>
                   <li>Image metadata and processing parameters</li>
                 </ul>
@@ -87,7 +87,7 @@ export default function PrivacyPolicyPage() {
                 <ul style={{ paddingLeft: "1.5rem", marginTop: "0.5rem" }}>
                   <li>
                     Provide, maintain, and improve our AI-powered image editing
-                    and virtual try-on services
+                    and garments studio services
                   </li>
                   <li>Process your images and generate AI-enhanced content</li>
                   <li>Manage your account, subscriptions, and credits</li>

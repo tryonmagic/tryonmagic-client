@@ -22,7 +22,7 @@ interface FAQItem {
 const faqCategories = [
   "General",
   "Credits & Billing",
-  "Virtual Try-On",
+  "Garments Studio",
   "AI Tools",
   "Technical Support",
 ];
@@ -33,7 +33,7 @@ const faqs: FAQItem[] = [
     category: "General",
     question: "What is TryOnMagic?",
     answer:
-      "TryOnMagic is an AI-powered Shopify app that helps merchants create professional product visuals without expensive photo shoots. Our tools include virtual try-on, AI model generation, product image editing, background removal, image upscaling, and more.",
+      "TryOnMagic is an AI-powered Shopify app that helps merchants create professional product visuals without expensive photo shoots. Our tools include Garments Studio, AI model generation, product image editing, background removal, image upscaling, and more.",
   },
   {
     category: "General",
@@ -77,7 +77,7 @@ const faqs: FAQItem[] = [
     category: "Credits & Billing",
     question: "Can I use my credits across different tools?",
     answer:
-      "Yes! Your credits can be used across any of our AI tools. Each tool requires a different number of credits per use, giving you the flexibility to use them however you need. For example, Virtual Try-On costs 3 credits, while Smart Background costs 1 credit.",
+      "Yes! Your credits can be used across any of our AI tools. Each tool requires a different number of credits per use, giving you the flexibility to use them however you need. For example, Garments Studio costs 3 credits, while Smart Background costs 1 credit.",
   },
   {
     category: "Credits & Billing",
@@ -104,36 +104,36 @@ const faqs: FAQItem[] = [
       "We accept all major credit cards (Visa, Mastercard, American Express, Discover), PayPal, and Apple Pay. All payments are processed securely through Shopify's billing system.",
   },
 
-  // Virtual Try-On
+  // Garments Studio
   {
-    category: "Virtual Try-On",
-    question: "What is Virtual Try-On?",
+    category: "Garments Studio",
+    question: "What is Garments Studio?",
     answer:
-      "Virtual Try-On allows you to showcase your clothing products on AI-generated or custom uploaded models. This helps customers visualize how your products will look when worn, increasing confidence and potentially boosting sales.",
+      "Garments Studio allows you to showcase your clothing products on AI-generated or custom uploaded models. This helps customers visualize how your products will look when worn, increasing confidence and potentially boosting sales.",
   },
   {
-    category: "Virtual Try-On",
-    question: "What types of clothing can I use with Virtual Try-On?",
+    category: "Garments Studio",
+    question: "What types of clothing can I use with Garments Studio?",
     answer:
-      "Virtual Try-On supports tops, bottoms, dresses, and full outfits. The tool works best with clear product images on plain backgrounds. For best results, ensure your clothing items are well-lit and clearly visible.",
+      "Garments Studio supports tops, bottoms, dresses, and full outfits. The tool works best with clear product images on plain backgrounds. For best results, ensure your clothing items are well-lit and clearly visible.",
   },
   {
-    category: "Virtual Try-On",
+    category: "Garments Studio",
     question: "Can I use my own model images?",
     answer:
       "Yes! You can upload your own model images or choose from our diverse AI-generated model gallery. Our AI model gallery includes models with various ethnicities, body types, ages, and skin tones to help you represent diverse customers.",
   },
   {
-    category: "Virtual Try-On",
-    question: "How long does Virtual Try-On take?",
+    category: "Garments Studio",
+    question: "How long does Garments Studio take?",
     answer:
-      "Processing time varies depending on the complexity and selected mode (balanced, quality, or speed). Typically, a virtual try-on takes 1-3 minutes. You can track progress in real-time through the app interface.",
+      "Processing time varies depending on the complexity and selected mode (balanced, quality, or speed). Typically, a Garments Studio render takes 1-3 minutes. You can track progress in real-time through the app interface.",
   },
   {
-    category: "Virtual Try-On",
+    category: "Garments Studio",
     question: "What image quality can I expect?",
     answer:
-      "Our Virtual Try-On produces high-quality images suitable for e-commerce. The quality depends on your input images and selected processing mode. We recommend using high-resolution product images (minimum 1000x1000 pixels) for best results.",
+      "Garments Studio produces high-quality images suitable for e-commerce. The quality depends on your input images and selected processing mode. We recommend using high-resolution product images (minimum 1000x1000 pixels) for best results.",
   },
 
   // AI Tools
@@ -141,7 +141,7 @@ const faqs: FAQItem[] = [
     category: "AI Tools",
     question: "What AI tools are available?",
     answer:
-      "TryOnMagic offers multiple AI-powered tools: Virtual Try-On (3 credits), AI Model Generation (2 credits), AI Product Editing (3 credits), Smart Background (1 credit), Image Upscaling (1 credit), Image Expansion (2 credits), and Magic Eraser (2 credits).",
+      "TryOnMagic offers multiple AI-powered tools: Garments Studio (3 credits), AI Model Generation (2 credits), AI Product Editing (3 credits), Smart Background (1 credit), Image Upscaling (1 credit), Image Expansion (2 credits), and Magic Eraser (2 credits).",
   },
   {
     category: "AI Tools",
@@ -177,7 +177,7 @@ const faqs: FAQItem[] = [
     category: "AI Tools",
     question: "Can I generate AI models?",
     answer:
-      "Yes! Our AI Model Generation tool lets you create diverse fashion models with customizable appearance including ethnicity, gender, age, and skin tone. Generated models can be used for virtual try-on or exported for product visualization.",
+      "Yes! Our AI Model Generation tool lets you create diverse fashion models with customizable appearance including ethnicity, gender, age, and skin tone. Generated models can be used for Garments Studio or exported for product visualization.",
   },
 
   // Technical Support
