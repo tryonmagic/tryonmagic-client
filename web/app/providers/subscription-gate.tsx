@@ -18,6 +18,7 @@ import { useSubscription, SHOPIFY_BILLING_URL } from "./subscription-context";
 /**
  * SubscriptionGate component
  *
+ *
  * This component acts as a gatekeeper that ensures users have an active
  * Shopify subscription before they can access the app.
  *
