@@ -3,6 +3,7 @@ import { Metadata } from "next";
 import "./globals.css";
 import { NavMenu as AppBridgeNavMenu } from "@shopify/app-bridge-react";
 import { ImagePreview } from "@/components/ui/ImagePreview";
+import { TwakChatProvider } from "./providers/twakchat";
 
 export const metadata: Metadata = {
   title: "Next.js Shopify App",
@@ -53,6 +54,7 @@ export default function RootLayout({
           </AppBridgeNavMenu>
           <ImagePreview />
         </Providers>
+        <TwakChatProvider />
       </body>
     </html>
   );
